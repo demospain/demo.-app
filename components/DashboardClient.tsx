@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import UploadTrack from '@/components/UploadTrack'
 import AudioPlayer from '@/components/AudioPlayer'
@@ -42,9 +42,8 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
   const [activeProject, setActiveProject]   = useState<Project | null>(null)
   const [activeSource, setActiveSource]     = useState<'mine' | 'saved'>('mine')
   const [tracks, setTracks]                 = useState<Track[]>([])
-  const [playingTrack, setPlayingTrack] = useState<Track | null>(null)
-  const playTrack = (track: Track) => setPlayingTrack(track)
-  const closePlayer = () => setPlayingTrack(null)  const [copied, setCopied]                 = useState(false)
+  const [playingTrack, setPlayingTrack]     = useState<Track | null>(null)
+  const [copied, setCopied]                 = useState(false)
   const [tab, setTab]                       = useState<'projects' | 'library'>('projects')
   const supabase = createClient()
 
@@ -144,8 +143,11 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
 
           {/* Columna izquierda */}
           <div className="flex flex-col gap-4">
-            <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center">
-              <div className="text-6xl opacity-30">💿</div>
+            <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden">
+              {activeProject.cover_url
+                ? <img src={activeProject.cover_url} alt="" className="w-full h-full object-cover"/>
+                : <div className="text-6xl opacity-30">💿</div>
+              }
             </div>
 
             <div>
@@ -159,7 +161,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
               </div>
             </div>
 
-            {/* Visibilidad — solo si es mío */}
             {isMine && (
               <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
                 <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Visibilidad</p>
@@ -187,7 +188,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
               </div>
             )}
 
-            {/* Botón compartir */}
             {isMine && (activeProject.visibility === 'link' || activeProject.visibility === 'public') && (
               <button
                 onClick={handleCopyLink}
@@ -216,7 +216,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
               </button>
             )}
 
-            {/* Etiqueta guardado — si es de biblioteca */}
             {!isMine && (
               <div className="flex items-center gap-2 px-3 py-2 bg-[#7C6FFF]/5 border border-[#7C6FFF]/15 rounded-xl">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -229,8 +228,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
 
           {/* Columna derecha */}
           <div className="flex flex-col gap-4">
-
-            {/* Upload solo si es mío */}
             {isMine && (
               <UploadTrack
                 projectId={activeProject.id}
@@ -306,13 +303,13 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
         </div>
 
         {playingTrack && (
-  <AudioPlayer
-    trackId={playingTrack.id}
-    filePath={playingTrack.file_path}
-    title={playingTrack.title}
-    onClose={() => setPlayingTrack(null)}
-  />
-)}
+          <AudioPlayer
+            trackId={playingTrack.id}
+            filePath={playingTrack.file_path}
+            title={playingTrack.title}
+            onClose={() => setPlayingTrack(null)}
+          />
+        )}
       </div>
     )
   }
@@ -320,8 +317,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
   // ── GRID PRINCIPAL ───────────────────────────────────────────
   return (
     <div>
-
-      {/* Modal nuevo proyecto */}
       {showNewProject && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#1E2028] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -358,14 +353,12 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
         </div>
       )}
 
-      {/* Tabs — Mis proyectos / Biblioteca */}
+      {/* Tabs */}
       <div className="flex items-center gap-1 mb-6 bg-[#1E2028] rounded-xl p-1 w-fit">
         <button
           onClick={() => setTab('projects')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            tab === 'projects'
-              ? 'bg-[#0d0d0f] text-[#F8F7F4] shadow-sm'
-              : 'text-[#555966] hover:text-[#9BA0AD]'
+            tab === 'projects' ? 'bg-[#0d0d0f] text-[#F8F7F4] shadow-sm' : 'text-[#555966] hover:text-[#9BA0AD]'
           }`}
         >
           Mis proyectos
@@ -373,9 +366,7 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
         <button
           onClick={() => setTab('library')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-            tab === 'library'
-              ? 'bg-[#0d0d0f] text-[#F8F7F4] shadow-sm'
-              : 'text-[#555966] hover:text-[#9BA0AD]'
+            tab === 'library' ? 'bg-[#0d0d0f] text-[#F8F7F4] shadow-sm' : 'text-[#555966] hover:text-[#9BA0AD]'
           }`}
         >
           Biblioteca
@@ -387,7 +378,7 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
         </button>
       </div>
 
-      {/* ── TAB: MIS PROYECTOS ── */}
+      {/* Tab: Mis proyectos */}
       {tab === 'projects' && (
         <div>
           {projects.length > 0 && (
@@ -430,7 +421,10 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
                 return (
                   <button key={project.id} onClick={() => openProject(project, 'mine')} className="text-left group">
                     <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
-                      <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
+                      {project.cover_url
+                        ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
+                        : <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
+                      }
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"/>
                       <div className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><path d="M1.5 1l5.5 3-5.5 3V1z"/></svg>
@@ -454,7 +448,7 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
         </div>
       )}
 
-      {/* ── TAB: BIBLIOTECA ── */}
+      {/* Tab: Biblioteca */}
       {tab === 'library' && (
         <div>
           {savedProjects.length === 0 ? (
@@ -478,11 +472,10 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
                   return (
                     <button key={project.id} onClick={() => openProject(project, 'saved')} className="text-left group">
                       <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
-                        <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"/>
-                        <div className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><path d="M1.5 1l5.5 3-5.5 3V1z"/></svg>
-                        </div>
+                        {project.cover_url
+                          ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
+                          : <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
+                        }
                         <div className="absolute top-2 left-2">
                           <div className="bg-black/50 backdrop-blur-sm rounded-md px-1.5 py-0.5">
                             <span className="text-[#7C6FFF] text-xs font-mono">guardado</span>
