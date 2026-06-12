@@ -42,8 +42,9 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
   const [activeProject, setActiveProject]   = useState<Project | null>(null)
   const [activeSource, setActiveSource]     = useState<'mine' | 'saved'>('mine')
   const [tracks, setTracks]                 = useState<Track[]>([])
-  const [playingTrack, setPlayingTrack]     = useState<Track | null>(null)
-  const [copied, setCopied]                 = useState(false)
+  const [playingTrack, setPlayingTrack] = useState<Track | null>(null)
+  const playTrack = (track: Track) => setPlayingTrack(track)
+  const closePlayer = () => setPlayingTrack(null)  const [copied, setCopied]                 = useState(false)
   const [tab, setTab]                       = useState<'projects' | 'library'>('projects')
   const supabase = createClient()
 
@@ -305,13 +306,13 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
         </div>
 
         {playingTrack && (
-          <AudioPlayer
-            trackId={playingTrack.id}
-            filePath={playingTrack.file_path}
-            title={playingTrack.title}
-            onClose={() => setPlayingTrack(null)}
-          />
-        )}
+  <AudioPlayer
+    trackId={playingTrack.id}
+    filePath={playingTrack.file_path}
+    title={playingTrack.title}
+    onClose={() => setPlayingTrack(null)}
+  />
+)}
       </div>
     )
   }
