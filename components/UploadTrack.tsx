@@ -21,15 +21,10 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
     setProgress(0)
 
     try {
-      // 1. Pedir presigned URL al servidor
       const res = await fetch('/api/upload-url', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-        }),
+        body:    JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
       })
 
       if (!res.ok) {
@@ -39,35 +34,24 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
 
       const { uploadUrl, filePath } = await res.json()
 
-      // 2. Subir directamente a R2 con XMLHttpRequest para tener progreso
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            setProgress(Math.round((e.loaded / e.total) * 100))
-          }
+          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100))
         }
-        xhr.onload  = () => xhr.status === 200 ? resolve() : reject(new Error(`R2 error: ${xhr.status}`))
+        xhr.onload  = () => xhr.status === 200 ? resolve() : reject(new Error(`Error ${xhr.status}`))
         xhr.onerror = () => reject(new Error('Error de red al subir'))
         xhr.open('PUT', uploadUrl)
         xhr.setRequestHeader('Content-Type', file.type)
         xhr.send(file)
       })
 
-      // 3. Guardar metadatos en Supabase
       const supabase = createClient()
-      const title    = file.name.replace(/\.[^/.]+$/, '') // quitar extensión
+      const title = file.name.replace(/\.[^/.]+$/, '')
 
       const { data: track, error: dbError } = await supabase
         .from('tracks')
-        .insert({
-          project_id:  projectId,
-          title,
-          file_path:   filePath,
-          file_size:   file.size,
-          format:      file.name.split('.').pop()?.toLowerCase(),
-          track_order: 0,
-        })
+        .insert({ project_id: projectId, title, file_path: filePath, file_size: file.size, format: file.name.split('.').pop()?.toLowerCase(), track_order: 0 })
         .select()
         .single()
 
@@ -90,11 +74,6 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
     if (file) handleFile(file)
   }
 
-  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) handleFile(file)
-  }
-
   return (
     <div
       onClick={() => !uploading && inputRef.current?.click()}
@@ -102,10 +81,8 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={`
-        relative border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer
-        ${dragging
-          ? 'border-[#7C6FFF] bg-[#7C6FFF]/5'
-          : 'border-white/10 hover:border-[#7C6FFF]/40 hover:bg-white/[0.02]'}
+        relative border border-dashed rounded-xl p-5 transition-all cursor-pointer
+        ${dragging ? 'border-[#7C6FFF]/60 bg-[#7C6FFF]/5' : 'border-white/[0.08] hover:border-[#7C6FFF]/30 hover:bg-white/[0.01]'}
         ${uploading ? 'pointer-events-none' : ''}
       `}
     >
@@ -113,37 +90,41 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
         ref={inputRef}
         type="file"
         accept="audio/mp3,audio/mpeg,audio/wav,audio/flac,audio/aiff,audio/x-aiff"
-        onChange={onInputChange}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
         className="hidden"
       />
 
       {uploading ? (
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-full bg-white/10 rounded-full h-1.5">
-            <div
-              className="bg-[#7C6FFF] h-1.5 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[#9BA0AD] text-xs">Subiendo...</span>
+              <span className="text-[#7C6FFF] text-xs font-mono">{progress}%</span>
+            </div>
+            <div className="w-full bg-white/[0.06] rounded-full h-1">
+              <div
+                className="bg-[#7C6FFF] h-1 rounded-full transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
-          <p className="text-[#9BA0AD] text-sm font-mono">{progress}%</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-[#1E2028] border border-[#7C6FFF]/20 flex items-center justify-center text-lg mb-1">
-            🎵
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#1E2028] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 9V2M4 5l3-3 3 3" stroke="rgba(255,255,255,0.4)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="rgba(255,255,255,0.2)" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
           </div>
-          <p className="text-[#F8F7F4] text-sm font-medium">
-            Arrastra un archivo o haz clic para subir
-          </p>
-          <p className="text-[#555966] text-xs font-mono">
-            MP3 · WAV · FLAC · AIFF · máx. 200 MB
-          </p>
+          <div>
+            <p className="text-[#9BA0AD] text-sm">Subir audio</p>
+            <p className="text-[#333] text-xs font-mono">MP3 · WAV · FLAC · AIFF · máx. 200 MB</p>
+          </div>
         </div>
       )}
 
-      {error && (
-        <p className="mt-3 text-red-400 text-xs font-mono">{error}</p>
-      )}
+      {error && <p className="mt-2 text-red-400 text-xs font-mono">{error}</p>}
     </div>
   )
 }
