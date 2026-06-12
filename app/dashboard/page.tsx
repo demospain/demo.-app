@@ -8,41 +8,51 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Cargar proyectos del usuario
   const { data: projects } = await supabase
     .from('projects')
     .select('id, title, cover_url, visibility, status, created_at')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
-  const nombre = user.user_metadata?.full_name
+  const nombre = user.user_metadata?.full_name?.split(' ')[0]
     ?? user.email?.split('@')[0]
     ?? 'artista'
 
+  const inicial = nombre.charAt(0).toUpperCase()
+
   return (
-    <div className="min-h-screen bg-[#111318] flex flex-col">
+    <div className="min-h-screen bg-[#0d0d0f] flex flex-col">
+
       {/* Navbar */}
-      <nav className="h-14 border-b border-white/[0.06] flex items-center justify-between px-6 bg-[#111318]/95 backdrop-blur sticky top-0 z-50">
-        <span className="font-mono text-lg font-medium tracking-tight">
-          demo<span className="text-[#7C6FFF]">.</span>
-        </span>
-        <div className="flex items-center gap-4">
-          <span className="text-[#9BA0AD] text-sm hidden sm:block">{user.email}</span>
+      <nav className="h-12 border-b border-white/[0.05] flex items-center justify-between px-5 sticky top-0 z-50 bg-[#0d0d0f]/90 backdrop-blur-md">
+        <div className="flex items-center gap-6">
+          <span className="font-mono text-base font-medium tracking-tight">
+            demo<span className="text-[#7C6FFF]">.</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7C6FFF] to-[#4A3FCC] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+              {inicial}
+            </div>
+            <span className="text-[#9BA0AD] text-xs hidden sm:block font-mono">{nombre}</span>
+          </div>
+          <div className="w-px h-4 bg-white/[0.08]" />
           <LogoutButton />
         </div>
       </nav>
 
       {/* Contenido */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10">
-        <div className="mb-8 flex items-end justify-between">
-          <div>
-            <h1 className="text-2xl font-medium">
-              Hola, {nombre}<span className="text-[#7C6FFF]">.</span>
-            </h1>
-            <p className="text-[#9BA0AD] text-sm mt-1">
-              Aquí vivirá tu música antes de existir para el mundo.
-            </p>
-          </div>
+      <main className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
+
+        {/* Saludo */}
+        <div className="mb-8">
+          <h1 className="text-xl font-medium text-[#F8F7F4]">
+            Hola, {nombre}<span className="text-[#7C6FFF]">.</span>
+          </h1>
+          <p className="text-[#555966] text-sm font-mono mt-0.5">
+            Tu música, antes de existir para el mundo.
+          </p>
         </div>
 
         <DashboardClient
