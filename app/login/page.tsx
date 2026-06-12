@@ -13,14 +13,13 @@ export default function LoginPage() {
 
   const supabase = createClient()
 
-  // Google OAuth
   const handleGoogle = async () => {
     setLoading(true)
     setError('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `https://www.demospain.app/auth/callback`,
       },
     })
     if (error) {
@@ -29,7 +28,6 @@ export default function LoginPage() {
     }
   }
 
-  // Email + password
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -39,7 +37,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: `https://www.demospain.app/auth/callback` },
       })
       if (error) {
         setError(error.message)
@@ -61,7 +59,6 @@ export default function LoginPage() {
     <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#111318]">
       <div className="w-full max-w-sm">
 
-        {/* Logo */}
         <div className="text-center mb-8">
           <span className="font-mono text-4xl font-medium text-[#F8F7F4] tracking-tight">
             demo<span className="text-[#7C6FFF]">.</span>
@@ -81,7 +78,6 @@ export default function LoginPage() {
           </div>
         ) : (
           <>
-            {/* Google */}
             <button
               onClick={handleGoogle}
               disabled={loading}
@@ -96,14 +92,12 @@ export default function LoginPage() {
               Continuar con Google
             </button>
 
-            {/* Separador */}
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-1 h-px bg-white/10" />
               <span className="text-[#555966] text-xs font-mono">o</span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Formulario email */}
             <form onSubmit={handleEmail} className="flex flex-col gap-3">
               <input
                 type="email"
@@ -136,7 +130,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Toggle login/signup */}
             <p className="text-center text-[#9BA0AD] text-sm mt-4">
               {mode === 'login' ? (
                 <>
