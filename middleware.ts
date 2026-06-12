@@ -9,13 +9,9 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -26,20 +22,33 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const path = request.nextUrl.pathname
 
-  const privateRoutes = ['/dashboard', '/proyecto', '/upload']
-  const isPrivate = privateRoutes.some(route =>
-    request.nextUrl.pathname.startsWith(route)
-  )
+  // Rutas públicas que no necesitan sesión
+  const publicRoutes = ['/login', '/p/']
+  const isPublic = publicRoutes.some(r => path.startsWith(r))
 
-  if (isPrivate && !user) {
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+  // Sin sesión → login
+  if (!user && !isPublic) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (request.nextUrl.pathname === '/login' && user) {
-    const dashboardUrl = new URL('/dashboard', request.url)
-    return NextResponse.redirect(dashboardUrl)
+  // Con sesión → comprobar onboarding
+  if (user && !isPublic && path !== '/onboarding') {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarded')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.onboarded) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
+  }
+
+  // Ya logueado → no dejar entrar al login
+  if (user && path === '/login') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return supabaseResponse
