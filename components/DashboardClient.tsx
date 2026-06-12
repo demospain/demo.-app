@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import UploadTrack from '@/components/UploadTrack'
+import AudioPlayer from '@/components/AudioPlayer'
 
 interface Project {
   id:         string
@@ -32,16 +33,15 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
   const [createError, setCreateError]       = useState('')
   const [activeProject, setActiveProject]   = useState<Project | null>(null)
   const [tracks, setTracks]                 = useState<Track[]>([])
+  const [playingTrack, setPlayingTrack]     = useState<Track | null>(null)
   const supabase                            = createClient()
 
-  // Crear nuevo proyecto
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTitle.trim()) return
     setCreating(true)
     setCreateError('')
 
-    // Verificar sesión activa
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       setCreateError('Sesión expirada. Recarga la página.')
@@ -51,17 +51,11 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
 
     const { data, error } = await supabase
       .from('projects')
-      .insert({
-        title:      newTitle.trim(),
-        owner_id:   userId,
-        visibility: 'private',
-        status:     'draft',
-      })
+      .insert({ title: newTitle.trim(), owner_id: userId, visibility: 'private', status: 'draft' })
       .select()
       .single()
 
     if (error) {
-      console.error('Error creando proyecto:', error)
       setCreateError(`Error: ${error.message}`)
       setCreating(false)
       return
@@ -77,7 +71,6 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
     setCreating(false)
   }
 
-  // Abrir proyecto y cargar tracks
   const openProject = async (project: Project) => {
     setActiveProject(project)
     const { data } = await supabase
@@ -94,10 +87,10 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
     public:  '🌍 Público',
   }
 
-  // ── VISTA PROYECTO ABIERTO ───────────────────────────────────
+  // ── VISTA PROYECTO ───────────────────────────────────────────
   if (activeProject) {
     return (
-      <div>
+      <div className={playingTrack ? 'pb-32' : ''}>
         <button
           onClick={() => setActiveProject(null)}
           className="flex items-center gap-2 text-[#9BA0AD] hover:text-[#F8F7F4] text-sm mb-6 transition-colors"
@@ -129,18 +122,56 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
             {tracks.map((track, i) => (
               <div
                 key={track.id}
-                className="flex items-center gap-4 px-4 py-3 border-b border-white/[0.06] last:border-0 hover:bg-white/[0.02] transition-colors"
+                className={`flex items-center gap-4 px-4 py-3 border-b border-white/[0.06] last:border-0 transition-colors ${
+                  playingTrack?.id === track.id
+                    ? 'bg-[#7C6FFF]/5'
+                    : 'hover:bg-white/[0.02]'
+                }`}
               >
-                <span className="font-mono text-xs text-[#555966] w-5 text-right flex-shrink-0">
+                {/* Botón play */}
+                <button
+                  onClick={() => setPlayingTrack(track)}
+                  className="w-7 h-7 rounded-full bg-[#1E2028] hover:bg-[#7C6FFF]/20 border border-white/10 flex items-center justify-center flex-shrink-0 transition-colors group"
+                >
+                  {playingTrack?.id === track.id ? (
+                    <div className="flex gap-0.5 items-end h-3">
+                      <div className="w-0.5 bg-[#7C6FFF] rounded-full animate-[bounce_0.8s_ease-in-out_infinite]" style={{height:'8px'}}/>
+                      <div className="w-0.5 bg-[#7C6FFF] rounded-full animate-[bounce_0.8s_ease-in-out_0.2s_infinite]" style={{height:'12px'}}/>
+                      <div className="w-0.5 bg-[#7C6FFF] rounded-full animate-[bounce_0.8s_ease-in-out_0.4s_infinite]" style={{height:'6px'}}/>
+                    </div>
+                  ) : (
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="text-[#9BA0AD] group-hover:text-[#7C6FFF] transition-colors ml-0.5">
+                      <path d="M1 1l6 3-6 3V1z" fill="currentColor"/>
+                    </svg>
+                  )}
+                </button>
+
+                <span className="font-mono text-xs text-[#555966] w-4 text-right flex-shrink-0">
                   {i + 1}
                 </span>
+
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{track.title}</p>
+                  <p className={`text-sm font-medium truncate transition-colors ${
+                    playingTrack?.id === track.id ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
+                  }`}>
+                    {track.title}
+                  </p>
                 </div>
+
                 <span className="text-[#555966] text-xs font-mono">···</span>
               </div>
             ))}
           </div>
+        )}
+
+        {/* Reproductor */}
+        {playingTrack && (
+          <AudioPlayer
+            trackId={playingTrack.id}
+            filePath={playingTrack.file_path}
+            title={playingTrack.title}
+            onClose={() => setPlayingTrack(null)}
+          />
         )}
       </div>
     )
