@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import UploadTrack from '@/components/UploadTrack'
-import { usePlayer } from '@/lib/PlayerContext'
+import AudioPlayer from '@/components/AudioPlayer'
 
 interface Project {
   id:          string
@@ -42,8 +42,8 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
   const [activeProject, setActiveProject]   = useState<Project | null>(null)
   const [activeSource, setActiveSource]     = useState<'mine' | 'saved'>('mine')
   const [tracks, setTracks]                 = useState<Track[]>([])
-  const { currentTrack: playingTrack, playTrack, closePlayer } = usePlayer()
-  const setPlayingTrack = (track: Track | null) => track ? playTrack({ ...track }) : closePlayer()  const [copied, setCopied]                 = useState(false)
+  const [playingTrack, setPlayingTrack]     = useState<Track | null>(null)
+  const [copied, setCopied]                 = useState(false)
   const [tab, setTab]                       = useState<'projects' | 'library'>('projects')
   const supabase = createClient()
 
@@ -303,6 +303,16 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
             )}
           </div>
         </div>
+
+        {playingTrack && (
+          <AudioPlayer
+            trackId={playingTrack.id}
+            filePath={playingTrack.file_path}
+            title={playingTrack.title}
+            onClose={() => setPlayingTrack(null)}
+          />
+        )}
+      </div>
     )
   }
 
