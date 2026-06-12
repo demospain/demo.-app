@@ -6,23 +6,29 @@ import UploadTrack from '@/components/UploadTrack'
 import AudioPlayer from '@/components/AudioPlayer'
 
 interface Project {
-  id:         string
-  title:      string
-  cover_url:  string | null
+  id: string
+  title: string
+  cover_url: string | null
   visibility: string
-  status:     string
+  status: string
   created_at: string
 }
 
 interface Track {
-  id:        string
-  title:     string
+  id: string
+  title: string
   file_path: string
 }
 
 interface DashboardClientProps {
-  userId:          string
+  userId: string
   initialProjects: Project[]
+}
+
+const VISIBILITY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+  private: { label: 'Privado',   icon: '🔒', color: 'text-[#555966]' },
+  link:    { label: 'Con link',  icon: '🔗', color: 'text-[#F59E0B]' },
+  public:  { label: 'Público',   icon: '🌍', color: 'text-[#1D9E75]' },
 }
 
 export default function DashboardClient({ userId, initialProjects }: DashboardClientProps) {
@@ -34,7 +40,7 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
   const [activeProject, setActiveProject]   = useState<Project | null>(null)
   const [tracks, setTracks]                 = useState<Track[]>([])
   const [playingTrack, setPlayingTrack]     = useState<Track | null>(null)
-  const supabase                            = createClient()
+  const supabase = createClient()
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,88 +87,144 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
     setTracks(data ?? [])
   }
 
-  const visibilityLabel: Record<string, string> = {
-    private: '🔒 Privado',
-    link:    '🔗 Con link',
-    public:  '🌍 Público',
-  }
-
   // ── VISTA PROYECTO ───────────────────────────────────────────
   if (activeProject) {
+    const vis = VISIBILITY_CONFIG[activeProject.visibility]
     return (
-      <div className={playingTrack ? 'pb-32' : ''}>
-        <button
-          onClick={() => setActiveProject(null)}
-          className="flex items-center gap-2 text-[#9BA0AD] hover:text-[#F8F7F4] text-sm mb-6 transition-colors"
-        >
-          ← Volver a proyectos
-        </button>
+      <div className={playingTrack ? 'pb-36' : ''}>
 
-        <div className="flex items-start gap-4 mb-8">
-          <div className="w-20 h-20 rounded-xl bg-[#1E2028] border border-white/10 flex items-center justify-center text-2xl flex-shrink-0">
-            💿
-          </div>
-          <div>
-            <h2 className="text-xl font-medium">{activeProject.title}</h2>
-            <p className="text-[#9BA0AD] text-sm mt-1">
-              {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'} · {visibilityLabel[activeProject.visibility]}
-            </p>
-          </div>
+        {/* Header del proyecto */}
+        <div className="flex items-center gap-3 mb-8">
+          <button
+            onClick={() => { setActiveProject(null); setPlayingTrack(null) }}
+            className="w-8 h-8 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors flex-shrink-0"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M9 2L4 7l5 5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <span className="text-[#555966] text-sm font-mono">Proyectos</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M4 2l4 4-4 4" stroke="rgba(255,255,255,0.15)" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+          <span className="text-[#F8F7F4] text-sm font-medium truncate">{activeProject.title}</span>
         </div>
 
-        <div className="mb-6">
-          <UploadTrack
-            projectId={activeProject.id}
-            onUploadComplete={(track) => setTracks(prev => [...prev, track])}
-          />
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
 
-        {tracks.length > 0 && (
-          <div className="border border-white/[0.06] rounded-xl overflow-hidden">
-            {tracks.map((track, i) => (
-              <div
-                key={track.id}
-                className={`flex items-center gap-4 px-4 py-3 border-b border-white/[0.06] last:border-0 transition-colors ${
-                  playingTrack?.id === track.id
-                    ? 'bg-[#7C6FFF]/5'
-                    : 'hover:bg-white/[0.02]'
-                }`}
-              >
-                {/* Botón play */}
-                <button
-                  onClick={() => setPlayingTrack(track)}
-                  className="w-7 h-7 rounded-full bg-[#1E2028] hover:bg-[#7C6FFF]/20 border border-white/10 flex items-center justify-center flex-shrink-0 transition-colors group"
-                >
-                  {playingTrack?.id === track.id ? (
-                    <div className="flex gap-0.5 items-end h-3">
-                      <div className="w-0.5 bg-[#7C6FFF] rounded-full animate-[bounce_0.8s_ease-in-out_infinite]" style={{height:'8px'}}/>
-                      <div className="w-0.5 bg-[#7C6FFF] rounded-full animate-[bounce_0.8s_ease-in-out_0.2s_infinite]" style={{height:'12px'}}/>
-                      <div className="w-0.5 bg-[#7C6FFF] rounded-full animate-[bounce_0.8s_ease-in-out_0.4s_infinite]" style={{height:'6px'}}/>
-                    </div>
-                  ) : (
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="text-[#9BA0AD] group-hover:text-[#7C6FFF] transition-colors ml-0.5">
-                      <path d="M1 1l6 3-6 3V1z" fill="currentColor"/>
-                    </svg>
-                  )}
-                </button>
-
-                <span className="font-mono text-xs text-[#555966] w-4 text-right flex-shrink-0">
-                  {i + 1}
-                </span>
-
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium truncate transition-colors ${
-                    playingTrack?.id === track.id ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
-                  }`}>
-                    {track.title}
-                  </p>
-                </div>
-
-                <span className="text-[#555966] text-xs font-mono">···</span>
+          {/* Columna izquierda — portada + info */}
+          <div className="flex flex-col gap-4">
+            <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center">
+              <div className="text-6xl opacity-30">💿</div>
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-[#F8F7F4] mb-1">{activeProject.title}</h2>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
+                <span className="text-[#252830]">·</span>
+                <span className="text-xs font-mono text-[#555966]">{tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}</span>
               </div>
-            ))}
+            </div>
+
+            {/* Cambiar visibilidad */}
+            <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
+              <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Visibilidad</p>
+              <div className="flex flex-col gap-1">
+                {Object.entries(VISIBILITY_CONFIG).map(([key, cfg]) => (
+                  <button
+                    key={key}
+                    onClick={async () => {
+                      await supabase.from('projects').update({ visibility: key }).eq('id', activeProject.id)
+                      setActiveProject(prev => prev ? { ...prev, visibility: key } : null)
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
+                      activeProject.visibility === key
+                        ? 'bg-[#7C6FFF]/10 text-[#7C6FFF] border border-[#7C6FFF]/20'
+                        : 'text-[#9BA0AD] hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    <span>{cfg.icon}</span>
+                    <span className="font-medium">{cfg.label}</span>
+                    {activeProject.visibility === key && (
+                      <svg className="ml-auto" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 5l2.5 2.5L8 3" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Columna derecha — tracks + upload */}
+          <div className="flex flex-col gap-4">
+
+            {/* Upload */}
+            <UploadTrack
+              projectId={activeProject.id}
+              onUploadComplete={(track) => setTracks(prev => [...prev, track])}
+            />
+
+            {/* Lista de tracks */}
+            {tracks.length > 0 && (
+              <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                  <span className="text-[#555966] text-xs font-mono uppercase tracking-wider">Tracklist</span>
+                  <span className="text-[#555966] text-xs font-mono">{tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}</span>
+                </div>
+                {tracks.map((track, i) => (
+                  <div
+                    key={track.id}
+                    className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
+                      playingTrack?.id === track.id ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    {/* Play button */}
+                    <button
+                      onClick={() => setPlayingTrack(playingTrack?.id === track.id ? null : track)}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                        playingTrack?.id === track.id
+                          ? 'bg-[#7C6FFF] text-white'
+                          : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
+                      }`}
+                    >
+                      {playingTrack?.id === track.id ? (
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
+                          <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
+                          <rect x="5" y="0.5" width="2.5" height="7" rx="0.5"/>
+                        </svg>
+                      ) : (
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                          <path d="M1.5 1l5.5 3-5.5 3V1z"/>
+                        </svg>
+                      )}
+                    </button>
+
+                    <span className="text-[#252830] font-mono text-xs w-4 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
+                      {i + 1}
+                    </span>
+
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate transition-colors ${
+                        playingTrack?.id === track.id ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
+                      }`}>
+                        {track.title}
+                      </p>
+                    </div>
+
+                    <button className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <circle cx="7" cy="2" r="1" fill="currentColor"/>
+                        <circle cx="7" cy="7" r="1" fill="currentColor"/>
+                        <circle cx="7" cy="12" r="1" fill="currentColor"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Reproductor */}
         {playingTrack && (
@@ -180,36 +242,36 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
   // ── GRID DE PROYECTOS ────────────────────────────────────────
   return (
     <div>
+      {/* Modal nuevo proyecto */}
       {showNewProject && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1E2028] border border-white/10 rounded-2xl p-6 w-full max-w-sm">
-            <h3 className="font-medium mb-4">Nuevo proyecto</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1E2028] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="font-medium text-[#F8F7F4] mb-1">Nuevo proyecto</h3>
+            <p className="text-[#555966] text-xs font-mono mb-4">Empieza con un nombre. Puedes cambiarlo después.</p>
             <form onSubmit={handleCreateProject} className="flex flex-col gap-3">
               <input
                 autoFocus
                 type="text"
-                placeholder="Nombre del proyecto"
+                placeholder="Ej: EP debut, Maquetas verano 25..."
                 value={newTitle}
                 onChange={e => { setNewTitle(e.target.value); setCreateError('') }}
-                className="bg-[#111318] border border-white/10 focus:border-[#7C6FFF]/50 text-[#F8F7F4] placeholder:text-[#555966] rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+                className="bg-[#111318] border border-white/[0.08] focus:border-[#7C6FFF]/50 text-[#F8F7F4] placeholder:text-[#333] rounded-xl px-4 py-3 text-sm outline-none transition-colors w-full"
               />
-              {createError && (
-                <p className="text-red-400 text-xs font-mono">{createError}</p>
-              )}
-              <div className="flex gap-2">
+              {createError && <p className="text-red-400 text-xs font-mono">{createError}</p>}
+              <div className="flex gap-2 mt-1">
                 <button
                   type="button"
                   onClick={() => { setShowNewProject(false); setCreateError('') }}
-                  className="flex-1 border border-white/10 text-[#9BA0AD] py-2.5 rounded-xl text-sm transition-colors hover:border-white/20"
+                  className="flex-1 border border-white/[0.08] text-[#9BA0AD] hover:text-[#F8F7F4] py-2.5 rounded-xl text-sm transition-colors hover:border-white/20"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={creating || !newTitle.trim()}
-                  className="flex-1 bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                  className="flex-1 bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
                 >
-                  {creating ? 'Creando...' : 'Crear'}
+                  {creating ? 'Creando...' : 'Crear proyecto'}
                 </button>
               </div>
             </form>
@@ -217,14 +279,15 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
         </div>
       )}
 
+      {/* Estado vacío */}
       {projects.length === 0 ? (
-        <div className="border border-dashed border-white/10 rounded-2xl p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-14 h-14 rounded-xl bg-[#1E2028] border border-[#7C6FFF]/20 flex items-center justify-center text-2xl mb-4">
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#1E2028] border border-[#7C6FFF]/10 flex items-center justify-center text-3xl mb-5">
             💿
           </div>
-          <h2 className="font-medium mb-2">Tu primer proyecto</h2>
-          <p className="text-[#9BA0AD] text-sm max-w-xs mb-6">
-            Sube canciones, organízalas en un proyecto tipo álbum y compártelas con quien quieras.
+          <h2 className="text-[#F8F7F4] font-medium text-lg mb-2">Sin proyectos todavía</h2>
+          <p className="text-[#555966] text-sm max-w-xs mb-6 leading-relaxed">
+            Crea tu primer proyecto y empieza a subir canciones. Tu música, antes de existir para el mundo.
           </p>
           <button
             onClick={() => setShowNewProject(true)}
@@ -235,33 +298,62 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
         </div>
       ) : (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[#9BA0AD] text-sm font-mono">
-              {projects.length} {projects.length === 1 ? 'proyecto' : 'proyectos'}
-            </p>
+          {/* Cabecera */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-[#F8F7F4] font-medium">Mis proyectos</p>
+              <p className="text-[#555966] text-xs font-mono mt-0.5">
+                {projects.length} {projects.length === 1 ? 'proyecto' : 'proyectos'}
+              </p>
+            </div>
             <button
               onClick={() => setShowNewProject(true)}
-              className="bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+              className="flex items-center gap-2 bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors"
             >
-              + Nuevo
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M6 1v10M1 6h10" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              Nuevo
             </button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {projects.map(project => (
-              <button
-                key={project.id}
-                onClick={() => openProject(project)}
-                className="text-left group"
-              >
-                <div className="w-full aspect-square rounded-xl bg-[#1E2028] border border-white/[0.06] group-hover:border-[#7C6FFF]/30 transition-colors mb-2 flex items-center justify-center text-3xl">
-                  💿
-                </div>
-                <p className="text-sm font-medium truncate">{project.title}</p>
-                <p className="text-xs text-[#555966] font-mono mt-0.5">
-                  {visibilityLabel[project.visibility]}
-                </p>
-              </button>
-            ))}
+
+          {/* Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {projects.map(project => {
+              const vis = VISIBILITY_CONFIG[project.visibility]
+              return (
+                <button
+                  key={project.id}
+                  onClick={() => openProject(project)}
+                  className="text-left group"
+                >
+                  <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
+                    <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
+                        <path d="M1.5 1l5.5 3-5.5 3V1z"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-[#F8F7F4] truncate leading-tight">{project.title}</p>
+                  <p className={`text-xs font-mono mt-0.5 ${vis.color}`}>{vis.label}</p>
+                </button>
+              )
+            })}
+
+            {/* Card añadir */}
+            <button
+              onClick={() => setShowNewProject(true)}
+              className="text-left group"
+            >
+              <div className="w-full aspect-square rounded-xl border-2 border-dashed border-white/[0.06] group-hover:border-[#7C6FFF]/30 transition-colors mb-2.5 flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 3v14M3 10h14" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <p className="text-xs text-[#333] group-hover:text-[#555966] transition-colors font-mono">Nuevo proyecto</p>
+            </button>
           </div>
         </div>
       )}
