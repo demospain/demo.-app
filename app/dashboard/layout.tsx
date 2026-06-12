@@ -1,5 +1,4 @@
 import { PlayerProvider } from '@/lib/PlayerContext'
-import GlobalPlayer from '@/components/GlobalPlayer'
 
 export default function DashboardLayout({
   children,
@@ -9,7 +8,6 @@ export default function DashboardLayout({
   return (
     <PlayerProvider>
       {children}
-      <GlobalPlayer />
     </PlayerProvider>
   )
 }
