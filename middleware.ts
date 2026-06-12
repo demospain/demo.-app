@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -27,7 +27,6 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Rutas privadas — redirige al login si no hay sesión
   const privateRoutes = ['/dashboard', '/proyecto', '/upload']
   const isPrivate = privateRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
@@ -38,7 +37,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Si ya tiene sesión y va al login, redirige al dashboard
   if (request.nextUrl.pathname === '/login' && user) {
     const dashboardUrl = new URL('/dashboard', request.url)
     return NextResponse.redirect(dashboardUrl)
