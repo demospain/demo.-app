@@ -6,29 +6,30 @@ import UploadTrack from '@/components/UploadTrack'
 import AudioPlayer from '@/components/AudioPlayer'
 
 interface Project {
-  id: string
-  title: string
-  cover_url: string | null
-  visibility: string
-  status: string
-  created_at: string
+  id:          string
+  title:       string
+  cover_url:   string | null
+  visibility:  string
+  status:      string
+  created_at:  string
+  share_slug?: string
 }
 
 interface Track {
-  id: string
-  title: string
+  id:        string
+  title:     string
   file_path: string
 }
 
 interface DashboardClientProps {
-  userId: string
+  userId:          string
   initialProjects: Project[]
 }
 
 const VISIBILITY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-  private: { label: 'Privado',   icon: '🔒', color: 'text-[#555966]' },
-  link:    { label: 'Con link',  icon: '🔗', color: 'text-[#F59E0B]' },
-  public:  { label: 'Público',   icon: '🌍', color: 'text-[#1D9E75]' },
+  private: { label: 'Privado',  icon: '🔒', color: 'text-[#555966]' },
+  link:    { label: 'Con link', icon: '🔗', color: 'text-[#F59E0B]' },
+  public:  { label: 'Público',  icon: '🌍', color: 'text-[#1D9E75]' },
 }
 
 export default function DashboardClient({ userId, initialProjects }: DashboardClientProps) {
@@ -40,6 +41,7 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
   const [activeProject, setActiveProject]   = useState<Project | null>(null)
   const [tracks, setTracks]                 = useState<Track[]>([])
   const [playingTrack, setPlayingTrack]     = useState<Track | null>(null)
+  const [copied, setCopied]                 = useState(false)
   const supabase = createClient()
 
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -78,7 +80,13 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
   }
 
   const openProject = async (project: Project) => {
-    setActiveProject(project)
+    // Cargar el share_slug si no lo tenemos
+    const { data: full } = await supabase
+      .from('projects')
+      .select('id, title, cover_url, visibility, status, created_at, share_slug')
+      .eq('id', project.id)
+      .single()
+    setActiveProject(full ?? project)
     const { data } = await supabase
       .from('tracks')
       .select('id, title, file_path')
@@ -87,13 +95,28 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
     setTracks(data ?? [])
   }
 
+  const handleCopyLink = () => {
+    if (!activeProject?.share_slug) return
+    navigator.clipboard.writeText(`${window.location.origin}/p/${activeProject.share_slug}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleVisibilityChange = async (key: string) => {
+    if (!activeProject) return
+    await supabase.from('projects').update({ visibility: key }).eq('id', activeProject.id)
+    setActiveProject(prev => prev ? { ...prev, visibility: key } : null)
+  }
+
+  const visibilityConfig = VISIBILITY_CONFIG
+
   // ── VISTA PROYECTO ───────────────────────────────────────────
   if (activeProject) {
     const vis = VISIBILITY_CONFIG[activeProject.visibility]
     return (
       <div className={playingTrack ? 'pb-36' : ''}>
 
-        {/* Header del proyecto */}
+        {/* Breadcrumb */}
         <div className="flex items-center gap-3 mb-8">
           <button
             onClick={() => { setActiveProject(null); setPlayingTrack(null) }}
@@ -110,33 +133,35 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
           <span className="text-[#F8F7F4] text-sm font-medium truncate">{activeProject.title}</span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
 
-          {/* Columna izquierda — portada + info */}
+          {/* Columna izquierda */}
           <div className="flex flex-col gap-4">
+            {/* Portada */}
             <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center">
               <div className="text-6xl opacity-30">💿</div>
             </div>
+
+            {/* Info */}
             <div>
               <h2 className="text-lg font-medium text-[#F8F7F4] mb-1">{activeProject.title}</h2>
               <div className="flex items-center gap-2">
                 <span className={`text-xs font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
                 <span className="text-[#252830]">·</span>
-                <span className="text-xs font-mono text-[#555966]">{tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}</span>
+                <span className="text-xs font-mono text-[#555966]">
+                  {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+                </span>
               </div>
             </div>
 
-            {/* Cambiar visibilidad */}
+            {/* Visibilidad */}
             <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
               <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Visibilidad</p>
               <div className="flex flex-col gap-1">
                 {Object.entries(VISIBILITY_CONFIG).map(([key, cfg]) => (
                   <button
                     key={key}
-                    onClick={async () => {
-                      await supabase.from('projects').update({ visibility: key }).eq('id', activeProject.id)
-                      setActiveProject(prev => prev ? { ...prev, visibility: key } : null)
-                    }}
+                    onClick={() => handleVisibilityChange(key)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
                       activeProject.visibility === key
                         ? 'bg-[#7C6FFF]/10 text-[#7C6FFF] border border-[#7C6FFF]/20'
@@ -154,23 +179,52 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
                 ))}
               </div>
             </div>
+
+            {/* Botón compartir — solo si no es privado */}
+            {(activeProject.visibility === 'link' || activeProject.visibility === 'public') && (
+              <button
+                onClick={handleCopyLink}
+                className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
+                  copied
+                    ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
+                    : 'bg-[#7C6FFF]/10 hover:bg-[#7C6FFF]/20 border border-[#7C6FFF]/20 text-[#7C6FFF]'
+                }`}
+              >
+                {copied ? (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    ¡Link copiado!
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                      <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Copiar link
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
-          {/* Columna derecha — tracks + upload */}
+          {/* Columna derecha */}
           <div className="flex flex-col gap-4">
 
-            {/* Upload */}
             <UploadTrack
               projectId={activeProject.id}
               onUploadComplete={(track) => setTracks(prev => [...prev, track])}
             />
 
-            {/* Lista de tracks */}
             {tracks.length > 0 && (
               <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
                   <span className="text-[#555966] text-xs font-mono uppercase tracking-wider">Tracklist</span>
-                  <span className="text-[#555966] text-xs font-mono">{tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}</span>
+                  <span className="text-[#555966] text-xs font-mono">
+                    {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
+                  </span>
                 </div>
                 {tracks.map((track, i) => (
                   <div
@@ -179,7 +233,6 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
                       playingTrack?.id === track.id ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
                     }`}
                   >
-                    {/* Play button */}
                     <button
                       onClick={() => setPlayingTrack(playingTrack?.id === track.id ? null : track)}
                       className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
@@ -226,7 +279,6 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
           </div>
         </div>
 
-        {/* Reproductor */}
         {playingTrack && (
           <AudioPlayer
             trackId={playingTrack.id}
@@ -242,7 +294,6 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
   // ── GRID DE PROYECTOS ────────────────────────────────────────
   return (
     <div>
-      {/* Modal nuevo proyecto */}
       {showNewProject && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#1E2028] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -279,7 +330,6 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
         </div>
       )}
 
-      {/* Estado vacío */}
       {projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-16 h-16 rounded-2xl bg-[#1E2028] border border-[#7C6FFF]/10 flex items-center justify-center text-3xl mb-5">
@@ -287,7 +337,7 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
           </div>
           <h2 className="text-[#F8F7F4] font-medium text-lg mb-2">Sin proyectos todavía</h2>
           <p className="text-[#555966] text-sm max-w-xs mb-6 leading-relaxed">
-            Crea tu primer proyecto y empieza a subir canciones. Tu música, antes de existir para el mundo.
+            Crea tu primer proyecto y empieza a subir canciones.
           </p>
           <button
             onClick={() => setShowNewProject(true)}
@@ -298,7 +348,6 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
         </div>
       ) : (
         <div>
-          {/* Cabecera */}
           <div className="flex items-center justify-between mb-6">
             <div>
               <p className="text-[#F8F7F4] font-medium">Mis proyectos</p>
@@ -317,16 +366,11 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
             </button>
           </div>
 
-          {/* Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {projects.map(project => {
               const vis = VISIBILITY_CONFIG[project.visibility]
               return (
-                <button
-                  key={project.id}
-                  onClick={() => openProject(project)}
-                  className="text-left group"
-                >
+                <button key={project.id} onClick={() => openProject(project)} className="text-left group">
                   <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
                     <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -342,11 +386,7 @@ export default function DashboardClient({ userId, initialProjects }: DashboardCl
               )
             })}
 
-            {/* Card añadir */}
-            <button
-              onClick={() => setShowNewProject(true)}
-              className="text-left group"
-            >
+            <button onClick={() => setShowNewProject(true)} className="text-left group">
               <div className="w-full aspect-square rounded-xl border-2 border-dashed border-white/[0.06] group-hover:border-[#7C6FFF]/30 transition-colors mb-2.5 flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M10 3v14M3 10h14" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round"/>
