@@ -8,11 +8,23 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Proyectos propios
   const { data: projects } = await supabase
     .from('projects')
     .select('id, title, cover_url, visibility, status, created_at')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
+
+  // Proyectos guardados en biblioteca
+  const { data: savedRaw } = await supabase
+    .from('saved_projects')
+    .select('project_id, projects(id, title, cover_url, visibility, status, created_at)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const savedProjects = (savedRaw ?? [])
+    .map((s: any) => s.projects)
+    .filter(Boolean)
 
   const nombre = user.user_metadata?.full_name?.split(' ')[0]
     ?? user.email?.split('@')[0]
@@ -51,13 +63,14 @@ export default async function DashboardPage() {
             Hola, {nombre}<span className="text-[#7C6FFF]">.</span>
           </h1>
           <p className="text-[#555966] text-sm font-mono mt-0.5">
-            Tu música, antes de existir para el mundo.
+            Tu biblioteca. Tu música, antes de existir para el mundo.
           </p>
         </div>
 
         <DashboardClient
           userId={user.id}
           initialProjects={projects ?? []}
+          savedProjects={savedProjects}
         />
       </main>
     </div>
