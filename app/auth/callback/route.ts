@@ -4,9 +4,11 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
+
+  const BASE_URL = 'https://www.demospain.app'
 
   if (code) {
     const cookieStore = await cookies()
@@ -29,9 +31,9 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${BASE_URL}${next}`)
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=oauth`)
+  return NextResponse.redirect(`${BASE_URL}/login?error=oauth`)
 }
