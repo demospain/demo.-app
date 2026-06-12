@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import AudioPlayer from '@/components/AudioPlayer'
 
@@ -38,7 +38,41 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
   const [sent, setSent]                 = useState(false)
-  const supabase                        = createClient()
+  const [saved, setSaved]               = useState(false)
+  const [savingLoading, setSavingLoading] = useState(false)
+  const supabase = createClient()
+
+  // Comprobar si ya está guardado en la biblioteca
+  useEffect(() => {
+    if (!isLoggedIn || !userId) return
+    const check = async () => {
+      const { data } = await supabase
+        .from('saved_projects')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('project_id', project.id)
+        .single()
+      if (data) setSaved(true)
+    }
+    check()
+  }, [isLoggedIn, userId, project.id])
+
+  const handleSave = async () => {
+    if (!isLoggedIn) { setShowAuth(true); setAuthMode('signup'); return }
+    setSavingLoading(true)
+    if (saved) {
+      await supabase.from('saved_projects')
+        .delete()
+        .eq('user_id', userId!)
+        .eq('project_id', project.id)
+      setSaved(false)
+    } else {
+      await supabase.from('saved_projects')
+        .insert({ user_id: userId!, project_id: project.id })
+      setSaved(true)
+    }
+    setSavingLoading(false)
+  }
 
   const fmt = (s: number | null) => {
     if (!s) return ''
@@ -69,7 +103,6 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
     e.preventDefault()
     setLoading(true)
     setError('')
-
     if (authMode === 'signup') {
       const { error } = await supabase.auth.signUp({
         email, password,
@@ -87,40 +120,38 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
   return (
     <div className="min-h-screen bg-[#0d0d0f]">
 
-      {/* Navbar mínima */}
+      {/* Navbar */}
       <nav className="h-12 border-b border-white/[0.05] flex items-center justify-between px-5 sticky top-0 z-50 bg-[#0d0d0f]/90 backdrop-blur-md">
         <span className="font-mono text-base font-medium tracking-tight">
           demo<span className="text-[#7C6FFF]">.</span>
         </span>
-        {!isLoggedIn && (
-          <button
-            onClick={() => { setShowAuth(true); setAuthMode('login') }}
-            className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors"
-          >
-            Entrar
-          </button>
-        )}
-        {isLoggedIn && (
-          <a href="/dashboard" className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors">
-            Mi dashboard →
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            <a href="/dashboard" className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors">
+              Mi biblioteca →
+            </a>
+          ) : (
+            <button
+              onClick={() => { setShowAuth(true); setAuthMode('login') }}
+              className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors"
+            >
+              Entrar
+            </button>
+          )}
+        </div>
       </nav>
 
       <main className="max-w-2xl mx-auto px-5 py-10 pb-36">
 
         {/* Cabecera del proyecto */}
         <div className="flex items-end gap-6 mb-8">
-          {/* Portada */}
           <div className="w-36 h-36 flex-shrink-0 rounded-2xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] flex items-center justify-center shadow-2xl">
             {project.cover_url ? (
-              <img src={project.cover_url} alt={project.title} className="w-full h-full object-cover rounded-2xl" />
+              <img src={project.cover_url} alt={project.title} className="w-full h-full object-cover rounded-2xl"/>
             ) : (
               <span className="text-5xl opacity-20">💿</span>
             )}
           </div>
-
-          {/* Info */}
           <div className="flex-1 min-w-0 pb-1">
             <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-1">Proyecto</p>
             <h1 className="text-2xl font-medium text-[#F8F7F4] leading-tight mb-1">{project.title}</h1>
@@ -129,6 +160,35 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
               {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
             </p>
           </div>
+        </div>
+
+        {/* Botón guardar en biblioteca */}
+        <div className="mb-5">
+          <button
+            onClick={handleSave}
+            disabled={savingLoading}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+              saved
+                ? 'bg-[#7C6FFF]/10 border-[#7C6FFF]/30 text-[#7C6FFF]'
+                : 'bg-transparent border-white/[0.08] text-[#9BA0AD] hover:border-white/20 hover:text-[#F8F7F4]'
+            }`}
+          >
+            {saved ? (
+              <>
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Guardado en biblioteca
+              </>
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                Guardar en biblioteca
+              </>
+            )}
+          </button>
         </div>
 
         {/* Tracklist */}
@@ -140,12 +200,11 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
           ) : tracks.map((track, i) => (
             <div
               key={track.id}
+              onClick={() => handlePlayAttempt(track)}
               className={`flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
                 playingTrack?.id === track.id ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
               }`}
-              onClick={() => handlePlayAttempt(track)}
             >
-              {/* Botón play */}
               <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
                 playingTrack?.id === track.id
                   ? 'bg-[#7C6FFF]'
@@ -193,9 +252,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
         {!isLoggedIn && (
           <div className="bg-[#1E2028] border border-[#7C6FFF]/15 rounded-xl p-5 text-center">
             <p className="text-[#F8F7F4] font-medium mb-1">Crea una cuenta gratis para escuchar</p>
-            <p className="text-[#555966] text-xs font-mono mb-4">
-              demo. es gratis. Sin tarjeta. Sin spam.
-            </p>
+            <p className="text-[#555966] text-xs font-mono mb-4">demo. es gratis. Sin tarjeta. Sin spam.</p>
             <button
               onClick={() => { setShowAuth(true); setAuthMode('signup') }}
               className="bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors"
@@ -216,18 +273,15 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
         />
       )}
 
-      {/* Modal de autenticación */}
+      {/* Modal auth */}
       {showAuth && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1E2028] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-
+          <div className="bg-[#1E2028] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
             {sent ? (
               <div className="text-center py-4">
                 <div className="text-3xl mb-3">📬</div>
                 <p className="text-[#F8F7F4] font-medium mb-2">Revisa tu email</p>
-                <p className="text-[#9BA0AD] text-sm">
-                  Te hemos enviado un enlace. Al confirmar volverás automáticamente a este proyecto.
-                </p>
+                <p className="text-[#9BA0AD] text-sm">Al confirmar volverás automáticamente a este proyecto.</p>
               </div>
             ) : (
               <>
@@ -240,7 +294,6 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
                   </p>
                 </div>
 
-                {/* Google */}
                 <button
                   onClick={handleGoogle}
                   disabled={loading}
@@ -256,9 +309,9 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
                 </button>
 
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <div className="flex-1 h-px bg-white/[0.06]"/>
                   <span className="text-[#333] text-xs font-mono">o</span>
-                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <div className="flex-1 h-px bg-white/[0.06]"/>
                 </div>
 
                 <form onSubmit={handleEmail} className="flex flex-col gap-3">
