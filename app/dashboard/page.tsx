@@ -39,7 +39,7 @@ export default async function DashboardPage() {
           demo<span className="text-[#7C6FFF]">.</span>
         </a>
         <div className="flex items-center gap-2">
-          
+          <a
             href="/search"
             className="flex items-center gap-2 bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] text-[#555966] hover:text-[#9BA0AD] px-3 py-1.5 rounded-lg text-xs transition-colors font-mono"
           >
