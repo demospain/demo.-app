@@ -20,11 +20,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Falta el path del archivo' }, { status: 400 })
   }
 
-  // Verificar que el usuario tiene acceso al track
   const supabase = await createServerSupabaseClient()
+
   const { data: track } = await supabase
     .from('tracks')
-    .select('id, project_id, file_path, projects(visibility, owner_id)')
+    .select('id, file_path, project_id, projects(visibility, owner_id)')
     .eq('file_path', filePath)
     .single()
 
@@ -33,11 +33,15 @@ export async function GET(request: Request) {
   }
 
   const { data: { user } } = await supabase.auth.getUser()
-  const project = track.projects as { visibility: string; owner_id: string } | null
 
-  // Permitir acceso si: es el owner, o el proyecto es público/link
-  const isOwner  = user?.id === project?.owner_id
-  const isPublic = project?.visibility === 'public' || project?.visibility === 'link'
+  // Extraer el proyecto correctamente del resultado del join
+  const projectRaw = track.projects
+  const project = Array.isArray(projectRaw) ? projectRaw[0] : projectRaw
+  const visibility = project?.visibility as string | undefined
+  const ownerId    = project?.owner_id   as string | undefined
+
+  const isOwner  = user?.id === ownerId
+  const isPublic = visibility === 'public' || visibility === 'link'
 
   if (!isOwner && !isPublic) {
     return NextResponse.json({ error: 'Sin acceso' }, { status: 403 })
@@ -48,7 +52,6 @@ export async function GET(request: Request) {
     Key:    filePath,
   })
 
-  // Presigned URL válida 1 hora para reproducir
   const playUrl = await getSignedUrl(r2, command, { expiresIn: 3600 })
 
   return NextResponse.json({ playUrl })
