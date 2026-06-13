@@ -1,20 +1,20 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import UploadTrack from '@/components/UploadTrack'
 import { usePlayer } from '@/lib/PlayerContext'
 
 interface Project {
-  id:          string
-  title:       string
-  cover_url:   string | null
-  visibility:  string
-  status:      string
-  share_slug?: string
-  owner_id:    string
+  id:              string
+  title:           string
+  cover_url:       string | null
+  visibility:      string
+  status:          string
+  share_slug?:     string
+  owner_id:        string
+  link_expires_at?: string | null
 }
 
 interface Track {
@@ -37,8 +37,43 @@ const VISIBILITY_CONFIG: Record<string, { label: string; icon: string; color: st
   public:  { label: 'Público',  icon: '🌍', color: 'text-[#1D9E75]' },
 }
 
+const EXPIRY_OPTIONS = [
+  { label: '24 horas',   value: '24h',       hours: 24 },
+  { label: '7 días',     value: '7d',        hours: 168 },
+  { label: '30 días',    value: '30d',       hours: 720 },
+  { label: 'Permanente', value: 'permanent', hours: null },
+]
+
+function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
+  const [timeLeft, setTimeLeft] = useState('')
+
+  useEffect(() => {
+    const update = () => {
+      const diff = new Date(expiresAt).getTime() - Date.now()
+      if (diff <= 0) { setTimeLeft('Expirado'); return }
+      const days  = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      const secs  = Math.floor((diff % (1000 * 60)) / 1000)
+      if (days > 0)       setTimeLeft(`Caduca en ${days}d ${hours}h ${mins}m`)
+      else if (hours > 0) setTimeLeft(`Caduca en ${hours}h ${mins}m ${secs}s`)
+      else                setTimeLeft(`Caduca en ${mins}m ${secs}s`)
+    }
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [expiresAt])
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse flex-shrink-0"/>
+      <span className="text-[#F59E0B] text-xs font-mono">{timeLeft}</span>
+    </div>
+  )
+}
+
 export default function ProyectoClient({ project: initialProject, initialTracks, isMine, userId }: Props) {
-  const [project, setProject]               = useState(initialProject)
+  const [project, setProject]               = useState<Project>(initialProject)
   const [tracks, setTracks]                 = useState<Track[]>(initialTracks)
   const [copied, setCopied]                 = useState(false)
   const [editingTitle, setEditingTitle]     = useState(false)
@@ -59,11 +94,23 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setProject(prev => ({ ...prev, visibility: key }))
   }
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (!project.share_slug) return
-    navigator.clipboard.writeText(`${window.location.origin}/p/${project.share_slug}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/p/${project.share_slug}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Fallback para navegadores que no soportan clipboard API
+      const el = document.createElement('textarea')
+      el.value = `${window.location.origin}/p/${project.share_slug}`
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const handleRenameProject = async () => {
@@ -90,24 +137,30 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setShowTrackMenu(null)
   }
 
+  const handleSetExpiry = async (hours: number | null) => {
+    const expiresAt = hours
+      ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString()
+      : null
+    await supabase.from('projects').update({ link_expires_at: expiresAt }).eq('id', project.id)
+    setProject(prev => ({ ...prev, link_expires_at: expiresAt }))
+  }
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setCoverUploading(true)
-
     const res = await fetch('/api/upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName: `cover-${project.id}.${file.name.split('.').pop()}`, fileType: file.type, fileSize: file.size }),
+      body: JSON.stringify({
+        fileName: `cover-${project.id}.${file.name.split('.').pop()}`,
+        fileType: file.type,
+        fileSize: file.size,
+      }),
     })
     const { uploadUrl, filePath } = await res.json()
-
     await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-
-    const coverUrl = `/api/play-url?path=${encodeURIComponent(filePath)}`
-    await supabase.from('projects').update({ cover_url: `/covers/${filePath}` }).eq('id', project.id)
-
-    // Usar URL temporal para mostrar la imagen
+    await supabase.from('projects').update({ cover_url: filePath }).eq('id', project.id)
     const objectUrl = URL.createObjectURL(file)
     setProject(prev => ({ ...prev, cover_url: objectUrl }))
     setCoverUploading(false)
@@ -138,7 +191,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         {/* Columna izquierda */}
         <div className="flex flex-col gap-4">
 
-          {/* Portada con upload */}
+          {/* Portada */}
           <div
             onClick={() => isMine && coverInputRef.current?.click()}
             className={`w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden relative group ${isMine ? 'cursor-pointer' : ''}`}
@@ -161,16 +214,10 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 }
               </div>
             )}
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/png,image/jpeg"
-              onChange={handleCoverUpload}
-              className="hidden"
-            />
+            <input ref={coverInputRef} type="file" accept="image/png,image/jpeg" onChange={handleCoverUpload} className="hidden"/>
           </div>
 
-          {/* Título — clicable para renombrar */}
+          {/* Título */}
           <div>
             {editingTitle ? (
               <input
@@ -203,6 +250,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             </div>
           </div>
 
+          {/* Visibilidad */}
           {isMine && (
             <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
               <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Visibilidad</p>
@@ -230,74 +278,70 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             </div>
           )}
 
+          {/* Caducidad + Copiar link */}
           {isMine && (project.visibility === 'link' || project.visibility === 'public') && (
-  <div className="flex flex-col gap-2">
-    {/* Selector de caducidad */}
-    <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
-      <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Caducidad del link</p>
-      <div className="flex flex-col gap-1">
-        {[
-          { label: '24 horas',    value: '24h',       hours: 24 },
-          { label: '7 días',      value: '7d',        hours: 168 },
-          { label: '30 días',     value: '30d',       hours: 720 },
-          { label: 'Permanente',  value: 'permanent', hours: null },
-        ].map(opt => (
-          <button
-            key={opt.value}
-            onClick={async () => {
-              const expiresAt = opt.hours
-                ? new Date(Date.now() + opt.hours * 60 * 60 * 1000).toISOString()
-                : null
-              await supabase.from('projects').update({ link_expires_at: expiresAt }).eq('id', project.id)
-              setProject(prev => ({ ...prev, link_expires_at: expiresAt } as any))
-            }}
-            className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
-              (project as any).link_expires_at === undefined && opt.value === 'permanent'
-                ? 'bg-[#7C6FFF]/10 text-[#7C6FFF] border border-[#7C6FFF]/20'
-                : 'text-[#9BA0AD] hover:bg-white/[0.03]'
-            }`}
-          >
-            <span>{opt.label}</span>
-          </button>
-        ))}
-      </div>
+            <div className="flex flex-col gap-2">
+              <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
+                <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Caducidad del link</p>
+                <div className="flex flex-col gap-1">
+                  {EXPIRY_OPTIONS.map(opt => {
+                    const isSelected = opt.hours === null
+                      ? !project.link_expires_at
+                      : false
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleSetExpiry(opt.hours)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
+                          isSelected
+                            ? 'bg-[#7C6FFF]/10 text-[#7C6FFF] border border-[#7C6FFF]/20'
+                            : 'text-[#9BA0AD] hover:bg-white/[0.03]'
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {isSelected && (
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                            <path d="M2 5l2.5 2.5L8 3" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                {project.link_expires_at && (
+                  <div className="mt-2 pt-2 border-t border-white/[0.06]">
+                    <ExpiryCountdown expiresAt={project.link_expires_at}/>
+                  </div>
+                )}
+              </div>
 
-      {/* Mostrar caducidad actual */}
-      {(project as any).link_expires_at && (
-        <div className="mt-2 pt-2 border-t border-white/[0.06]">
-          <ExpiryCountdown expiresAt={(project as any).link_expires_at}/>
-        </div>
-      )}
-    </div>
-
-    {/* Botón copiar */}
-    <button
-      onClick={handleCopyLink}
-      className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
-        copied
-          ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
-          : 'bg-[#7C6FFF]/10 hover:bg-[#7C6FFF]/20 border border-[#7C6FFF]/20 text-[#7C6FFF]'
-      }`}
-    >
-      {copied ? (
-        <>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          ¡Link copiado!
-        </>
-      ) : (
-        <>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-            <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Copiar link
-        </>
-      )}
-    </button>
-  </div>
-)}
+              <button
+                onClick={handleCopyLink}
+                className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
+                  copied
+                    ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
+                    : 'bg-[#7C6FFF]/10 hover:bg-[#7C6FFF]/20 border border-[#7C6FFF]/20 text-[#7C6FFF]'
+                }`}
+              >
+                {copied ? (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    ¡Link copiado!
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                      <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Copiar link
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
           {!isMine && (
             <div className="flex items-center gap-2 px-3 py-2 bg-[#7C6FFF]/5 border border-[#7C6FFF]/15 rounded-xl">
@@ -330,11 +374,9 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 const isPlaying = currentTrack?.id === track.id
                 return (
                   <div key={track.id}>
-                    <div
-                      className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
-                        isPlaying ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
-                      }`}
-                    >
+                    <div className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
+                      isPlaying ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
+                    }`}>
                       <button
                         onClick={() => isPlaying
                           ? closePlayer()
@@ -370,7 +412,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         </p>
                       </div>
 
-                      {/* Menú 3 puntos */}
                       {isMine && (
                         <div className="relative">
                           <button
@@ -402,8 +443,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                 Renombrar
                               </button>
                               <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(`${window.location.origin}/p/${project.share_slug}`)
+                                onClick={async () => {
+                                  await handleCopyLink()
                                   setShowTrackMenu(null)
                                 }}
                                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
@@ -430,7 +471,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       )}
                     </div>
 
-                    {/* Input renombrar inline */}
                     {editingTrackId === track.id && (
                       <div className="px-4 py-2 bg-[#111318] border-b border-white/[0.04]">
                         <input
@@ -462,31 +502,4 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       </div>
     </div>
   )
-  function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
-  const [timeLeft, setTimeLeft] = useState('')
-
-  useEffect(() => {
-    const update = () => {
-      const diff = new Date(expiresAt).getTime() - Date.now()
-      if (diff <= 0) { setTimeLeft('Expirado'); return }
-      const days  = Math.floor(diff / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-      const secs  = Math.floor((diff % (1000 * 60)) / 1000)
-      if (days > 0)       setTimeLeft(`Caduca en ${days}d ${hours}h ${mins}m`)
-      else if (hours > 0) setTimeLeft(`Caduca en ${hours}h ${mins}m ${secs}s`)
-      else                setTimeLeft(`Caduca en ${mins}m ${secs}s`)
-    }
-    update()
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
-  }, [expiresAt])
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse flex-shrink-0"/>
-      <span className="text-[#F59E0B] text-xs font-mono">{timeLeft}</span>
-    </div>
-  )
-}
 }
