@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useRef, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
 interface Track {
   id:            string
@@ -14,37 +14,40 @@ interface PlayerContextType {
   isPlaying:    boolean
   playTrack:    (track: Track) => void
   closePlayer:  () => void
-  wsRef:        React.MutableRefObject<any>
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null)
 
+// Estado global fuera de React — nunca se destruye al navegar
+let globalTrack: Track | null = null
+let globalSetTrack: ((track: Track | null) => void) | null = null
+
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(globalTrack)
   const [isPlaying, setIsPlaying]       = useState(false)
-  const wsRef                           = useRef<any>(null)
 
-  const playTrack = useCallback((track: Track) => {
-    if (currentTrack?.id === track.id) {
-      wsRef.current?.playPause()
-      setIsPlaying(p => !p)
-      return
+  useEffect(() => {
+    globalSetTrack = (track) => {
+      globalTrack = track
+      setCurrentTrack(track)
     }
-    wsRef.current?.destroy()
-    wsRef.current = null
-    setCurrentTrack(track)
-    setIsPlaying(true)
-  }, [currentTrack])
-
-  const closePlayer = useCallback(() => {
-    wsRef.current?.destroy()
-    wsRef.current = null
-    setCurrentTrack(null)
-    setIsPlaying(false)
+    return () => { globalSetTrack = null }
   }, [])
 
+  const playTrack = (track: Track) => {
+    globalTrack = track
+    setCurrentTrack(track)
+    setIsPlaying(true)
+  }
+
+  const closePlayer = () => {
+    globalTrack = null
+    setCurrentTrack(null)
+    setIsPlaying(false)
+  }
+
   return (
-    <PlayerContext.Provider value={{ currentTrack, isPlaying, playTrack, closePlayer, wsRef }}>
+    <PlayerContext.Provider value={{ currentTrack, isPlaying, playTrack, closePlayer }}>
       {children}
     </PlayerContext.Provider>
   )
