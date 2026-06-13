@@ -745,7 +745,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       onDragEnd={handleDragEnd}
                     >
                       <div
-                        onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })}
+                        onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title })))}
                         className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
                           isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
                           isActive   ? 'bg-[#7C6FFF]/5' :
@@ -768,7 +768,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         <button
                           onClick={e => {
                             e.stopPropagation()
-                            playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
+                            playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title })))
                           }}
                           className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
                             isPlaying
@@ -790,7 +790,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                           )}
                         </button>
 
-                        <span className="text-[#2E3140] font-mono text-sm w-5 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
+                        <span className="text-[#555966] font-mono text-sm w-5 text-right flex-shrink-0 group-hover:text-[#9BA0AD] transition-colors">
                           {i + 1}
                         </span>
 
@@ -800,7 +800,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                           }`}>
                             {track.title}
                           </p>
-                          <p className="text-xs font-mono text-[#3D4255] mt-0.5">
+                          <p className="text-xs font-mono text-[#555966] mt-0.5">
                             {formatDate(track.created_at)}
                             {track.duration && track.duration > 0 && (
                               <span> · {formatTrackDuration(track.duration)}</span>
