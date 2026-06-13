@@ -67,6 +67,29 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
 
   const isEmpty = projects.length === 0 && savedProjects.length === 0
 
+  const ProjectCard = ({ project, ownerName }: { project: Project; ownerName: string }) => (
+    <button
+      onClick={() => router.push(`/dashboard/proyecto/${project.id}`)}
+      className="text-left group"
+    >
+      <div className="w-full aspect-square rounded-xl bg-[#252830] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
+        {project.cover_url
+          ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
+          : <div className="text-4xl opacity-30 group-hover:opacity-40 transition-opacity">💿</div>
+        }
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-[#7C6FFF]/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 scale-90 group-hover:scale-100">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="white">
+              <path d="M2 1.5l7 4-7 4V1.5z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <p className="text-base font-medium text-[#F8F7F4] truncate leading-tight">{project.title}</p>
+      <p className="text-xs font-mono text-[#555966] mt-0.5 truncate">{ownerName}</p>
+    </button>
+  )
+
   return (
     <div>
       {showNewProject && (
@@ -125,41 +148,13 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-10">
           {projects.length > 0 && (
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[#F8F7F4] text-sm font-medium">Mis proyectos</p>
-                <button
-                  onClick={() => setShowNewProject(true)}
-                  className="flex items-center gap-1.5 text-[#7C6FFF] hover:text-[#6B5FE8] text-xs font-mono transition-colors"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  Nuevo
-                </button>
-              </div>
+              <p className="text-[#F8F7F4] text-lg font-medium mb-5">Mis proyectos</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-start">
                 {projects.map(project => (
-                  <button
-                    key={project.id}
-                    onClick={() => router.push(`/dashboard/proyecto/${project.id}`)}
-                    className="text-left group"
-                  >
-                    <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
-                      {project.cover_url
-                        ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
-                        : <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
-                      }
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"/>
-                      <div className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><path d="M1.5 1l5.5 3-5.5 3V1z"/></svg>
-                      </div>
-                    </div>
-                    <p className="text-base font-medium text-[#F8F7F4] truncate leading-tight">{project.title}</p>
-                    <p className="text-xs font-mono text-[#555966] mt-0.5 truncate">{userName}</p>
-                  </button>
+                  <ProjectCard key={project.id} project={project} ownerName={userName}/>
                 ))}
                 <button onClick={() => setShowNewProject(true)} className="text-left group">
                   <div className="w-full aspect-square rounded-xl border-2 border-dashed border-white/[0.06] group-hover:border-[#7C6FFF]/30 transition-colors mb-2.5 flex items-center justify-center">
@@ -175,29 +170,14 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
 
           {savedProjects.length > 0 && (
             <div>
-              <p className="text-[#F8F7F4] text-sm font-medium mb-4">Guardado</p>
+              <p className="text-[#F8F7F4] text-lg font-medium mb-5">Guardado</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-start">
                 {savedProjects.map(project => (
-                  <button
+                  <ProjectCard
                     key={project.id}
-                    onClick={() => router.push(`/dashboard/proyecto/${project.id}`)}
-                    className="text-left group"
-                  >
-                    <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
-                      {project.cover_url
-                        ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
-                        : <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
-                      }
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"/>
-                      <div className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><path d="M1.5 1l5.5 3-5.5 3V1z"/></svg>
-                      </div>
-                    </div>
-                    <p className="text-base font-medium text-[#F8F7F4] truncate leading-tight">{project.title}</p>
-                    <p className="text-xs font-mono text-[#555966] mt-0.5 truncate">
-                      {project.owner_id ? (ownerNames[project.owner_id] ?? 'Artista') : 'Artista'}
-                    </p>
-                  </button>
+                    project={project}
+                    ownerName={project.owner_id ? (ownerNames[project.owner_id] ?? 'Artista') : 'Artista'}
+                  />
                 ))}
               </div>
             </div>
