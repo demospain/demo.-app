@@ -12,11 +12,12 @@ interface Track {
 }
 
 interface Project {
-  id:        string
-  title:     string
-  cover_url: string | null
-  slug:      string
-  ownerName: string
+  id:         string
+  title:      string
+  cover_url:  string | null
+  slug:       string
+  ownerName:  string
+  visibility: string
 }
 
 interface Props {
@@ -24,6 +25,7 @@ interface Props {
   tracks:     Track[]
   isLoggedIn: boolean
   userId:     string | null
+  isOwner:    boolean
 }
 
 type AuthMode = 'signup' | 'login'
@@ -46,13 +48,15 @@ function formatTotalDuration(tracks: Track[]): string {
   return `${s}s`
 }
 
-export default function PublicProjectClient({ project, tracks, isLoggedIn, userId }: Props) {
+export default function PublicProjectClient({ project, tracks, isLoggedIn, userId, isOwner }: Props) {
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
   const [audioUrl, setAudioUrl]             = useState<string | null>(null)
   const [loadingTrackId, setLoadingTrackId] = useState<string | null>(null)
   const [currentTime, setCurrentTime]       = useState(0)
   const [duration, setDuration]             = useState(0)
+  const [isPlaying, setIsPlaying]           = useState(false)
   const [showAuth, setShowAuth]             = useState(false)
+  const [showSharePanel, setShowSharePanel] = useState(false)
   const [authMode, setAuthMode]             = useState<AuthMode>('signup')
   const [email, setEmail]                   = useState('')
   const [password, setPassword]             = useState('')
@@ -61,10 +65,15 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
   const [sent, setSent]                     = useState(false)
   const [saved, setSaved]                   = useState(false)
   const [savingLoading, setSavingLoading]   = useState(false)
+  const [copied, setCopied]                 = useState(false)
   const audioRef                            = useRef<HTMLAudioElement>(null)
   const supabase                            = createClient()
 
   const playingTrack = tracks.find(t => t.id === playingTrackId) ?? null
+  const totalDuration = formatTotalDuration(tracks)
+
+  // Puede compartir si es el dueño, o si la visibilidad es pública
+  const canShare = isOwner || project.visibility === 'public'
 
   useEffect(() => {
     if (!isLoggedIn || !userId) return
@@ -80,7 +89,38 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
     check()
   }, [isLoggedIn, userId, project.id])
 
-  // Cargar URL de audio directamente desde R2 (sin proxy)
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onTime  = () => setCurrentTime(audio.currentTime)
+    const onMeta  = () => setDuration(audio.duration)
+    const onPlay  = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
+    const onEnd   = () => {
+      const idx = tracks.findIndex(t => t.id === playingTrackId)
+      if (idx < tracks.length - 1) loadAndPlay(tracks[idx + 1])
+      else { setPlayingTrackId(null); setIsPlaying(false) }
+    }
+    audio.addEventListener('timeupdate',     onTime)
+    audio.addEventListener('loadedmetadata', onMeta)
+    audio.addEventListener('play',           onPlay)
+    audio.addEventListener('pause',          onPause)
+    audio.addEventListener('ended',          onEnd)
+    return () => {
+      audio.removeEventListener('timeupdate',     onTime)
+      audio.removeEventListener('loadedmetadata', onMeta)
+      audio.removeEventListener('play',           onPlay)
+      audio.removeEventListener('pause',          onPause)
+      audio.removeEventListener('ended',          onEnd)
+    }
+  }, [playingTrackId, tracks])
+
+  useEffect(() => {
+    if (!audioUrl || !audioRef.current) return
+    audioRef.current.src = audioUrl
+    audioRef.current.play()
+  }, [audioUrl])
+
   const loadAndPlay = async (track: Track) => {
     if (!isLoggedIn) { setShowAuth(true); setAuthMode('signup'); return }
     if (playingTrackId === track.id) {
@@ -103,33 +143,6 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
     setLoadingTrackId(null)
   }
 
-  useEffect(() => {
-    if (!audioUrl || !audioRef.current) return
-    audioRef.current.src = audioUrl
-    audioRef.current.play()
-  }, [audioUrl])
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    const onTime = () => setCurrentTime(audio.currentTime)
-    const onMeta = () => setDuration(audio.duration)
-    const onEnd  = () => {
-      // Pasar a la siguiente canción automáticamente
-      const idx = tracks.findIndex(t => t.id === playingTrackId)
-      if (idx < tracks.length - 1) loadAndPlay(tracks[idx + 1])
-      else setPlayingTrackId(null)
-    }
-    audio.addEventListener('timeupdate', onTime)
-    audio.addEventListener('loadedmetadata', onMeta)
-    audio.addEventListener('ended', onEnd)
-    return () => {
-      audio.removeEventListener('timeupdate', onTime)
-      audio.removeEventListener('loadedmetadata', onMeta)
-      audio.removeEventListener('ended', onEnd)
-    }
-  }, [playingTrackId, tracks])
-
   const handleSave = async () => {
     if (!isLoggedIn) { setShowAuth(true); setAuthMode('signup'); return }
     setSavingLoading(true)
@@ -141,6 +154,24 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
       setSaved(true)
     }
     setSavingLoading(false)
+  }
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/p/${project.slug}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      const el = document.createElement('textarea')
+      el.value = url
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const handleGoogle = async () => {
@@ -171,10 +202,8 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
     }
   }
 
-  const totalDuration = formatTotalDuration(tracks)
-
   return (
-    <div className={`min-h-screen bg-[#0d0d0f] flex flex-col ${playingTrack ? 'pb-28' : ''}`}>
+    <div className={`min-h-screen bg-[#0d0d0f] flex flex-col ${playingTrack ? 'pb-20' : ''}`}>
 
       <audio ref={audioRef}/>
 
@@ -184,6 +213,21 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
           demo<span className="text-[#7C6FFF]">.</span>
         </span>
         <div className="flex items-center gap-3">
+          {canShare && (
+            <button
+              onClick={() => setShowSharePanel(p => !p)}
+              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
+                showSharePanel
+                  ? 'bg-[#7C6FFF]/15 border-[#7C6FFF]/30 text-[#7C6FFF]'
+                  : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/55'
+              }`}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M11.5 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM4.5 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM11.5 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" stroke="currentColor" strokeWidth="1.3"/>
+                <path d="M6.5 7.3l3-2M6.5 8.7l3 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
           {isLoggedIn ? (
             <a href="/dashboard" className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors font-mono">
               Mi biblioteca →
@@ -199,13 +243,58 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
         </div>
       </nav>
 
+      {/* Panel compartición */}
+      {showSharePanel && canShare && (
+        <div className="fixed inset-0 z-40" onClick={() => setShowSharePanel(false)}>
+          <div
+            className="absolute right-6 top-16 w-72 bg-[#13141a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
+              <span className="text-sm font-medium text-[#F8F7F4] truncate pr-4">{project.title}</span>
+              <button onClick={() => setShowSharePanel(false)} className="text-[#555966] hover:text-[#9BA0AD] transition-colors flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+            <div className="p-3">
+              <button
+                onClick={handleCopyLink}
+                className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
+                  copied
+                    ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
+                    : 'bg-[#7C6FFF] hover:bg-[#6B5FE8] text-white'
+                }`}
+              >
+                {copied ? (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    ¡Link copiado!
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                      <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Copiar link
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
 
           {/* Columna izquierda */}
           <div className="flex flex-col gap-5">
 
-            {/* Portada */}
             <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden">
               {project.cover_url
                 ? <img src={project.cover_url} alt={project.title} className="w-full h-full object-cover"/>
@@ -213,7 +302,6 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
               }
             </div>
 
-            {/* Info */}
             <div>
               <h1 className="text-xl font-medium text-[#F8F7F4] mb-1.5">{project.title}</h1>
               <div className="flex items-center gap-2 flex-wrap">
@@ -231,7 +319,6 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
               </div>
             </div>
 
-            {/* Guardar */}
             <button
               onClick={handleSave}
               disabled={savingLoading}
@@ -258,7 +345,6 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
               )}
             </button>
 
-            {/* CTA no logueados */}
             {!isLoggedIn && (
               <div className="bg-[#13141a] border border-[#7C6FFF]/15 rounded-xl p-4">
                 <p className="text-[#F8F7F4] text-sm font-medium mb-1">Crea una cuenta para escuchar</p>
@@ -286,24 +372,24 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
                 </div>
 
                 {tracks.map((track, i) => {
-                  const isPlaying  = playingTrackId === track.id
-                  const isLoading  = loadingTrackId === track.id
+                  const isPlayingTrack = playingTrackId === track.id
+                  const isLoadingTrack = loadingTrackId === track.id
                   return (
                     <div
                       key={track.id}
                       onClick={() => loadAndPlay(track)}
                       className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
-                        isPlaying ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
+                        isPlayingTrack ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
                       }`}
                     >
                       <button className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                        isPlaying
+                        isPlayingTrack
                           ? 'bg-[#7C6FFF] text-white'
                           : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
                       }`}>
-                        {isLoading ? (
+                        {isLoadingTrack ? (
                           <div className="w-3.5 h-3.5 border border-white/30 border-t-white rounded-full animate-spin"/>
-                        ) : isPlaying ? (
+                        ) : isPlayingTrack && isPlaying ? (
                           <svg width="9" height="9" viewBox="0 0 9 9" fill="white">
                             <rect x="0.5" y="0.5" width="3" height="8" rx="0.5"/>
                             <rect x="5.5" y="0.5" width="3" height="8" rx="0.5"/>
@@ -321,7 +407,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
 
                       <div className="flex-1 min-w-0">
                         <p className={`text-base font-medium truncate transition-colors ${
-                          isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
+                          isPlayingTrack ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
                         }`}>
                           {track.title}
                         </p>
@@ -347,50 +433,62 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
         </div>
       </main>
 
-      {/* Reproductor inline */}
+      {/* Reproductor */}
       {playingTrack && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#13141a]/95 backdrop-blur-md border-t border-white/[0.06] px-6 py-3">
           <div className="max-w-6xl mx-auto flex items-center gap-4">
             <button
               onClick={() => audioRef.current?.paused ? audioRef.current.play() : audioRef.current?.pause()}
-              className="w-9 h-9 rounded-full bg-[#7C6FFF] hover:bg-[#6B5FE8] flex items-center justify-center flex-shrink-0 transition-colors"
+              className="w-10 h-10 rounded-full bg-[#7C6FFF] hover:bg-[#6B5FE8] flex items-center justify-center flex-shrink-0 transition-colors"
             >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="white">
-                <rect x="0.5" y="0.5" width="3.5" height="9" rx="0.5"/>
-                <rect x="6" y="0.5" width="3.5" height="9" rx="0.5"/>
-              </svg>
+              {isPlaying ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                  <rect x="1" y="1" width="4" height="10" rx="1"/>
+                  <rect x="7" y="1" width="4" height="10" rx="1"/>
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                  <path d="M2 1.5l9 4.5-9 4.5V1.5z"/>
+                </svg>
+              )}
             </button>
 
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#F8F7F4] truncate">{playingTrack.title}</p>
-              <p className="text-xs font-mono text-[#555966]">{project.ownerName}</p>
+            <div className="flex-1 min-w-0 flex items-center gap-4">
+              <div className="min-w-0 flex-shrink-0 max-w-[200px]">
+                <p className="text-sm font-medium text-[#F8F7F4] truncate">{playingTrack.title}</p>
+                <p className="text-xs font-mono text-[#555966] truncate">{project.ownerName}</p>
+              </div>
+              <div className="flex-1 flex items-center gap-3">
+                <span className="text-xs font-mono text-[#555966] w-10 text-right flex-shrink-0">
+                  {formatDuration(Math.floor(currentTime))}
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || 0}
+                  step={0.1}
+                  value={currentTime}
+                  onChange={e => {
+                    const t = Number(e.target.value)
+                    if (audioRef.current) audioRef.current.currentTime = t
+                    setCurrentTime(t)
+                  }}
+                  className="flex-1 accent-[#7C6FFF] cursor-pointer"
+                />
+                <span className="text-xs font-mono text-[#555966] w-10 flex-shrink-0">
+                  {formatDuration(Math.floor(duration))}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="text-xs font-mono text-[#555966]">
-                {formatDuration(Math.floor(currentTime))} / {formatDuration(Math.floor(duration))}
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={duration || 0}
-                value={currentTime}
-                onChange={e => {
-                  const t = Number(e.target.value)
-                  if (audioRef.current) audioRef.current.currentTime = t
-                  setCurrentTime(t)
-                }}
-                className="w-32 accent-[#7C6FFF]"
-              />
-              <button
-                onClick={() => { audioRef.current?.pause(); setPlayingTrackId(null); setAudioUrl(null) }}
-                className="text-[#555966] hover:text-[#9BA0AD] transition-colors"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
-              </button>
-            </div>
+            <button
+              onClick={() => { audioRef.current?.pause(); setPlayingTrackId(null); setAudioUrl(null) }}
+              className="text-[#555966] hover:text-[#F8F7F4] transition-colors flex-shrink-0"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
           </div>
         </div>
       )}
