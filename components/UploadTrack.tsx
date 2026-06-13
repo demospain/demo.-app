@@ -4,11 +4,25 @@ import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 
 interface UploadTrackProps {
-  projectId: string
-  onUploadComplete?: (track: { id: string; title: string; file_path: string }) => void
+  projectId:        string
+  onUploadComplete?: (track: { id: string; title: string; file_path: string; duration: number | null; created_at: string }) => void
+  onLimitReached?:  () => void
 }
 
-export default function UploadTrack({ projectId, onUploadComplete }: UploadTrackProps) {
+function getAudioDuration(file: File): Promise<number | null> {
+  return new Promise(resolve => {
+    const audio = document.createElement('audio')
+    const url   = URL.createObjectURL(file)
+    audio.addEventListener('loadedmetadata', () => {
+      URL.revokeObjectURL(url)
+      resolve(isFinite(audio.duration) ? Math.round(audio.duration) : null)
+    })
+    audio.addEventListener('error', () => { URL.revokeObjectURL(url); resolve(null) })
+    audio.src = url
+  })
+}
+
+export default function UploadTrack({ projectId, onUploadComplete, onLimitReached }: UploadTrackProps) {
   const [dragging, setDragging]   = useState(false)
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress]   = useState(0)
@@ -24,7 +38,6 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
-      // Comprobar límite de 50 tracks en total
       const { count, error: countError } = await supabase
         .from('tracks')
         .select('id', { count: 'exact', head: true })
@@ -33,10 +46,13 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
       if (countError) throw new Error(countError.message)
 
       if ((count ?? 0) >= 50) {
-        setError('Has alcanzado el límite de 50 canciones del plan gratuito.')
         setUploading(false)
+        onLimitReached?.()
         return
       }
+
+      // Extraer duración antes de subir
+      const duration = await getAudioDuration(file)
 
       const res = await fetch('/api/upload-url', {
         method:  'POST',
@@ -75,6 +91,7 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
           format:      file.name.split('.').pop()?.toLowerCase(),
           track_order: 0,
           uploaded_by: user?.id,
+          duration,
         })
         .select()
         .single()
