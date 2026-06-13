@@ -21,6 +21,23 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
     setProgress(0)
 
     try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // Comprobar límite de 50 tracks en total
+      const { count, error: countError } = await supabase
+        .from('tracks')
+        .select('id', { count: 'exact', head: true })
+        .eq('uploaded_by', user?.id)
+
+      if (countError) throw new Error(countError.message)
+
+      if ((count ?? 0) >= 50) {
+        setError('Has alcanzado el límite de 50 canciones del plan gratuito.')
+        setUploading(false)
+        return
+      }
+
       const res = await fetch('/api/upload-url', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -46,8 +63,6 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
         xhr.send(file)
       })
 
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
       const title = file.name.replace(/\.[^/.]+$/, '')
 
       const { data: track, error: dbError } = await supabase
