@@ -18,13 +18,13 @@ export default async function DashboardPage() {
 
   const { data: projects } = await supabase
     .from('projects')
-    .select('id, title, cover_url, visibility, status, created_at')
+    .select('id, title, cover_url, visibility, status, created_at, owner_id')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
   const { data: savedRaw } = await supabase
     .from('saved_projects')
-    .select('project_id, projects(id, title, cover_url, visibility, status, created_at)')
+    .select('project_id, projects(id, title, cover_url, visibility, status, created_at, owner_id)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -33,6 +33,17 @@ export default async function DashboardPage() {
     .filter(Boolean)
     .filter((p: any) => !projects?.some(own => own.id === p.id))
 
+  // Traer nombres de los owners de proyectos guardados
+  const ownerIds = [...new Set(savedProjects.map((p: any) => p.owner_id).filter(Boolean))]
+  const { data: ownerProfiles } = ownerIds.length > 0
+    ? await supabase.from('profiles').select('id, full_name').in('id', ownerIds)
+    : { data: [] }
+
+  const ownerNames: Record<string, string> = {}
+  for (const p of ownerProfiles ?? []) {
+    ownerNames[p.id] = p.full_name ?? 'Artista'
+  }
+
   const nombre = user.user_metadata?.full_name?.split(' ')[0]
     ?? user.email?.split('@')[0]
     ?? 'artista'
@@ -40,9 +51,9 @@ export default async function DashboardPage() {
   const inicial = nombre.charAt(0).toUpperCase()
 
   return (
-    <div className="min-h-screen bg-[#0d0d0f] flex flex-col">
+    <div className="min-h-screen bg-[#16171e] flex flex-col">
 
-      <nav className="h-14 border-b border-white/[0.05] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#0d0d0f]/90 backdrop-blur-md">
+      <nav className="h-14 border-b border-white/[0.05] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#16171e]/90 backdrop-blur-md">
         <a href="/dashboard" className="font-mono text-lg font-medium tracking-tight hover:opacity-80 transition-opacity flex-shrink-0">
           demo<span className="text-[#7C6FFF]">.</span>
         </a>
@@ -70,8 +81,10 @@ export default async function DashboardPage() {
 
         <DashboardClient
           userId={user.id}
+          userName={nombre}
           initialProjects={projects ?? []}
           savedProjects={savedProjects}
+          ownerNames={ownerNames}
         />
       </main>
     </div>
