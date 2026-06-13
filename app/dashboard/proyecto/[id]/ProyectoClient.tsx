@@ -244,7 +244,15 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       document.body.removeChild(a)
     } catch {}
   }
-
+  
+  const handleExportProject = async () => {
+    setShowDotsMenu(false)
+    for (const track of tracks) {
+      await handleExportTrack(track)
+      await new Promise(r => setTimeout(r, 400))
+    }
+  }
+  
   const handleDeleteProject = async () => {
     const { error } = await supabase.from('projects').delete().eq('id', project.id)
     if (!error) router.push('/dashboard')
