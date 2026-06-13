@@ -21,10 +21,10 @@ export default async function ProyectoPage({ params }: Props) {
   if (!project) redirect('/dashboard')
 
   const { data: tracks } = await supabase
-    .from('tracks')
-    .select('id, title, file_path, track_order')
-    .eq('project_id', params.id)
-    .order('track_order', { ascending: true })
+  .from('tracks')
+  .select('id, title, file_path, track_order, duration, created_at')
+  .eq('project_id', params.id)
+  .order('track_order', { ascending: true })
 
   const isMine = project.owner_id === user.id
 
