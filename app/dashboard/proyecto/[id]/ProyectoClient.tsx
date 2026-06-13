@@ -36,9 +36,9 @@ interface Props {
 }
 
 const VISIBILITY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-  private: { label: 'Privado',  icon: '🔒', color: 'text-[#555966]' },
-  link:    { label: 'Con link', icon: '🔗', color: 'text-[#F59E0B]' },
-  public:  { label: 'Público',  icon: '🌍', color: 'text-[#1D9E75]' },
+  private: { label: 'Privado',          icon: '🔒', color: 'text-[#555966]' },
+  link:    { label: 'Solo invitación',  icon: '🔗', color: 'text-[#F59E0B]' },
+  public:  { label: 'Público',          icon: '🌍', color: 'text-[#1D9E75]' },
 }
 
 const EXPIRY_OPTIONS = [
