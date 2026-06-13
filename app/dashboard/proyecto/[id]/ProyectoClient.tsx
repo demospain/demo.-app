@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -461,4 +462,31 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       </div>
     </div>
   )
+  function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
+  const [timeLeft, setTimeLeft] = useState('')
+
+  useEffect(() => {
+    const update = () => {
+      const diff = new Date(expiresAt).getTime() - Date.now()
+      if (diff <= 0) { setTimeLeft('Expirado'); return }
+      const days  = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      const secs  = Math.floor((diff % (1000 * 60)) / 1000)
+      if (days > 0)       setTimeLeft(`Caduca en ${days}d ${hours}h ${mins}m`)
+      else if (hours > 0) setTimeLeft(`Caduca en ${hours}h ${mins}m ${secs}s`)
+      else                setTimeLeft(`Caduca en ${mins}m ${secs}s`)
+    }
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [expiresAt])
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse flex-shrink-0"/>
+      <span className="text-[#F59E0B] text-xs font-mono">{timeLeft}</span>
+    </div>
+  )
+}
 }
