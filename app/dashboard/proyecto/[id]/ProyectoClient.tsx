@@ -82,6 +82,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
   const [editingTrackName, setEditingTrackName] = useState('')
   const [coverUploading, setCoverUploading] = useState(false)
+  const [dragOverId, setDragOverId]         = useState<string | null>(null)
+  const dragIdRef                           = useRef<string | null>(null)
   const coverInputRef                       = useRef<HTMLInputElement>(null)
   const { currentTrack, playTrack, closePlayer } = usePlayer()
   const router = useRouter()
@@ -122,7 +124,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       .update({ title: titleInput.trim() })
       .eq('id', project.id)
     if (error) {
-      // Revertir si falla
       setTitleInput(project.title)
     } else {
       setProject(prev => ({ ...prev, title: titleInput.trim() }))
@@ -136,10 +137,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       .from('tracks')
       .update({ title: newName.trim() })
       .eq('id', trackId)
-    if (error) {
-      // Revertir si falla — restaurar nombre original
-      setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: t.title } : t))
-    } else {
+    if (!error) {
       setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
     }
     setEditingTrackId(null)
@@ -189,6 +187,51 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       setProject(prev => ({ ...prev, cover_url: objectUrl }))
     }
     setCoverUploading(false)
+  }
+
+  // Drag & drop reorder
+  const handleDragStart = (trackId: string) => {
+    dragIdRef.current = trackId
+  }
+
+  const handleDragOver = (e: React.DragEvent, trackId: string) => {
+    e.preventDefault()
+    if (dragIdRef.current !== trackId) setDragOverId(trackId)
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetId: string) => {
+    e.preventDefault()
+    setDragOverId(null)
+    const sourceId = dragIdRef.current
+    if (!sourceId || sourceId === targetId) return
+
+    const oldTracks = [...tracks]
+    const sourceIdx = tracks.findIndex(t => t.id === sourceId)
+    const targetIdx = tracks.findIndex(t => t.id === targetId)
+    if (sourceIdx === -1 || targetIdx === -1) return
+
+    // Reordenar localmente
+    const reordered = [...tracks]
+    const [moved] = reordered.splice(sourceIdx, 1)
+    reordered.splice(targetIdx, 0, moved)
+    const withOrder = reordered.map((t, i) => ({ ...t, track_order: i }))
+    setTracks(withOrder)
+
+    // Persistir en Supabase
+    const updates = withOrder.map(t =>
+      supabase.from('tracks').update({ track_order: t.track_order }).eq('id', t.id)
+    )
+    const results = await Promise.all(updates)
+    const anyError = results.some(r => r.error)
+    if (anyError) {
+      // Revertir si algo falla
+      setTracks(oldTracks)
+    }
+  }
+
+  const handleDragEnd = () => {
+    dragIdRef.current = null
+    setDragOverId(null)
   }
 
   return (
@@ -396,12 +439,37 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 </span>
               </div>
               {tracks.map((track, i) => {
-                const isPlaying = currentTrack?.id === track.id
+                const isPlaying  = currentTrack?.id === track.id
+                const isDragOver = dragOverId === track.id
                 return (
-                  <div key={track.id}>
+                  <div
+                    key={track.id}
+                    draggable={isMine}
+                    onDragStart={() => handleDragStart(track.id)}
+                    onDragOver={e => handleDragOver(e, track.id)}
+                    onDrop={e => handleDrop(e, track.id)}
+                    onDragEnd={handleDragEnd}
+                  >
                     <div className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
-                      isPlaying ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
+                      isDragOver  ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
+                      isPlaying   ? 'bg-[#7C6FFF]/5' :
+                      'hover:bg-white/[0.02]'
                     }`}>
+
+                      {/* Handle drag */}
+                      {isMine && (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-[#333] hover:text-[#555966] flex-shrink-0 -ml-1">
+                          <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+                            <circle cx="3" cy="2.5" r="1.2" fill="currentColor"/>
+                            <circle cx="7" cy="2.5" r="1.2" fill="currentColor"/>
+                            <circle cx="3" cy="7"   r="1.2" fill="currentColor"/>
+                            <circle cx="7" cy="7"   r="1.2" fill="currentColor"/>
+                            <circle cx="3" cy="11.5" r="1.2" fill="currentColor"/>
+                            <circle cx="7" cy="11.5" r="1.2" fill="currentColor"/>
+                          </svg>
+                        </div>
+                      )}
+
                       <button
                         onClick={() => isPlaying
                           ? closePlayer()
