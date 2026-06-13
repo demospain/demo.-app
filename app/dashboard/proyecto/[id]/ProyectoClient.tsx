@@ -341,7 +341,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null) }
 
   return (
-    <div className={`flex flex-col min-h-screen ${currentTrack ? 'pb-36' : ''}`}>
+    <div className={`flex flex-col min-h-screen ${currentTrack ? 'pb-20' : ''}`}>
 
       <input
         ref={replaceInputRef}
