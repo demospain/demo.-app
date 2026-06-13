@@ -7,13 +7,13 @@ import UploadTrack from '@/components/UploadTrack'
 import { usePlayer } from '@/lib/PlayerContext'
 
 interface Project {
-  id:              string
-  title:           string
-  cover_url:       string | null
-  visibility:      string
-  status:          string
-  share_slug?:     string
-  owner_id:        string
+  id:               string
+  title:            string
+  cover_url:        string | null
+  visibility:       string
+  status:           string
+  share_slug?:      string
+  owner_id:         string
   link_expires_at?: string | null
 }
 
@@ -22,6 +22,8 @@ interface Track {
   title:       string
   file_path:   string
   track_order: number
+  duration:    number | null
+  created_at:  string
 }
 
 interface Props {
@@ -43,6 +45,32 @@ const EXPIRY_OPTIONS = [
   { label: '30 días',    value: '30d',       hours: 720 },
   { label: 'Permanente', value: 'permanent', hours: null },
 ]
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  if (h > 0) return `${h}h ${m}m`
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
+}
+
+function formatTrackDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now  = new Date()
+  const diff = now.getTime() - date.getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'Hoy'
+  if (days === 1) return 'Ayer'
+  if (days < 7)  return `Hace ${days} días`
+  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+}
 
 function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
   const [timeLeft, setTimeLeft] = useState('')
@@ -83,13 +111,17 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const [editingTrackName, setEditingTrackName] = useState('')
   const [coverUploading, setCoverUploading] = useState(false)
   const [dragOverId, setDragOverId]         = useState<string | null>(null)
+  const [replacingTrackId, setReplacingTrackId] = useState<string | null>(null)
   const dragIdRef                           = useRef<string | null>(null)
   const coverInputRef                       = useRef<HTMLInputElement>(null)
+  const replaceInputRef                     = useRef<HTMLInputElement>(null)
   const { currentTrack, playTrack, closePlayer } = usePlayer()
-  const router = useRouter()
+  const router   = useRouter()
   const supabase = createClient()
 
   const vis = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
+
+  const totalDuration = tracks.reduce((acc, t) => acc + (t.duration ?? 0), 0)
 
   const handleVisibilityChange = async (key: string) => {
     const { error } = await supabase.from('projects').update({ visibility: key }).eq('id', project.id)
@@ -152,6 +184,81 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setShowTrackMenu(null)
   }
 
+  const handleDuplicateTrack = async (track: Track) => {
+    const { data, error } = await supabase
+      .from('tracks')
+      .insert({
+        project_id:  project.id,
+        title:       `${track.title} (copia)`,
+        file_path:   track.file_path,
+        file_size:   null,
+        format:      track.file_path.split('.').pop()?.toLowerCase(),
+        track_order: tracks.length,
+        uploaded_by: userId,
+        duration:    track.duration,
+      })
+      .select()
+      .single()
+    if (!error && data) {
+      setTracks(prev => [...prev, data])
+    }
+    setShowTrackMenu(null)
+  }
+
+  const handleExportTrack = async (track: Track) => {
+    setShowTrackMenu(null)
+    try {
+      const res = await fetch('/api/play-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ filePath: track.file_path }),
+      })
+      const { url } = await res.json()
+      const a = document.createElement('a')
+      a.href     = url
+      a.download = `${track.title}.${track.file_path.split('.').pop() ?? 'mp3'}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch {
+      // silencioso
+    }
+  }
+
+  const handleReplaceAudio = async (trackId: string, file: File) => {
+    setReplacingTrackId(trackId)
+    try {
+      const duration = await new Promise<number | null>(resolve => {
+        const audio = document.createElement('audio')
+        const url   = URL.createObjectURL(file)
+        audio.addEventListener('loadedmetadata', () => { URL.revokeObjectURL(url); resolve(isFinite(audio.duration) ? Math.round(audio.duration) : null) })
+        audio.addEventListener('error', () => { URL.revokeObjectURL(url); resolve(null) })
+        audio.src = url
+      })
+
+      const res = await fetch('/api/upload-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+      })
+      const { uploadUrl, filePath } = await res.json()
+      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+
+      const { error } = await supabase
+        .from('tracks')
+        .update({ file_path: filePath, duration, format: file.name.split('.').pop()?.toLowerCase() })
+        .eq('id', trackId)
+
+      if (!error) {
+        setTracks(prev => prev.map(t => t.id === trackId ? { ...t, file_path: filePath, duration } : t))
+        if (currentTrack?.id === trackId) closePlayer()
+      }
+    } catch {
+      // silencioso
+    }
+    setReplacingTrackId(null)
+  }
+
   const handleSetExpiry = async (hours: number | null) => {
     const expiresAt = hours
       ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString()
@@ -189,10 +296,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setCoverUploading(false)
   }
 
-  // Drag & drop reorder
-  const handleDragStart = (trackId: string) => {
-    dragIdRef.current = trackId
-  }
+  const handleDragStart = (trackId: string) => { dragIdRef.current = trackId }
 
   const handleDragOver = (e: React.DragEvent, trackId: string) => {
     e.preventDefault()
@@ -204,38 +308,38 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setDragOverId(null)
     const sourceId = dragIdRef.current
     if (!sourceId || sourceId === targetId) return
-
     const oldTracks = [...tracks]
     const sourceIdx = tracks.findIndex(t => t.id === sourceId)
     const targetIdx = tracks.findIndex(t => t.id === targetId)
     if (sourceIdx === -1 || targetIdx === -1) return
-
-    // Reordenar localmente
     const reordered = [...tracks]
     const [moved] = reordered.splice(sourceIdx, 1)
     reordered.splice(targetIdx, 0, moved)
     const withOrder = reordered.map((t, i) => ({ ...t, track_order: i }))
     setTracks(withOrder)
-
-    // Persistir en Supabase
-    const updates = withOrder.map(t =>
+    const results = await Promise.all(withOrder.map(t =>
       supabase.from('tracks').update({ track_order: t.track_order }).eq('id', t.id)
-    )
-    const results = await Promise.all(updates)
-    const anyError = results.some(r => r.error)
-    if (anyError) {
-      // Revertir si algo falla
-      setTracks(oldTracks)
-    }
+    ))
+    if (results.some(r => r.error)) setTracks(oldTracks)
   }
 
-  const handleDragEnd = () => {
-    dragIdRef.current = null
-    setDragOverId(null)
-  }
+  const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null) }
 
   return (
     <div className={currentTrack ? 'pb-36' : ''}>
+
+      {/* Input oculto para replace audio */}
+      <input
+        ref={replaceInputRef}
+        type="file"
+        accept="audio/mp3,audio/mpeg,audio/wav,audio/flac,audio/aiff,audio/x-aiff"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0]
+          if (file && replacingTrackId) handleReplaceAudio(replacingTrackId, file)
+          e.target.value = ''
+        }}
+      />
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-3 mb-8">
@@ -309,12 +413,18 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 {project.title}
               </h2>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={`text-xs font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
               <span className="text-[#252830]">·</span>
               <span className="text-xs font-mono text-[#555966]">
                 {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
               </span>
+              {totalDuration > 0 && (
+                <>
+                  <span className="text-[#252830]">·</span>
+                  <span className="text-xs font-mono text-[#555966]">{formatDuration(totalDuration)}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -353,9 +463,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Caducidad del link</p>
                 <div className="flex flex-col gap-1">
                   {EXPIRY_OPTIONS.map(opt => {
-                    const isSelected = opt.hours === null
-                      ? !project.link_expires_at
-                      : false
+                    const isSelected = opt.hours === null ? !project.link_expires_at : false
                     return (
                       <button
                         key={opt.value}
@@ -436,11 +544,13 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 <span className="text-[#555966] text-xs font-mono uppercase tracking-wider">Tracklist</span>
                 <span className="text-[#555966] text-xs font-mono">
                   {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
+                  {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
                 </span>
               </div>
               {tracks.map((track, i) => {
-                const isPlaying  = currentTrack?.id === track.id
-                const isDragOver = dragOverId === track.id
+                const isPlaying   = currentTrack?.id === track.id
+                const isDragOver  = dragOverId === track.id
+                const isReplacing = replacingTrackId === track.id
                 return (
                   <div
                     key={track.id}
@@ -456,14 +566,13 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       'hover:bg-white/[0.02]'
                     }`}>
 
-                      {/* Handle drag */}
                       {isMine && (
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-[#333] hover:text-[#555966] flex-shrink-0 -ml-1">
                           <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
-                            <circle cx="3" cy="2.5" r="1.2" fill="currentColor"/>
-                            <circle cx="7" cy="2.5" r="1.2" fill="currentColor"/>
-                            <circle cx="3" cy="7"   r="1.2" fill="currentColor"/>
-                            <circle cx="7" cy="7"   r="1.2" fill="currentColor"/>
+                            <circle cx="3" cy="2.5"  r="1.2" fill="currentColor"/>
+                            <circle cx="7" cy="2.5"  r="1.2" fill="currentColor"/>
+                            <circle cx="3" cy="7"    r="1.2" fill="currentColor"/>
+                            <circle cx="7" cy="7"    r="1.2" fill="currentColor"/>
                             <circle cx="3" cy="11.5" r="1.2" fill="currentColor"/>
                             <circle cx="7" cy="11.5" r="1.2" fill="currentColor"/>
                           </svg>
@@ -481,10 +590,12 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                             : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
                         }`}
                       >
-                        {isPlaying ? (
+                        {isReplacing ? (
+                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"/>
+                        ) : isPlaying ? (
                           <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
                             <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                            <rect x="5" y="0.5" width="2.5" height="7" rx="0.5"/>
+                            <rect x="5"   y="0.5" width="2.5" height="7" rx="0.5"/>
                           </svg>
                         ) : (
                           <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
@@ -503,6 +614,12 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         }`}>
                           {track.title}
                         </p>
+                        <p className="text-[11px] font-mono text-[#383C47] mt-0.5">
+                          {formatDate(track.created_at)}
+                          {track.duration && track.duration > 0 && (
+                            <span> · {formatTrackDuration(track.duration)}</span>
+                          )}
+                        </p>
                       </div>
 
                       {isMine && (
@@ -515,13 +632,13 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                             className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1"
                           >
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                              <circle cx="7" cy="2" r="1" fill="currentColor"/>
-                              <circle cx="7" cy="7" r="1" fill="currentColor"/>
+                              <circle cx="7" cy="2"  r="1" fill="currentColor"/>
+                              <circle cx="7" cy="7"  r="1" fill="currentColor"/>
                               <circle cx="7" cy="12" r="1" fill="currentColor"/>
                             </svg>
                           </button>
                           {showTrackMenu === track.id && (
-                            <div className="absolute right-0 top-6 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1 min-w-[140px]">
+                            <div className="absolute right-0 top-6 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1 min-w-[150px]">
                               <button
                                 onClick={() => {
                                   setEditingTrackId(track.id)
@@ -536,10 +653,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                 Renombrar
                               </button>
                               <button
-                                onClick={async () => {
-                                  await handleCopyLink()
-                                  setShowTrackMenu(null)
-                                }}
+                                onClick={async () => { await handleCopyLink(); setShowTrackMenu(null) }}
                                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                               >
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -547,6 +661,40 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   <path d="M7 1h4v4M11 1L5 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                                 Compartir
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setReplacingTrackId(track.id)
+                                  setShowTrackMenu(null)
+                                  replaceInputRef.current?.click()
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path d="M1 6a5 5 0 1 0 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                  <path d="M1 2v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Reemplazar
+                              </button>
+                              <button
+                                onClick={() => handleDuplicateTrack(track)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                                  <path d="M1 8V2a1 1 0 0 1 1-1h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                </svg>
+                                Duplicar
+                              </button>
+                              <button
+                                onClick={() => handleExportTrack(track)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M1 9v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                </svg>
+                                Exportar
                               </button>
                               <div className="h-px bg-white/[0.06] my-1"/>
                               <button
