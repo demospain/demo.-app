@@ -28,9 +28,9 @@ const PLANS_ARTIST = [
   {
     id: 'pro_artist',
     label: 'Pro Artista',
-    price: '5',
-    period: 'EUR/mes',
-    highlight: true,
+    price: 'Próximamente',
+    period: '',
+    soon: true,
     features: ['Tracks ilimitados', 'Analíticas profundas', 'Links con contraseña', 'Plantillas para redes', 'Speed control y pitch shifting']
   },
 ]
@@ -46,16 +46,17 @@ const PLANS_PRO = [
   {
     id: 'pro_producer',
     label: 'Pro Productor',
-    price: '8',
-    period: 'EUR/mes',
-    highlight: true,
+    price: 'Próximamente',
+    period: '',
+    soon: true,
     features: ['15 clientes activos', '30 GB almacenamiento', 'Historial de versiones', 'Notas privadas', 'Estados por track']
   },
   {
     id: 'studio',
     label: 'Studio',
-    price: '19',
-    period: 'EUR/mes',
+    price: 'Próximamente',
+    period: '',
+    soon: true,
     features: ['Clientes ilimitados', '100 GB almacenamiento', 'Dashboard multi-cliente', 'White-label básico']
   },
 ]
@@ -283,10 +284,15 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
                     <div>
                       <p className="text-xs font-mono text-[#555966] uppercase tracking-wider mb-1">{plan.label}</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-medium text-[#F8F7F4]">{plan.price}</span>
-                        <span className="text-sm text-[#9BA0AD]">{plan.period}</span>
-                      </div>
-                    </div>
+  {(plan as any).soon ? (
+    <span className="text-base font-medium text-[#555966]">Próximamente <span className="text-[#7C6FFF]">;)</span></span>
+  ) : (
+    <>
+      <span className="text-3xl font-medium text-[#F8F7F4]">{plan.price}</span>
+      <span className="text-sm text-[#9BA0AD]">{plan.period}</span>
+    </>
+  )}
+</div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-all ${
                       selectedPlan === plan.id ? 'bg-[#7C6FFF] border-[#7C6FFF]' : 'border-white/25'
                     }`}>
