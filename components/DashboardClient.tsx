@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import UploadTrack from '@/components/UploadTrack'
-import AudioPlayer from '@/components/AudioPlayer'
+import { usePlayer } from '@/lib/PlayerContext'
 
 interface Project {
   id:          string
@@ -42,9 +42,9 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
   const [activeProject, setActiveProject]   = useState<Project | null>(null)
   const [activeSource, setActiveSource]     = useState<'mine' | 'saved'>('mine')
   const [tracks, setTracks]                 = useState<Track[]>([])
-  const [playingTrack, setPlayingTrack]     = useState<Track | null>(null)
   const [copied, setCopied]                 = useState(false)
   const [tab, setTab]                       = useState<'projects' | 'library'>('projects')
+  const { currentTrack, playTrack, closePlayer } = usePlayer()
   const supabase = createClient()
 
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -118,12 +118,12 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
     const isMine = activeSource === 'mine'
 
     return (
-      <div className={playingTrack ? 'pb-36' : ''}>
+      <div className={currentTrack ? 'pb-36' : ''}>
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-3 mb-8">
           <button
-            onClick={() => { setActiveProject(null); setPlayingTrack(null) }}
+            onClick={() => { setActiveProject(null); closePlayer() }}
             className="w-8 h-8 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors flex-shrink-0"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -243,54 +243,60 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
                     {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
                   </span>
                 </div>
-                {tracks.map((track, i) => (
-                  <div
-                    key={track.id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
-                      playingTrack?.id === track.id ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
-                    }`}
-                  >
-                    <button
-                      onClick={() => setPlayingTrack(playingTrack?.id === track.id ? null : track)}
-                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                        playingTrack?.id === track.id
-                          ? 'bg-[#7C6FFF] text-white'
-                          : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
+                {tracks.map((track, i) => {
+                  const isPlaying = currentTrack?.id === track.id
+                  return (
+                    <div
+                      key={track.id}
+                      className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
+                        isPlaying ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
                       }`}
                     >
-                      {playingTrack?.id === track.id ? (
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
-                          <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                          <rect x="5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                        </svg>
-                      ) : (
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                          <path d="M1.5 1l5.5 3-5.5 3V1z"/>
-                        </svg>
-                      )}
-                    </button>
+                      <button
+                        onClick={() => isPlaying
+                          ? closePlayer()
+                          : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: activeProject.title })
+                        }
+                        className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                          isPlaying
+                            ? 'bg-[#7C6FFF] text-white'
+                            : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
+                        }`}
+                      >
+                        {isPlaying ? (
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
+                            <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
+                            <rect x="5" y="0.5" width="2.5" height="7" rx="0.5"/>
+                          </svg>
+                        ) : (
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                            <path d="M1.5 1l5.5 3-5.5 3V1z"/>
+                          </svg>
+                        )}
+                      </button>
 
-                    <span className="text-[#252830] font-mono text-xs w-4 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
-                      {i + 1}
-                    </span>
+                      <span className="text-[#252830] font-mono text-xs w-4 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
+                        {i + 1}
+                      </span>
 
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate transition-colors ${
-                        playingTrack?.id === track.id ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
-                      }`}>
-                        {track.title}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate transition-colors ${
+                          isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
+                        }`}>
+                          {track.title}
+                        </p>
+                      </div>
+
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <circle cx="7" cy="2" r="1" fill="currentColor"/>
+                          <circle cx="7" cy="7" r="1" fill="currentColor"/>
+                          <circle cx="7" cy="12" r="1" fill="currentColor"/>
+                        </svg>
+                      </button>
                     </div>
-
-                    <button className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <circle cx="7" cy="2" r="1" fill="currentColor"/>
-                        <circle cx="7" cy="7" r="1" fill="currentColor"/>
-                        <circle cx="7" cy="12" r="1" fill="currentColor"/>
-                      </svg>
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 
@@ -301,15 +307,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
             )}
           </div>
         </div>
-
-        {playingTrack && (
-          <AudioPlayer
-            trackId={playingTrack.id}
-            filePath={playingTrack.file_path}
-            title={playingTrack.title}
-            onClose={() => setPlayingTrack(null)}
-          />
-        )}
       </div>
     )
   }
