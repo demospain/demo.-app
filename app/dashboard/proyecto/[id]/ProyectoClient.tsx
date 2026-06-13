@@ -511,7 +511,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
 
             {isMine && (project.visibility === 'link' || project.visibility === 'public') && (
               <div className="p-3 border-b border-white/[0.06]">
