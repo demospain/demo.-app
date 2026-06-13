@@ -36,12 +36,12 @@ export default async function DashboardPage() {
   // Traer nombres de los owners de proyectos guardados
   const ownerIds = Array.from(new Set(savedProjects.map((p: any) => p.owner_id).filter(Boolean)))
   const { data: ownerProfiles } = ownerIds.length > 0
-    ? await supabase.from('profiles').select('id, full_name').in('id', ownerIds)
+    ? await supabase.from('profiles').select('id, username').in('id', ownerIds)
     : { data: [] }
 
   const ownerNames: Record<string, string> = {}
   for (const p of ownerProfiles ?? []) {
-    ownerNames[p.id] = p.full_name ?? 'Artista'
+    ownerNames[p.id] = p.username ?? 'Artista'
   }
 
   const nombre = user.user_metadata?.full_name?.split(' ')[0]
