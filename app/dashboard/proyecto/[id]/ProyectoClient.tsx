@@ -245,12 +245,11 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     } catch {}
   }
 
-  const handleExportProject = async () => {
+  const handleDeleteProject = async () => {
+    const { error } = await supabase.from('projects').delete().eq('id', project.id)
+    if (!error) router.push('/dashboard')
     setShowDotsMenu(false)
-    for (const track of tracks) {
-      await handleExportTrack(track)
-      await new Promise(r => setTimeout(r, 400))
-    }
+  }
   }
 
   const handleReplaceAudio = async (trackId: string, file: File) => {
@@ -457,6 +456,20 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                   </svg>
                   Exportar todo
                 </button>
+                {isMine && (
+                  <>
+                    <div className="h-px bg-white/[0.06] my-1"/>
+                    <button
+                      onClick={handleDeleteProject}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M2 4h10M5 4V2.5h4V4M6 6.5v4M8 6.5v4M3 4l.5 8.5h7L11 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Eliminar proyecto
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
