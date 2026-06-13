@@ -126,7 +126,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const router   = useRouter()
   const supabase = createClient()
 
-  const vis          = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
+  const vis           = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
   const totalDuration = tracks.reduce((acc, t) => acc + (t.duration ?? 0), 0)
   const filteredTracks = searchQuery.trim()
     ? tracks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -136,7 +136,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 50)
   }, [showSearch])
 
-  // Cerrar menús al hacer click fuera
   useEffect(() => {
     const handler = () => { setShowDotsMenu(false); setShowTrackMenu(null) }
     document.addEventListener('click', handler)
@@ -335,7 +334,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   return (
     <div className={`flex flex-col min-h-screen ${currentTrack ? 'pb-36' : ''}`}>
 
-      {/* Input oculto replace */}
       <input
         ref={replaceInputRef}
         type="file"
@@ -349,29 +347,25 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       />
 
       {/* Navbar */}
-      <nav className="h-12 border-b border-white/[0.05] flex items-center justify-between px-4 sticky top-0 z-50 bg-[#0d0d0f]/95 backdrop-blur-md">
-        {/* Izquierda: volver + título */}
+      <nav className="h-14 border-b border-white/[0.05] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#0d0d0f]/95 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/dashboard')}
-            className="w-8 h-8 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors flex-shrink-0"
+            className="w-9 h-9 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors flex-shrink-0"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M9 2L4 7l5 5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10 3L5 8l5 5" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <span className="text-[#F8F7F4] text-sm font-medium truncate hidden sm:block">{project.title}</span>
+          <span className="text-[#F8F7F4] text-base font-medium truncate hidden sm:block">{project.title}</span>
         </div>
 
-        {/* Derecha: tres botones */}
-        <div className="flex items-center gap-1.5">
-
-          {/* Buscar */}
+        <div className="flex items-center gap-2">
           {showSearch ? (
-            <div className="flex items-center gap-2 bg-[#1E2028] border border-white/[0.08] rounded-xl px-3 h-8">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2"/>
-                <path d="M8 8l2.5 2.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+            <div className="flex items-center gap-2 bg-[#1E2028] border border-white/[0.08] rounded-xl px-3 h-9">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <circle cx="5.5" cy="5.5" r="4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2"/>
+                <path d="M9 9l3 3" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
               </svg>
               <input
                 ref={searchInputRef}
@@ -380,80 +374,78 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') { setShowSearch(false); setSearchQuery('') }}}
-                className="bg-transparent text-[#F8F7F4] text-xs outline-none w-36 placeholder:text-[#383C47] font-mono"
+                className="bg-transparent text-[#F8F7F4] text-sm outline-none w-40 placeholder:text-[#383C47] font-mono"
               />
               <button onClick={() => { setShowSearch(false); setSearchQuery('') }} className="text-[#555966] hover:text-[#9BA0AD] transition-colors">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M1 1l9 9M10 1L1 10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
                 </svg>
               </button>
             </div>
           ) : (
             <button
               onClick={() => setShowSearch(true)}
-              className="w-8 h-8 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors"
+              className="w-9 h-9 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors"
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="6" cy="6" r="4" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3"/>
-                <path d="M10 10l2.5 2.5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" strokeLinecap="round"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="7" cy="7" r="4.5" stroke="rgba(255,255,255,0.55)" strokeWidth="1.4"/>
+                <path d="M11 11l3 3" stroke="rgba(255,255,255,0.55)" strokeWidth="1.4" strokeLinecap="round"/>
               </svg>
             </button>
           )}
 
-          {/* Compartir */}
           <button
             onClick={e => { e.stopPropagation(); setShowSharePanel(p => !p); setShowDotsMenu(false) }}
-            className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
+            className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
               showSharePanel
                 ? 'bg-[#7C6FFF]/15 border-[#7C6FFF]/30 text-[#7C6FFF]'
-                : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/50'
+                : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/55'
             }`}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M10 1.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM4 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM10 8.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" stroke="currentColor" strokeWidth="1.2"/>
-              <path d="M5.8 6.3l2.4-1.6M5.8 7.7l2.4 1.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M11.5 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM4.5 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM11.5 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" stroke="currentColor" strokeWidth="1.3"/>
+              <path d="M6.5 7.3l3-2M6.5 8.7l3 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
             </svg>
           </button>
 
-          {/* Tres puntos */}
           <div className="relative">
             <button
               onClick={e => { e.stopPropagation(); setShowDotsMenu(p => !p); setShowSharePanel(false) }}
-              className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
+              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
                 showDotsMenu
-                  ? 'bg-[#1E2028] border-white/[0.12] text-[#F8F7F4]'
-                  : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/50'
+                  ? 'bg-[#252830] border-white/[0.12] text-[#F8F7F4]'
+                  : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/55'
               }`}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="2.5" r="1.2" fill="currentColor"/>
-                <circle cx="7" cy="7"   r="1.2" fill="currentColor"/>
-                <circle cx="7" cy="11.5" r="1.2" fill="currentColor"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="3"  r="1.3" fill="currentColor"/>
+                <circle cx="8" cy="8"  r="1.3" fill="currentColor"/>
+                <circle cx="8" cy="13" r="1.3" fill="currentColor"/>
               </svg>
             </button>
             {showDotsMenu && (
               <div
                 onClick={e => e.stopPropagation()}
-                className="absolute right-0 top-10 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1 min-w-[160px]"
+                className="absolute right-0 top-11 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[170px]"
               >
                 {isMine && (
                   <button
                     onClick={() => { setRenamingProject(true); setRenameTitleInput(project.title); setShowDotsMenu(false) }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                   >
-                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                      <path d="M9 1l3 3-8 8H1V9L9 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M10 1l3 3-9 9H1V10L10 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     Renombrar
                   </button>
                 )}
                 <button
                   onClick={handleExportProject}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                 >
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                    <path d="M6.5 1v8M3.5 6l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M1 10v1.5a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5V10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 1v9M4 7l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1 11v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                   </svg>
                   Exportar todo
                 </button>
@@ -463,18 +455,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         </div>
       </nav>
 
-      {/* Panel de compartición */}
+      {/* Panel compartición */}
       {showSharePanel && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowSharePanel(false)}
-        >
+        <div className="fixed inset-0 z-40" onClick={() => setShowSharePanel(false)}>
           <div
-            className="absolute right-4 top-14 w-80 bg-[#13141a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
+            className="absolute right-6 top-16 w-80 bg-[#13141a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
               <span className="text-sm font-medium text-[#F8F7F4] truncate pr-4">{project.title}</span>
               <button onClick={() => setShowSharePanel(false)} className="text-[#555966] hover:text-[#9BA0AD] transition-colors flex-shrink-0">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -483,7 +471,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </button>
             </div>
 
-            {/* Visibilidad */}
             <div className="p-3 border-b border-white/[0.06]">
               <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Visibilidad</p>
               <div className="flex flex-col gap-0.5">
@@ -499,8 +486,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                   >
                     <span className="text-base">{cfg.icon}</span>
                     <div className="text-left flex-1">
-                      <p className="text-xs font-medium leading-none">{cfg.label}</p>
-                      <p className="text-[10px] font-mono mt-0.5 opacity-60">
+                      <p className="text-sm font-medium leading-none">{cfg.label}</p>
+                      <p className="text-xs font-mono mt-0.5 opacity-60">
                         {key === 'private' ? 'Solo tú' : key === 'link' ? 'Cualquiera con el link' : 'Visible para todos'}
                       </p>
                     </div>
@@ -514,7 +501,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </div>
             </div>
 
-            {/* Caducidad — solo si tiene link */}
             {(project.visibility === 'link' || project.visibility === 'public') && (
               <div className="p-3 border-b border-white/[0.06]">
                 <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Caducidad del link</p>
@@ -525,7 +511,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       <button
                         key={opt.value}
                         onClick={() => handleSetExpiry(opt.hours)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors ${
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors ${
                           isSelected
                             ? 'bg-[#7C6FFF]/10 text-[#7C6FFF]'
                             : 'text-[#9BA0AD] hover:bg-white/[0.04] hover:text-[#F8F7F4]'
@@ -549,7 +535,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </div>
             )}
 
-            {/* Copiar link */}
             <div className="p-3">
               <button
                 onClick={handleCopyLink}
@@ -582,7 +567,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         </div>
       )}
 
-      {/* Modal renombrar proyecto */}
+      {/* Modal renombrar */}
       {renamingProject && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -621,15 +606,13 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         </div>
       )}
 
-      {/* Contenido principal */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
-
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
+      {/* Contenido */}
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
 
           {/* Columna izquierda */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
 
-            {/* Portada */}
             <div
               onClick={() => isMine && coverInputRef.current?.click()}
               className={`w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden relative group ${isMine ? 'cursor-pointer' : ''}`}
@@ -647,7 +630,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         <path d="M10 13V4M6 8l4-4 4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
                       </svg>
-                      <span className="text-white text-xs font-mono">Subir portada</span>
+                      <span className="text-white text-sm font-mono">Subir portada</span>
                     </>
                   }
                 </div>
@@ -655,30 +638,29 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               <input ref={coverInputRef} type="file" accept="image/png,image/jpeg" onChange={handleCoverUpload} className="hidden"/>
             </div>
 
-            {/* Título */}
             <div>
-              <h2 className="text-lg font-medium text-[#F8F7F4] mb-1">{project.title}</h2>
+              <h2 className="text-xl font-medium text-[#F8F7F4] mb-1.5">{project.title}</h2>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-xs font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
+                <span className={`text-sm font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
                 <span className="text-[#252830]">·</span>
-                <span className="text-xs font-mono text-[#555966]">
+                <span className="text-sm font-mono text-[#555966]">
                   {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
                 </span>
                 {totalDuration > 0 && (
                   <>
                     <span className="text-[#252830]">·</span>
-                    <span className="text-xs font-mono text-[#555966]">{formatDuration(totalDuration)}</span>
+                    <span className="text-sm font-mono text-[#555966]">{formatDuration(totalDuration)}</span>
                   </>
                 )}
               </div>
             </div>
 
             {!isMine && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-[#7C6FFF]/5 border border-[#7C6FFF]/15 rounded-xl">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 6l3 3 5-5" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-[#7C6FFF]/5 border border-[#7C6FFF]/15 rounded-xl">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M2 6.5l3 3 6-6" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span className="text-[#7C6FFF] text-xs font-mono">Guardado en tu biblioteca</span>
+                <span className="text-[#7C6FFF] text-sm font-mono">Guardado en tu biblioteca</span>
               </div>
             )}
           </div>
@@ -694,18 +676,17 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
 
             {tracks.length > 0 && (
               <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-visible">
-                <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-                  <span className="text-[#555966] text-xs font-mono uppercase tracking-wider">Tracklist</span>
-                  <span className="text-[#555966] text-xs font-mono">
+                <div className="px-5 py-3.5 border-b border-white/[0.06] flex items-center justify-between">
+                  <span className="text-[#555966] text-sm font-mono uppercase tracking-wider">Tracklist</span>
+                  <span className="text-[#555966] text-sm font-mono">
                     {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
                     {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
                   </span>
                 </div>
 
-                {/* Mensaje sin resultados en búsqueda */}
                 {searchQuery && filteredTracks.length === 0 && (
-                  <div className="px-4 py-6 text-center">
-                    <p className="text-[#383C47] text-xs font-mono">Sin resultados para "{searchQuery}"</p>
+                  <div className="px-5 py-8 text-center">
+                    <p className="text-[#383C47] text-sm font-mono">Sin resultados para "{searchQuery}"</p>
                   </div>
                 )}
 
@@ -722,7 +703,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       onDrop={e => handleDrop(e, track.id)}
                       onDragEnd={handleDragEnd}
                     >
-                      <div className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
+                      <div className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors ${
                         isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
                         isPlaying  ? 'bg-[#7C6FFF]/5' :
                         'hover:bg-white/[0.02]'
@@ -746,37 +727,37 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                             ? closePlayer()
                             : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
                           }
-                          className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
                             isPlaying
                               ? 'bg-[#7C6FFF] text-white'
                               : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
                           }`}
                         >
                           {isReplacing ? (
-                            <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"/>
+                            <div className="w-3.5 h-3.5 border border-white/30 border-t-white rounded-full animate-spin"/>
                           ) : isPlaying ? (
-                            <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
-                              <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                              <rect x="5"   y="0.5" width="2.5" height="7" rx="0.5"/>
+                            <svg width="9" height="9" viewBox="0 0 9 9" fill="white">
+                              <rect x="0.5" y="0.5" width="3" height="8" rx="0.5"/>
+                              <rect x="5.5" y="0.5" width="3" height="8" rx="0.5"/>
                             </svg>
                           ) : (
-                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                              <path d="M1.5 1l5.5 3-5.5 3V1z"/>
+                            <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
+                              <path d="M2 1l6 3.5L2 8V1z"/>
                             </svg>
                           )}
                         </button>
 
-                        <span className="text-[#252830] font-mono text-xs w-4 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
+                        <span className="text-[#2E3140] font-mono text-sm w-5 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
                           {i + 1}
                         </span>
 
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate transition-colors ${
+                          <p className={`text-base font-medium truncate transition-colors ${
                             isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
                           }`}>
                             {track.title}
                           </p>
-                          <p className="text-[11px] font-mono text-[#383C47] mt-0.5">
+                          <p className="text-xs font-mono text-[#3D4255] mt-0.5">
                             {formatDate(track.created_at)}
                             {track.duration && track.duration > 0 && (
                               <span> · {formatTrackDuration(track.duration)}</span>
@@ -791,75 +772,75 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                 e.stopPropagation()
                                 setShowTrackMenu(showTrackMenu === track.id ? null : track.id)
                               }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1.5"
                             >
-                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                <circle cx="7" cy="2"  r="1" fill="currentColor"/>
-                                <circle cx="7" cy="7"  r="1" fill="currentColor"/>
-                                <circle cx="7" cy="12" r="1" fill="currentColor"/>
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <circle cx="8" cy="2.5" r="1.2" fill="currentColor"/>
+                                <circle cx="8" cy="8"   r="1.2" fill="currentColor"/>
+                                <circle cx="8" cy="13.5" r="1.2" fill="currentColor"/>
                               </svg>
                             </button>
                             {showTrackMenu === track.id && (
                               <div
                                 onClick={e => e.stopPropagation()}
-                                className="absolute right-0 top-6 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1 min-w-[150px]"
+                                className="absolute right-0 top-8 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[160px]"
                               >
                                 <button
                                   onClick={() => { setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M8 1l3 3-7 7H1V8L8 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <path d="M9 1l3 3-8 8H1V9L9 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                   Renombrar
                                 </button>
                                 <button
                                   onClick={async () => { await handleCopyLink(); setShowTrackMenu(null) }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M4 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                                    <path d="M7 1h4v4M11 1L5 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                    <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                   Compartir
                                 </button>
                                 <button
                                   onClick={() => { setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M1 6a5 5 0 1 0 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                                    <path d="M1 2v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <path d="M1 6.5a5.5 5.5 0 1 0 5.5-5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                    <path d="M1 2v4.5h4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                   Reemplazar
                                 </button>
                                 <button
                                   onClick={() => handleDuplicateTrack(track)}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-                                    <path d="M1 8V2a1 1 0 0 1 1-1h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <rect x="4.5" y="4.5" width="7.5" height="7.5" rx="1.2" stroke="currentColor" strokeWidth="1.2"/>
+                                    <path d="M1 8.5V2a1 1 0 0 1 1-1h6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                                   </svg>
                                   Duplicar
                                 </button>
                                 <button
                                   onClick={() => handleExportTrack(track)}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <path d="M1 9v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <path d="M6.5 1v8M3.5 6l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M1 10v1a1 1 0 001 1h9a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                                   </svg>
                                   Exportar
                                 </button>
                                 <div className="h-px bg-white/[0.06] my-1"/>
                                 <button
                                   onClick={() => handleDeleteTrack(track.id)}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
                                 >
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M2 3h8M4 3V2h4v1M5 5v4M7 5v4M3 3l.5 7h5L9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <path d="M2 3.5h9M4.5 3.5V2h4v1.5M5.5 6v4M7.5 6v4M3 3.5l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                   Eliminar
                                 </button>
@@ -870,7 +851,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       </div>
 
                       {editingTrackId === track.id && (
-                        <div className="px-4 py-2 bg-[#111318] border-b border-white/[0.04]">
+                        <div className="px-5 py-2.5 bg-[#111318] border-b border-white/[0.04]">
                           <input
                             autoFocus
                             type="text"
@@ -892,7 +873,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             )}
 
             {tracks.length === 0 && !isMine && (
-              <div className="border border-dashed border-white/[0.06] rounded-xl p-8 text-center">
+              <div className="border border-dashed border-white/[0.06] rounded-xl p-10 text-center">
                 <p className="text-[#555966] text-sm font-mono">Sin canciones todavía.</p>
               </div>
             )}
