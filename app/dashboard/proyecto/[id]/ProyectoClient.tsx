@@ -170,7 +170,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
           {isMine && (
             <UploadTrack
               projectId={project.id}
-              onUploadComplete={(track) => setTracks(prev => [...prev, track])}
+              onUploadComplete={(track) => setTracks(prev => [...prev, { ...track, track_order: prev.length }])}
             />
           )}
 
