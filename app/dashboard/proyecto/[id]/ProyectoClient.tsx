@@ -403,7 +403,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             </button>
           )}
 
-          {isMine && (
+          {(isMine || project.visibility === 'public') && (
             <button
               onClick={() => { setShowSharePanel(p => !p); setShowDotsMenu(false) }}
               className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
