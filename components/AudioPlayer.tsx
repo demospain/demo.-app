@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 
 interface AudioPlayerProps {
-  trackId:      string
-  filePath:     string
-  title:        string
+  trackId:       string
+  filePath:      string
+  title:         string
   projectTitle?: string
-  onClose:      () => void
+  onClose:       () => void
 }
 
 export default function AudioPlayer({ trackId, filePath, title, projectTitle, onClose }: AudioPlayerProps) {
+  const audioRef                      = useRef<HTMLAudioElement>(null)
   const containerRef                  = useRef<HTMLDivElement>(null)
   const wsRef                         = useRef<any>(null)
   const [playing, setPlaying]         = useState(false)
@@ -28,47 +29,49 @@ export default function AudioPlayer({ trackId, filePath, title, projectTitle, on
 
   useEffect(() => {
     let ws: any = null
+    let url: string = ''
 
     const init = async () => {
       try {
-        // Presigned URL directa — sin proxy por Vercel
+        // Presigned URL directa — sin proxy
         const res = await fetch('/api/play-url', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ filePath }),
         })
         if (!res.ok) throw new Error('No se pudo obtener la URL de reproducción')
-        const { url } = await res.json()
+        const data = await res.json()
+        url = data.url
 
+        // Arrancar audio nativo inmediatamente — no espera a la waveform
+        const audio = audioRef.current
+        if (!audio) return
+        audio.src = url
+        audio.playbackRate = speed
+        await audio.play()
+        setPlaying(true)
+        setLoading(false)
+
+        // Cargar WaveSurfer en segundo plano para la waveform
         const WaveSurfer = (await import('wavesurfer.js')).default
         if (!containerRef.current) return
 
         ws = WaveSurfer.create({
           container:     containerRef.current,
-          waveColor:     '#333',
+          waveColor:     '#2E3140',
           progressColor: '#7C6FFF',
-          cursorColor:   'rgba(255,255,255,0.4)',
-          barWidth:      3,
-          barRadius:     3,
-          height:        56,
+          cursorColor:   'rgba(255,255,255,0.3)',
+          barWidth:      2,
+          barRadius:     2,
+          height:        40,
           normalize:     true,
-          barGap:        2,
+          barGap:        1,
+          media:         audio, // usar el audio nativo — no descarga de nuevo
         })
 
         wsRef.current = ws
-
-        ws.on('ready', () => {
-          setDuration(ws.getDuration())
-          setLoading(false)
-          ws.play()
-          setPlaying(true)
-        })
-
-        ws.on('audioprocess', (t: number) => setCurrentTime(t))
-        ws.on('finish',       () => setPlaying(false))
-        ws.on('error',        () => setError('Error al cargar el audio'))
-
         ws.load(url)
+
       } catch (err: any) {
         setError(err.message || 'Error desconocido')
         setLoading(false)
@@ -77,23 +80,60 @@ export default function AudioPlayer({ trackId, filePath, title, projectTitle, on
 
     init()
 
-    return () => { ws?.destroy() }
+    return () => {
+      ws?.destroy()
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ''
+      }
+    }
   }, [filePath])
 
+  // Sincronizar tiempo desde el audio nativo
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onTime = () => setCurrentTime(audio.currentTime)
+    const onMeta = () => setDuration(audio.duration)
+    const onEnd  = () => setPlaying(false)
+    const onPlay = () => setPlaying(true)
+    const onPause = () => setPlaying(false)
+    audio.addEventListener('timeupdate',    onTime)
+    audio.addEventListener('loadedmetadata', onMeta)
+    audio.addEventListener('ended',         onEnd)
+    audio.addEventListener('play',          onPlay)
+    audio.addEventListener('pause',         onPause)
+    return () => {
+      audio.removeEventListener('timeupdate',    onTime)
+      audio.removeEventListener('loadedmetadata', onMeta)
+      audio.removeEventListener('ended',         onEnd)
+      audio.removeEventListener('play',          onPlay)
+      audio.removeEventListener('pause',         onPause)
+    }
+  }, [])
+
   const togglePlay = () => {
-    if (!wsRef.current) return
-    wsRef.current.playPause()
-    setPlaying(p => !p)
+    const audio = audioRef.current
+    if (!audio) return
+    audio.paused ? audio.play() : audio.pause()
   }
 
   const changeSpeed = (s: number) => {
+    if (audioRef.current) audioRef.current.playbackRate = s
     wsRef.current?.setPlaybackRate(s)
     setSpeed(s)
   }
 
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const t = Number(e.target.value)
+    if (audioRef.current) audioRef.current.currentTime = t
+    setCurrentTime(t)
+  }
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#1E2028] border-t border-white/[0.08] px-4 py-3">
-      <div className="max-w-6xl mx-auto flex flex-col gap-2">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#13141a]/95 backdrop-blur-md border-t border-white/[0.06] px-5 py-3">
+      <audio ref={audioRef}/>
+      <div className="max-w-6xl mx-auto flex flex-col gap-1.5">
 
         <div className="flex items-center gap-4">
           <button
@@ -117,15 +157,12 @@ export default function AudioPlayer({ trackId, filePath, title, projectTitle, on
 
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[#F8F7F4] truncate">{title}</p>
-            {projectTitle && (
-              <p className="text-xs font-mono text-[#555966] truncate">{projectTitle}</p>
-            )}
-            {!loading && (
-              <p className="text-xs font-mono text-[#9BA0AD]">
-                {fmt(currentTime)} / {fmt(duration)}
-              </p>
-            )}
+            <p className="text-xs font-mono text-[#555966] truncate">{projectTitle}</p>
           </div>
+
+          <span className="text-xs font-mono text-[#555966] flex-shrink-0 hidden sm:block">
+            {fmt(currentTime)} / {fmt(duration)}
+          </span>
 
           <div className="hidden sm:flex items-center gap-1">
             {[0.75, 1, 1.25, 1.5].map(s => (
@@ -144,8 +181,8 @@ export default function AudioPlayer({ trackId, filePath, title, projectTitle, on
           </div>
 
           <button
-            onClick={() => { wsRef.current?.destroy(); onClose() }}
-            className="text-[#555966] hover:text-[#F8F7F4] transition-colors ml-2"
+            onClick={() => { wsRef.current?.destroy(); audioRef.current?.pause(); onClose() }}
+            className="text-[#555966] hover:text-[#F8F7F4] transition-colors ml-1"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
