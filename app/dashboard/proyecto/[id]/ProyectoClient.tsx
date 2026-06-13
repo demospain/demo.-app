@@ -90,8 +90,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const vis = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
 
   const handleVisibilityChange = async (key: string) => {
-    await supabase.from('projects').update({ visibility: key }).eq('id', project.id)
-    setProject(prev => ({ ...prev, visibility: key }))
+    const { error } = await supabase.from('projects').update({ visibility: key }).eq('id', project.id)
+    if (!error) setProject(prev => ({ ...prev, visibility: key }))
   }
 
   const handleCopyLink = async () => {
@@ -101,7 +101,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Fallback para navegadores que no soportan clipboard API
       const el = document.createElement('textarea')
       el.value = `${window.location.origin}/p/${project.share_slug}`
       document.body.appendChild(el)
@@ -118,22 +117,40 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       setEditingTitle(false)
       return
     }
-    await supabase.from('projects').update({ title: titleInput.trim() }).eq('id', project.id)
-    setProject(prev => ({ ...prev, title: titleInput.trim() }))
+    const { error } = await supabase
+      .from('projects')
+      .update({ title: titleInput.trim() })
+      .eq('id', project.id)
+    if (error) {
+      // Revertir si falla
+      setTitleInput(project.title)
+    } else {
+      setProject(prev => ({ ...prev, title: titleInput.trim() }))
+    }
     setEditingTitle(false)
   }
 
   const handleRenameTrack = async (trackId: string, newName: string) => {
     if (!newName.trim()) { setEditingTrackId(null); return }
-    await supabase.from('tracks').update({ title: newName.trim() }).eq('id', trackId)
-    setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
+    const { error } = await supabase
+      .from('tracks')
+      .update({ title: newName.trim() })
+      .eq('id', trackId)
+    if (error) {
+      // Revertir si falla — restaurar nombre original
+      setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: t.title } : t))
+    } else {
+      setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
+    }
     setEditingTrackId(null)
   }
 
   const handleDeleteTrack = async (trackId: string) => {
-    await supabase.from('tracks').delete().eq('id', trackId)
-    setTracks(prev => prev.filter(t => t.id !== trackId))
-    if (currentTrack?.id === trackId) closePlayer()
+    const { error } = await supabase.from('tracks').delete().eq('id', trackId)
+    if (!error) {
+      setTracks(prev => prev.filter(t => t.id !== trackId))
+      if (currentTrack?.id === trackId) closePlayer()
+    }
     setShowTrackMenu(null)
   }
 
@@ -141,8 +158,11 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     const expiresAt = hours
       ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString()
       : null
-    await supabase.from('projects').update({ link_expires_at: expiresAt }).eq('id', project.id)
-    setProject(prev => ({ ...prev, link_expires_at: expiresAt }))
+    const { error } = await supabase
+      .from('projects')
+      .update({ link_expires_at: expiresAt })
+      .eq('id', project.id)
+    if (!error) setProject(prev => ({ ...prev, link_expires_at: expiresAt }))
   }
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,9 +180,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     })
     const { uploadUrl, filePath } = await res.json()
     await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-    await supabase.from('projects').update({ cover_url: filePath }).eq('id', project.id)
-    const objectUrl = URL.createObjectURL(file)
-    setProject(prev => ({ ...prev, cover_url: objectUrl }))
+    const { error } = await supabase
+      .from('projects')
+      .update({ cover_url: filePath })
+      .eq('id', project.id)
+    if (!error) {
+      const objectUrl = URL.createObjectURL(file)
+      setProject(prev => ({ ...prev, cover_url: objectUrl }))
+    }
     setCoverUploading(false)
   }
 
