@@ -314,8 +314,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
     const { error } = await supabase.from('projects').update({ cover_url: filePath }).eq('id', project.id)
     if (!error) {
-      const objectUrl = URL.createObjectURL(file)
-      setProject(prev => ({ ...prev, cover_url: objectUrl }))
+      const publicUrl = `https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev/${filePath}`
+      setProject(prev => ({ ...prev, cover_url: publicUrl }))
     }
     setCoverUploading(false)
   }
