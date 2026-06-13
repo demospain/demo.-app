@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { PlayerProvider } from '@/lib/PlayerContext'
-import GlobalPlayer from '@/components/GlobalPlayer'
+import ClientProviders from '@/components/ClientProviders'
 
 export const metadata: Metadata = {
   title: 'demo. — Tu música, antes de existir para el mundo',
@@ -16,10 +15,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="min-h-screen bg-[#0d0d0f] text-[#F8F7F4] antialiased">
-        <PlayerProvider>
+        <ClientProviders>
           {children}
-          <GlobalPlayer />
-        </PlayerProvider>
+        </ClientProviders>
       </body>
     </html>
   )
