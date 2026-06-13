@@ -746,9 +746,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         <button
                           onClick={e => {
                             e.stopPropagation()
-                            isPlaying
-                              ? closePlayer()
-                              : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
+                            playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
                           }}
                           className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
                             isPlaying
