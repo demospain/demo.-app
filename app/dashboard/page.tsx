@@ -30,9 +30,10 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  const savedProjects = (savedRaw ?? [])
+ const savedProjects = (savedRaw ?? [])
     .map((s: any) => s.projects)
     .filter(Boolean)
+    .filter((p: any) => !projects?.some(own => own.id === p.id))
 
   const nombre = user.user_metadata?.full_name?.split(' ')[0]
     ?? user.email?.split('@')[0]
