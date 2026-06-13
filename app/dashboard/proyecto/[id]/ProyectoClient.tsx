@@ -708,7 +708,9 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       onDrop={e => handleDrop(e, track.id)}
                       onDragEnd={handleDragEnd}
                     >
-                      <div className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors ${
+                      <div
+                        onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })}
+                        className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
                         isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
                         isPlaying  ? 'bg-[#7C6FFF]/5' :
                         'hover:bg-white/[0.02]'
@@ -728,10 +730,12 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         )}
 
                         <button
-                          onClick={() => isPlaying
-                            ? closePlayer()
-                            : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
-                          }
+                          onClick={e => {
+                            e.stopPropagation()
+                            isPlaying
+                              ? closePlayer()
+                              : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
+                          }}
                           className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
                             isPlaying
                               ? 'bg-[#7C6FFF] text-white'
