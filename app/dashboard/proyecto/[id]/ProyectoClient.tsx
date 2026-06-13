@@ -37,9 +37,16 @@ const VISIBILITY_CONFIG: Record<string, { label: string; icon: string; color: st
 }
 
 export default function ProyectoClient({ project: initialProject, initialTracks, isMine, userId }: Props) {
-  const [project, setProject]   = useState(initialProject)
-  const [tracks, setTracks]     = useState<Track[]>(initialTracks)
-  const [copied, setCopied]     = useState(false)
+  const [project, setProject]               = useState(initialProject)
+  const [tracks, setTracks]                 = useState<Track[]>(initialTracks)
+  const [copied, setCopied]                 = useState(false)
+  const [editingTitle, setEditingTitle]     = useState(false)
+  const [titleInput, setTitleInput]         = useState(initialProject.title)
+  const [showTrackMenu, setShowTrackMenu]   = useState<string | null>(null)
+  const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
+  const [editingTrackName, setEditingTrackName] = useState('')
+  const [coverUploading, setCoverUploading] = useState(false)
+  const coverInputRef                       = useRef<HTMLInputElement>(null)
   const { currentTrack, playTrack, closePlayer } = usePlayer()
   const router = useRouter()
   const supabase = createClient()
@@ -56,6 +63,53 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     navigator.clipboard.writeText(`${window.location.origin}/p/${project.share_slug}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleRenameProject = async () => {
+    if (!titleInput.trim() || titleInput === project.title) {
+      setEditingTitle(false)
+      return
+    }
+    await supabase.from('projects').update({ title: titleInput.trim() }).eq('id', project.id)
+    setProject(prev => ({ ...prev, title: titleInput.trim() }))
+    setEditingTitle(false)
+  }
+
+  const handleRenameTrack = async (trackId: string, newName: string) => {
+    if (!newName.trim()) { setEditingTrackId(null); return }
+    await supabase.from('tracks').update({ title: newName.trim() }).eq('id', trackId)
+    setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
+    setEditingTrackId(null)
+  }
+
+  const handleDeleteTrack = async (trackId: string) => {
+    await supabase.from('tracks').delete().eq('id', trackId)
+    setTracks(prev => prev.filter(t => t.id !== trackId))
+    if (currentTrack?.id === trackId) closePlayer()
+    setShowTrackMenu(null)
+  }
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCoverUploading(true)
+
+    const res = await fetch('/api/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: `cover-${project.id}.${file.name.split('.').pop()}`, fileType: file.type, fileSize: file.size }),
+    })
+    const { uploadUrl, filePath } = await res.json()
+
+    await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+
+    const coverUrl = `/api/play-url?path=${encodeURIComponent(filePath)}`
+    await supabase.from('projects').update({ cover_url: `/covers/${filePath}` }).eq('id', project.id)
+
+    // Usar URL temporal para mostrar la imagen
+    const objectUrl = URL.createObjectURL(file)
+    setProject(prev => ({ ...prev, cover_url: objectUrl }))
+    setCoverUploading(false)
   }
 
   return (
@@ -82,15 +136,63 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
 
         {/* Columna izquierda */}
         <div className="flex flex-col gap-4">
-          <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden">
+
+          {/* Portada con upload */}
+          <div
+            onClick={() => isMine && coverInputRef.current?.click()}
+            className={`w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden relative group ${isMine ? 'cursor-pointer' : ''}`}
+          >
             {project.cover_url
               ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
               : <div className="text-6xl opacity-30">💿</div>
             }
+            {isMine && (
+              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                {coverUploading
+                  ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                  : <>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M10 13V4M6 8l4-4 4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    <span className="text-white text-xs font-mono">Subir portada</span>
+                  </>
+                }
+              </div>
+            )}
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/png,image/jpeg"
+              onChange={handleCoverUpload}
+              className="hidden"
+            />
           </div>
 
+          {/* Título — clicable para renombrar */}
           <div>
-            <h2 className="text-lg font-medium text-[#F8F7F4] mb-1">{project.title}</h2>
+            {editingTitle ? (
+              <input
+                autoFocus
+                type="text"
+                value={titleInput}
+                onChange={e => setTitleInput(e.target.value)}
+                onBlur={handleRenameProject}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleRenameProject()
+                  if (e.key === 'Escape') { setEditingTitle(false); setTitleInput(project.title) }
+                }}
+                className="w-full bg-[#1E2028] border border-[#7C6FFF]/40 text-[#F8F7F4] rounded-xl px-3 py-2 text-lg font-medium outline-none mb-1"
+              />
+            ) : (
+              <h2
+                onClick={() => isMine && setEditingTitle(true)}
+                className={`text-lg font-medium text-[#F8F7F4] mb-1 ${isMine ? 'cursor-pointer hover:text-[#7C6FFF] transition-colors' : ''}`}
+                title={isMine ? 'Clic para renombrar' : ''}
+              >
+                {project.title}
+              </h2>
+            )}
             <div className="flex items-center gap-2">
               <span className={`text-xs font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
               <span className="text-[#252830]">·</span>
@@ -185,54 +287,124 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               {tracks.map((track, i) => {
                 const isPlaying = currentTrack?.id === track.id
                 return (
-                  <div
-                    key={track.id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
-                      isPlaying ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
-                    }`}
-                  >
-                    <button
-                      onClick={() => isPlaying
-                        ? closePlayer()
-                        : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
-                      }
-                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                        isPlaying
-                          ? 'bg-[#7C6FFF] text-white'
-                          : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
+                  <div key={track.id}>
+                    <div
+                      className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
+                        isPlaying ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
                       }`}
                     >
-                      {isPlaying ? (
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
-                          <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                          <rect x="5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                        </svg>
-                      ) : (
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                          <path d="M1.5 1l5.5 3-5.5 3V1z"/>
-                        </svg>
+                      <button
+                        onClick={() => isPlaying
+                          ? closePlayer()
+                          : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
+                        }
+                        className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                          isPlaying
+                            ? 'bg-[#7C6FFF] text-white'
+                            : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
+                        }`}
+                      >
+                        {isPlaying ? (
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
+                            <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
+                            <rect x="5" y="0.5" width="2.5" height="7" rx="0.5"/>
+                          </svg>
+                        ) : (
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                            <path d="M1.5 1l5.5 3-5.5 3V1z"/>
+                          </svg>
+                        )}
+                      </button>
+
+                      <span className="text-[#252830] font-mono text-xs w-4 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
+                        {i + 1}
+                      </span>
+
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate transition-colors ${
+                          isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
+                        }`}>
+                          {track.title}
+                        </p>
+                      </div>
+
+                      {/* Menú 3 puntos */}
+                      {isMine && (
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowTrackMenu(showTrackMenu === track.id ? null : track.id)
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                              <circle cx="7" cy="2" r="1" fill="currentColor"/>
+                              <circle cx="7" cy="7" r="1" fill="currentColor"/>
+                              <circle cx="7" cy="12" r="1" fill="currentColor"/>
+                            </svg>
+                          </button>
+                          {showTrackMenu === track.id && (
+                            <div className="absolute right-0 top-6 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-20 py-1 min-w-[140px]">
+                              <button
+                                onClick={() => {
+                                  setEditingTrackId(track.id)
+                                  setEditingTrackName(track.title)
+                                  setShowTrackMenu(null)
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path d="M8 1l3 3-7 7H1V8L8 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Renombrar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${window.location.origin}/p/${project.share_slug}`)
+                                  setShowTrackMenu(null)
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path d="M4 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                  <path d="M7 1h4v4M11 1L5 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Compartir
+                              </button>
+                              <div className="h-px bg-white/[0.06] my-1"/>
+                              <button
+                                onClick={() => handleDeleteTrack(track.id)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path d="M2 3h8M4 3V2h4v1M5 5v4M7 5v4M3 3l.5 7h5L9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Eliminar
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
-                    </button>
-
-                    <span className="text-[#252830] font-mono text-xs w-4 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
-                      {i + 1}
-                    </span>
-
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate transition-colors ${
-                        isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
-                      }`}>
-                        {track.title}
-                      </p>
                     </div>
 
-                    <button className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <circle cx="7" cy="2" r="1" fill="currentColor"/>
-                        <circle cx="7" cy="7" r="1" fill="currentColor"/>
-                        <circle cx="7" cy="12" r="1" fill="currentColor"/>
-                      </svg>
-                    </button>
+                    {/* Input renombrar inline */}
+                    {editingTrackId === track.id && (
+                      <div className="px-4 py-2 bg-[#111318] border-b border-white/[0.04]">
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editingTrackName}
+                          onChange={e => setEditingTrackName(e.target.value)}
+                          onBlur={() => handleRenameTrack(track.id, editingTrackName)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleRenameTrack(track.id, editingTrackName)
+                            if (e.key === 'Escape') setEditingTrackId(null)
+                          }}
+                          className="w-full bg-transparent text-[#F8F7F4] text-sm outline-none border-b border-[#7C6FFF]/40 pb-0.5"
+                        />
+                      </div>
+                    )}
                   </div>
                 )
               })}
