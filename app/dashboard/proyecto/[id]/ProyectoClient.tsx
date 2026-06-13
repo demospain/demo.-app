@@ -122,7 +122,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const searchInputRef                      = useRef<HTMLInputElement>(null)
   const dotsMenuRef                         = useRef<HTMLDivElement>(null)
   const trackMenuRefs                       = useRef<Map<string, HTMLDivElement>>(new Map())
-  const { currentTrack, playTrack, closePlayer } = usePlayer()
+  const { currentTrack, playTrack, closePlayer, isPlaying: playerIsPlaying } = usePlayer()
   const router   = useRouter()
   const supabase = createClient()
 
@@ -710,7 +710,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 )}
 
                 {filteredTracks.map((track, i) => {
-                  const isPlaying   = currentTrack?.id === track.id
+                  const isActive    = currentTrack?.id === track.id
+                  const isPlaying   = isActive && playerIsPlaying
                   const isDragOver  = dragOverId === track.id
                   const isReplacing = replacingTrackId === track.id
                   return (
@@ -726,7 +727,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })}
                         className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
                           isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
-                          isPlaying  ? 'bg-[#7C6FFF]/5' :
+                          isActive   ? 'bg-[#7C6FFF]/5' :
                           'hover:bg-white/[0.02]'
                         }`}
                       >
