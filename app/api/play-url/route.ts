@@ -1,16 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-
-const r2 = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT!,
-  credentials: {
-    accessKeyId:     process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-})
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -33,8 +22,6 @@ export async function GET(request: Request) {
   }
 
   const { data: { user } } = await supabase.auth.getUser()
-
-  // Extraer el proyecto correctamente del resultado del join
   const projectRaw = track.projects
   const project = Array.isArray(projectRaw) ? projectRaw[0] : projectRaw
   const visibility = project?.visibility as string | undefined
@@ -47,12 +34,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Sin acceso' }, { status: 403 })
   }
 
-  const command = new GetObjectCommand({
-    Bucket: process.env.R2_BUCKET_NAME!,
-    Key:    filePath,
-  })
+  const publicUrl = `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${filePath}`
 
-  const playUrl = await getSignedUrl(r2, command, { expiresIn: 3600 })
-
-  return NextResponse.json({ playUrl })
+  return NextResponse.json({ playUrl: publicUrl })
 }
