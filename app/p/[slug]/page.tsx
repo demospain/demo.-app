@@ -1,8 +1,47 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import PublicProjectClient from './PublicProjectClient'
+import type { Metadata } from 'next'
 
 interface Props {
   params: { slug: string }
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const supabase = await createServerSupabaseClient()
+  const { data: project } = await supabase
+    .from('projects')
+    .select('title, cover_url, owner_id')
+    .eq('share_slug', params.slug)
+    .single()
+
+  if (!project) return { title: 'demo.' }
+
+  const { data: ownerProfile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', project.owner_id)
+    .single()
+
+  const title       = `${project.title} — ${ownerProfile?.full_name ?? 'Artista'}`
+  const description = 'Escucha este proyecto en demo. antes de que salga al mundo.'
+  const image       = project.cover_url ?? undefined
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: image ? [{ url: image, width: 800, height: 800 }] : [],
+      type: 'music.album',
+    },
+    twitter: {
+      card:        'summary_large_image',
+      title,
+      description,
+      images:      image ? [image] : [],
+    },
+  }
 }
 
 export default async function PublicProjectPage({ params }: Props) {
@@ -26,7 +65,6 @@ export default async function PublicProjectPage({ params }: Props) {
     )
   }
 
-  // Cargar nombre del owner en una query separada para evitar problemas de tipos
   const { data: ownerProfile } = await supabase
     .from('profiles')
     .select('full_name, avatar_url')
