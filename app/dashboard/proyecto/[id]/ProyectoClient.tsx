@@ -250,7 +250,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     if (!error) router.push('/dashboard')
     setShowDotsMenu(false)
   }
-  }
 
   const handleReplaceAudio = async (trackId: string, file: File) => {
     setReplacingTrackId(trackId)
