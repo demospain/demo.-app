@@ -36,9 +36,9 @@ interface Props {
 }
 
 const VISIBILITY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-  private: { label: 'Privado',          icon: '🔒', color: 'text-[#555966]' },
-  link:    { label: 'Solo invitación',  icon: '🔗', color: 'text-[#F59E0B]' },
-  public:  { label: 'Público',          icon: '🌍', color: 'text-[#1D9E75]' },
+  private: { label: 'Privado',         icon: '🔒', color: 'text-[#555966]' },
+  link:    { label: 'Solo invitación', icon: '🔗', color: 'text-[#F59E0B]' },
+  public:  { label: 'Público',         icon: '🌍', color: 'text-[#1D9E75]' },
 }
 
 const EXPIRY_OPTIONS = [
@@ -481,43 +481,38 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
 
             {isMine && (
               <div className="p-3 border-b border-white/[0.06]">
-                {/* sección visibilidad */}
+                <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Visibilidad</p>
+                <div className="flex flex-col gap-0.5">
+                  {Object.entries(VISIBILITY_CONFIG).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      onClick={() => handleVisibilityChange(key)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                        project.visibility === key
+                          ? 'bg-[#7C6FFF]/10 text-[#7C6FFF]'
+                          : 'text-[#9BA0AD] hover:bg-white/[0.04] hover:text-[#F8F7F4]'
+                      }`}
+                    >
+                      <span className="text-base">{cfg.icon}</span>
+                      <div className="text-left flex-1">
+                        <p className="text-sm font-medium leading-none">{cfg.label}</p>
+                        <p className="text-xs font-mono mt-0.5 opacity-60">
+                          {key === 'private' ? 'Solo tú' : key === 'link' ? 'Solo quien tú invites' : 'Tus invitados pueden compartirlo'}
+                        </p>
+                      </div>
+                      {project.visibility === key && (
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                          <path d="M2 5l2.5 2.5L8 3" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-              <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Visibilidad</p>
-              <div className="flex flex-col gap-0.5">
-                {Object.entries(VISIBILITY_CONFIG).map(([key, cfg]) => (
-                  <button
-                    key={key}
-                    onClick={() => handleVisibilityChange(key)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                      project.visibility === key
-                        ? 'bg-[#7C6FFF]/10 text-[#7C6FFF]'
-                        : 'text-[#9BA0AD] hover:bg-white/[0.04] hover:text-[#F8F7F4]'
-                    }`}
-                  >
-                    <span className="text-base">{cfg.icon}</span>
-                    <div className="text-left flex-1">
-                      <p className="text-sm font-medium leading-none">{cfg.label}</p>
-                      <p className="text-xs font-mono mt-0.5 opacity-60">
-                        {key === 'private' ? 'Solo tú' : key === 'link' ? 'Solo quien tú invites' : 'Tus invitados pueden compartirlo'}
-                      </p>
-                    </div>
-                    {project.visibility === key && (
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                        <path d="M2 5l2.5 2.5L8 3" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>}
 
             {isMine && (project.visibility === 'link' || project.visibility === 'public') && (
               <div className="p-3 border-b border-white/[0.06]">
-                {/* sección caducidad */}
-              </div>
-            )}
                 <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Caducidad del link</p>
                 <div className="flex flex-col gap-0.5">
                   {EXPIRY_OPTIONS.map(opt => {
@@ -550,8 +545,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </div>
             )}
 
-                        <div className="p-3">
-              {project.visibility === 'private' ? (
+            <div className="p-3">
+              {isMine && project.visibility === 'private' ? (
                 <div className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm bg-white/[0.03] border border-white/[0.06] text-[#383C47]">
                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                     <path d="M6.5 1a3 3 0 013 3v1.5H3.5V4a3 3 0 013-3z" stroke="currentColor" strokeWidth="1.2"/>
@@ -730,11 +725,11 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       <div
                         onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })}
                         className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
-                        isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
-                        isPlaying  ? 'bg-[#7C6FFF]/5' :
-                        'hover:bg-white/[0.02]'
-                      }`}>
-
+                          isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
+                          isPlaying  ? 'bg-[#7C6FFF]/5' :
+                          'hover:bg-white/[0.02]'
+                        }`}
+                      >
                         {isMine && (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-[#333] hover:text-[#555966] flex-shrink-0 -ml-1">
                             <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
@@ -802,7 +797,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                             }}
                           >
                             <button
-                              onClick={() => setShowTrackMenu(showTrackMenu === track.id ? null : track.id)}
+                              onClick={e => { e.stopPropagation(); setShowTrackMenu(showTrackMenu === track.id ? null : track.id) }}
                               className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1.5"
                             >
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
