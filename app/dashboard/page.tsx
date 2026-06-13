@@ -3,6 +3,12 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import LogoutButton from '@/components/LogoutButton'
 import DashboardClient from '@/components/DashboardClient'
 
+const R2_PUBLIC = 'https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev'
+
+function withCover(p: any) {
+  return { ...p, cover_url: p.cover_url ? `${R2_PUBLIC}/${p.cover_url}` : null }
+}
+
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -10,7 +16,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('onboarded')
+    .select('onboarded, username')
     .eq('id', user.id)
     .single()
 
@@ -33,7 +39,6 @@ export default async function DashboardPage() {
     .filter(Boolean)
     .filter((p: any) => !projects?.some(own => own.id === p.id))
 
-  // Traer nombres de los owners de proyectos guardados
   const ownerIds = Array.from(new Set(savedProjects.map((p: any) => p.owner_id).filter(Boolean)))
   const { data: ownerProfiles } = ownerIds.length > 0
     ? await supabase.from('profiles').select('id, username').in('id', ownerIds)
@@ -44,7 +49,8 @@ export default async function DashboardPage() {
     ownerNames[p.id] = p.username ?? 'Artista'
   }
 
-  const nombre = user.user_metadata?.full_name?.split(' ')[0]
+  const nombre = profile?.username
+    ?? user.user_metadata?.full_name?.split(' ')[0]
     ?? user.email?.split('@')[0]
     ?? 'artista'
 
@@ -82,8 +88,8 @@ export default async function DashboardPage() {
         <DashboardClient
           userId={user.id}
           userName={nombre}
-          initialProjects={projects ?? []}
-          savedProjects={savedProjects}
+          initialProjects={(projects ?? []).map(withCover)}
+          savedProjects={savedProjects.map(withCover)}
           ownerNames={ownerNames}
         />
       </main>
