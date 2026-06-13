@@ -29,7 +29,8 @@ export default function GlobalPlayer() {
       try {
         const res = await fetch(`/api/play-url?path=${encodeURIComponent(currentTrack.file_path)}`)
         if (!res.ok) throw new Error('No se pudo obtener la URL')
-        const { playUrl } = await res.json()
+        const audioUrl = `/api/play-url?path=${encodeURIComponent(currentTrack.file_path)}`
+        ws.load(audioUrl)
 
         const WaveSurfer = (await import('wavesurfer.js')).default
         if (!containerRef.current) return
