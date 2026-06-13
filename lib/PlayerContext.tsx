@@ -10,20 +10,20 @@ interface Track {
 }
 
 interface PlayerContextType {
-  currentTrack: Track | null
-  isPlaying:    boolean
-  playTrack:    (track: Track) => void
-  closePlayer:  () => void
+  currentTrack:  Track | null
+  isPlaying:     boolean
+  playTrack:     (track: Track, queue?: Track[]) => void
+  closePlayer:   () => void
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null)
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
+  const [queue, setQueue]               = useState<Track[]>([])
   const [isPlaying, setIsPlaying]       = useState(false)
   const [currentTime, setCurrentTime]   = useState(0)
   const [duration, setDuration]         = useState(0)
-  const [speed, setSpeed]               = useState(1)
   const [loading, setLoading]           = useState(false)
   const audioRef                        = useRef<HTMLAudioElement | null>(null)
 
@@ -34,7 +34,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onMeta  = () => setDuration(audio.duration)
     const onPlay  = () => setIsPlaying(true)
     const onPause = () => setIsPlaying(false)
-    const onEnd   = () => setIsPlaying(false)
+    const onEnd   = () => {
+      setIsPlaying(false)
+      // Auto-siguiente
+      setQueue(prev => {
+        if (prev.length > 1) {
+          const next = prev[1]
+          loadTrack(next, prev.slice(1))
+        }
+        return prev
+      })
+    }
     audio.addEventListener('timeupdate',     onTime)
     audio.addEventListener('loadedmetadata', onMeta)
     audio.addEventListener('play',           onPlay)
@@ -50,31 +60,47 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const playTrack = async (track: Track) => {
+  const loadTrack = async (track: Track, newQueue?: Track[]) => {
+    setCurrentTrack(track)
+    if (newQueue) setQueue(newQueue)
+    setLoading(true)
+    setCurrentTime(0)
+    setDuration(0)
+    try {
+      const res = await fetch('/api/play-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ filePath: track.file_path }),
+      })
+      const { url } = await res.json()
+      const audio = audioRef.current
+      if (!audio) return
+      audio.src = url
+      await audio.play()
+    } catch {}
+    setLoading(false)
+  }
+
+  const playTrack = async (track: Track, newQueue?: Track[]) => {
     if (currentTrack?.id === track.id) {
       const audio = audioRef.current
       if (!audio) return
       audio.paused ? audio.play() : audio.pause()
       return
     }
-    setCurrentTrack(track)
-    setLoading(true)
-    setCurrentTime(0)
-    setDuration(0)
-    try {
-      const res = await fetch('/api/play-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: track.file_path }),
-      })
-      const { url } = await res.json()
-      const audio = audioRef.current
-      if (!audio) return
-      audio.src          = url
-      audio.playbackRate = speed
-      await audio.play()
-    } catch {}
-    setLoading(false)
+    const q = newQueue ?? [track]
+    await loadTrack(track, q)
+  }
+
+  const playPrev = () => {
+    const idx = queue.findIndex(t => t.id === currentTrack?.id)
+    if (idx > 0) loadTrack(queue[idx - 1])
+    else if (audioRef.current) audioRef.current.currentTime = 0
+  }
+
+  const playNext = () => {
+    const idx = queue.findIndex(t => t.id === currentTrack?.id)
+    if (idx < queue.length - 1) loadTrack(queue[idx + 1])
   }
 
   const closePlayer = () => {
@@ -84,9 +110,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setIsPlaying(false)
     setCurrentTime(0)
     setDuration(0)
+    setQueue([])
   }
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
+
+  const currentIdx = queue.findIndex(t => t.id === currentTrack?.id)
+  const hasPrev    = currentIdx > 0
+  const hasNext    = currentIdx < queue.length - 1
 
   return (
     <PlayerContext.Provider value={{ currentTrack, isPlaying, playTrack, closePlayer }}>
@@ -96,54 +127,76 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f1117]/95 backdrop-blur-md border-t border-white/[0.07] px-6 py-3">
           <div className="max-w-6xl mx-auto flex items-center gap-4">
 
-            <button
-              onClick={() => { const a = audioRef.current; if (!a) return; a.paused ? a.play() : a.pause() }}
-              disabled={loading}
-              className="w-10 h-10 rounded-full bg-[#6E62F5] hover:bg-[#5A4FD4] flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-              ) : isPlaying ? (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
-                  <rect x="1" y="1" width="4" height="10" rx="1"/>
-                  <rect x="7" y="1" width="4" height="10" rx="1"/>
+            {/* Controles */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={playPrev}
+                disabled={!hasPrev}
+                className="w-8 h-8 flex items-center justify-center text-[#555966] hover:text-[#EAE9E6] disabled:opacity-20 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 3v10M13 3L6 8l7 5V3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
-                  <path d="M2 1.5l9 4.5-9 4.5V1.5z"/>
-                </svg>
-              )}
-            </button>
+              </button>
 
-            <div className="flex-1 min-w-0 flex items-center gap-4">
-              <div className="min-w-0 flex-shrink-0 max-w-[200px]">
-                <p className="text-sm font-medium text-[#EAE9E6] truncate">{currentTrack.title}</p>
-                {currentTrack.projectTitle && (
-                  <p className="text-xs font-mono text-[#555966] truncate">{currentTrack.projectTitle}</p>
+              <button
+                onClick={() => { const a = audioRef.current; if (!a) return; a.paused ? a.play() : a.pause() }}
+                disabled={loading}
+                className="w-10 h-10 rounded-full bg-[#6E62F5] hover:bg-[#5A4FD4] flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                ) : isPlaying ? (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                    <rect x="1" y="1" width="4" height="10" rx="1"/>
+                    <rect x="7" y="1" width="4" height="10" rx="1"/>
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                    <path d="M2 1.5l9 4.5-9 4.5V1.5z"/>
+                  </svg>
                 )}
-              </div>
-              <div className="flex-1 flex items-center gap-3">
-                <span className="text-xs font-mono text-[#555966] flex-shrink-0 w-10 text-right">{fmt(currentTime)}</span>
-                <input
-                  type="range" min={0} max={duration || 0} step={0.1} value={currentTime}
-                  onChange={e => { const t = Number(e.target.value); if (audioRef.current) audioRef.current.currentTime = t; setCurrentTime(t) }}
-                  className="flex-1 accent-[#6E62F5] cursor-pointer"
-                />
-                <span className="text-xs font-mono text-[#555966] flex-shrink-0 w-10">{fmt(duration)}</span>
-              </div>
+              </button>
+
+              <button
+                onClick={playNext}
+                disabled={!hasNext}
+                className="w-8 h-8 flex items-center justify-center text-[#555966] hover:text-[#EAE9E6] disabled:opacity-20 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M13 3v10M3 3l7 5-7 5V3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
             </div>
 
-            <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
-              {[0.75, 1, 1.25, 1.5].map(s => (
-                <button key={s}
-                  onClick={() => { if (audioRef.current) audioRef.current.playbackRate = s; setSpeed(s) }}
-                  className={`font-mono text-xs px-2 py-1 rounded transition-colors ${
-                    speed === s ? 'bg-[#6E62F5]/20 text-[#6E62F5]' : 'text-[#555966] hover:text-[#9BA0AD]'
-                  }`}
-                >{s}×</button>
-              ))}
+            {/* Info canción */}
+            <div className="w-48 flex-shrink-0 min-w-0">
+              <p className="text-sm font-medium text-[#EAE9E6] truncate">{currentTrack.title}</p>
+              {currentTrack.projectTitle && (
+                <p className="text-xs font-mono text-[#555966] truncate">{currentTrack.projectTitle}</p>
+              )}
             </div>
 
+            {/* Barra progreso — ancho fijo */}
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-xs font-mono text-[#555966] flex-shrink-0 w-10 text-right">{fmt(currentTime)}</span>
+              <input
+                type="range"
+                min={0}
+                max={duration || 0}
+                step={0.1}
+                value={currentTime}
+                onChange={e => {
+                  const t = Number(e.target.value)
+                  if (audioRef.current) audioRef.current.currentTime = t
+                  setCurrentTime(t)
+                }}
+                className="flex-1 accent-[#6E62F5] cursor-pointer"
+              />
+              <span className="text-xs font-mono text-[#555966] flex-shrink-0 w-10">{fmt(duration)}</span>
+            </div>
+
+            {/* Cerrar */}
             <button onClick={closePlayer} className="text-[#555966] hover:text-[#EAE9E6] transition-colors flex-shrink-0">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
