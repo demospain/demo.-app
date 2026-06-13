@@ -57,15 +57,14 @@ export default async function DashboardPage() {
   const inicial = nombre.charAt(0).toUpperCase()
 
   return (
-    <div className="min-h-screen bg-[#16171e] flex flex-col">
-
-      <nav className="h-14 border-b border-white/[0.05] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#16171e]/90 backdrop-blur-md">
+    <div className="min-h-screen bg-[#0f1117] flex flex-col">
+      <nav className="h-14 border-b border-white/[0.07] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#0f1117]/90 backdrop-blur-md">
         <a href="/dashboard" className="font-mono text-lg font-medium tracking-tight hover:opacity-80 transition-opacity flex-shrink-0">
-          demo<span className="text-[#7C6FFF]">.</span>
+          demo<span className="text-[#6E62F5]">.</span>
         </a>
         <div className="flex items-center gap-3">
           <a href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C6FFF] to-[#4A3FCC] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {inicial}
             </div>
             <span className="text-[#9BA0AD] text-sm hidden sm:block font-mono">{nombre}</span>
@@ -77,14 +76,13 @@ export default async function DashboardPage() {
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
         <div className="mb-10">
-          <h1 className="text-2xl font-medium text-[#F8F7F4]">
-            Hola, {nombre}<span className="text-[#7C6FFF]">.</span>
+          <h1 className="text-2xl font-medium text-[#EAE9E6]">
+            Hola, {nombre}<span className="text-[#6E62F5]">.</span>
           </h1>
           <p className="text-[#555966] text-sm font-mono mt-1">
             Tu biblioteca. Tu música, antes de existir para el mundo.
           </p>
         </div>
-
         <DashboardClient
           userId={user.id}
           userName={nombre}
