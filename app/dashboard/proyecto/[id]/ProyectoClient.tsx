@@ -31,6 +31,8 @@ interface Props {
   initialTracks: Track[]
   isMine:        boolean
   userId:        string
+  nombre:        string
+  inicial:       string
 }
 
 const VISIBILITY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
@@ -74,7 +76,6 @@ function formatDate(dateStr: string): string {
 
 function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
   const [timeLeft, setTimeLeft] = useState('')
-
   useEffect(() => {
     const update = () => {
       const diff = new Date(expiresAt).getTime() - Date.now()
@@ -91,7 +92,6 @@ function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
   }, [expiresAt])
-
   return (
     <div className="flex items-center gap-2">
       <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse flex-shrink-0"/>
@@ -100,10 +100,9 @@ function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
   )
 }
 
-export default function ProyectoClient({ project: initialProject, initialTracks, isMine, userId }: Props) {
+export default function ProyectoClient({ project: initialProject, initialTracks, isMine, userId, nombre, inicial }: Props) {
   const [project, setProject]               = useState<Project>(initialProject)
   const [tracks, setTracks]                 = useState<Track[]>(initialTracks)
-  const [copied, setCopied]                 = useState(false)
   const [editingTitle, setEditingTitle]     = useState(false)
   const [titleInput, setTitleInput]         = useState(initialProject.title)
   const [showTrackMenu, setShowTrackMenu]   = useState<string | null>(null)
@@ -112,16 +111,37 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const [coverUploading, setCoverUploading] = useState(false)
   const [dragOverId, setDragOverId]         = useState<string | null>(null)
   const [replacingTrackId, setReplacingTrackId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery]       = useState('')
+  const [showSearch, setShowSearch]         = useState(false)
+  const [showSharePanel, setShowSharePanel] = useState(false)
+  const [showDotsMenu, setShowDotsMenu]     = useState(false)
+  const [copied, setCopied]                 = useState(false)
+  const [renamingProject, setRenamingProject] = useState(false)
+  const [renameTitleInput, setRenameTitleInput] = useState(initialProject.title)
   const dragIdRef                           = useRef<string | null>(null)
   const coverInputRef                       = useRef<HTMLInputElement>(null)
   const replaceInputRef                     = useRef<HTMLInputElement>(null)
+  const searchInputRef                      = useRef<HTMLInputElement>(null)
   const { currentTrack, playTrack, closePlayer } = usePlayer()
   const router   = useRouter()
   const supabase = createClient()
 
-  const vis = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
-
+  const vis          = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
   const totalDuration = tracks.reduce((acc, t) => acc + (t.duration ?? 0), 0)
+  const filteredTracks = searchQuery.trim()
+    ? tracks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : tracks
+
+  useEffect(() => {
+    if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 50)
+  }, [showSearch])
+
+  // Cerrar menús al hacer click fuera
+  useEffect(() => {
+    const handler = () => { setShowDotsMenu(false); setShowTrackMenu(null) }
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [])
 
   const handleVisibilityChange = async (key: string) => {
     const { error } = await supabase.from('projects').update({ visibility: key }).eq('id', project.id)
@@ -147,20 +167,20 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   }
 
   const handleRenameProject = async () => {
-    if (!titleInput.trim() || titleInput === project.title) {
-      setEditingTitle(false)
+    if (!renameTitleInput.trim() || renameTitleInput === project.title) {
+      setRenamingProject(false)
       return
     }
     const { error } = await supabase
       .from('projects')
-      .update({ title: titleInput.trim() })
+      .update({ title: renameTitleInput.trim() })
       .eq('id', project.id)
     if (error) {
-      setTitleInput(project.title)
+      setRenameTitleInput(project.title)
     } else {
-      setProject(prev => ({ ...prev, title: titleInput.trim() }))
+      setProject(prev => ({ ...prev, title: renameTitleInput.trim() }))
     }
-    setEditingTitle(false)
+    setRenamingProject(false)
   }
 
   const handleRenameTrack = async (trackId: string, newName: string) => {
@@ -169,9 +189,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       .from('tracks')
       .update({ title: newName.trim() })
       .eq('id', trackId)
-    if (!error) {
-      setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
-    }
+    if (!error) setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
     setEditingTrackId(null)
   }
 
@@ -191,17 +209,13 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         project_id:  project.id,
         title:       `${track.title} (copia)`,
         file_path:   track.file_path,
-        file_size:   null,
-        format:      track.file_path.split('.').pop()?.toLowerCase(),
         track_order: tracks.length,
         uploaded_by: userId,
         duration:    track.duration,
       })
       .select()
       .single()
-    if (!error && data) {
-      setTracks(prev => [...prev, data])
-    }
+    if (!error && data) setTracks(prev => [...prev, data])
     setShowTrackMenu(null)
   }
 
@@ -220,8 +234,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-    } catch {
-      // silencioso
+    } catch {}
+  }
+
+  const handleExportProject = async () => {
+    setShowDotsMenu(false)
+    for (const track of tracks) {
+      await handleExportTrack(track)
+      await new Promise(r => setTimeout(r, 400))
     }
   }
 
@@ -235,7 +255,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         audio.addEventListener('error', () => { URL.revokeObjectURL(url); resolve(null) })
         audio.src = url
       })
-
       const res = await fetch('/api/upload-url', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,26 +262,20 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       })
       const { uploadUrl, filePath } = await res.json()
       await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-
       const { error } = await supabase
         .from('tracks')
         .update({ file_path: filePath, duration, format: file.name.split('.').pop()?.toLowerCase() })
         .eq('id', trackId)
-
       if (!error) {
         setTracks(prev => prev.map(t => t.id === trackId ? { ...t, file_path: filePath, duration } : t))
         if (currentTrack?.id === trackId) closePlayer()
       }
-    } catch {
-      // silencioso
-    }
+    } catch {}
     setReplacingTrackId(null)
   }
 
   const handleSetExpiry = async (hours: number | null) => {
-    const expiresAt = hours
-      ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString()
-      : null
+    const expiresAt = hours ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString() : null
     const { error } = await supabase
       .from('projects')
       .update({ link_expires_at: expiresAt })
@@ -285,10 +298,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     })
     const { uploadUrl, filePath } = await res.json()
     await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-    const { error } = await supabase
-      .from('projects')
-      .update({ cover_url: filePath })
-      .eq('id', project.id)
+    const { error } = await supabase.from('projects').update({ cover_url: filePath }).eq('id', project.id)
     if (!error) {
       const objectUrl = URL.createObjectURL(file)
       setProject(prev => ({ ...prev, cover_url: objectUrl }))
@@ -297,12 +307,10 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   }
 
   const handleDragStart = (trackId: string) => { dragIdRef.current = trackId }
-
-  const handleDragOver = (e: React.DragEvent, trackId: string) => {
+  const handleDragOver  = (e: React.DragEvent, trackId: string) => {
     e.preventDefault()
     if (dragIdRef.current !== trackId) setDragOverId(trackId)
   }
-
   const handleDrop = async (e: React.DragEvent, targetId: string) => {
     e.preventDefault()
     setDragOverId(null)
@@ -322,13 +330,12 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     ))
     if (results.some(r => r.error)) setTracks(oldTracks)
   }
-
   const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null) }
 
   return (
-    <div className={currentTrack ? 'pb-36' : ''}>
+    <div className={`flex flex-col min-h-screen ${currentTrack ? 'pb-36' : ''}`}>
 
-      {/* Input oculto para replace audio */}
+      {/* Input oculto replace */}
       <input
         ref={replaceInputRef}
         type="file"
@@ -341,112 +348,164 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         }}
       />
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-3 mb-8">
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="w-8 h-8 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors flex-shrink-0"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M9 2L4 7l5 5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <span className="text-[#555966] text-sm font-mono">Biblioteca</span>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M4 2l4 4-4 4" stroke="rgba(255,255,255,0.15)" strokeWidth="1.2" strokeLinecap="round"/>
-        </svg>
-        <span className="text-[#F8F7F4] text-sm font-medium truncate">{project.title}</span>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
-
-        {/* Columna izquierda */}
-        <div className="flex flex-col gap-4">
-
-          {/* Portada */}
-          <div
-            onClick={() => isMine && coverInputRef.current?.click()}
-            className={`w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden relative group ${isMine ? 'cursor-pointer' : ''}`}
+      {/* Navbar */}
+      <nav className="h-12 border-b border-white/[0.05] flex items-center justify-between px-4 sticky top-0 z-50 bg-[#0d0d0f]/95 backdrop-blur-md">
+        {/* Izquierda: volver + título */}
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="w-8 h-8 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors flex-shrink-0"
           >
-            {project.cover_url
-              ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
-              : <div className="text-6xl opacity-30">💿</div>
-            }
-            {isMine && (
-              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
-                {coverUploading
-                  ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-                  : <>
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M10 13V4M6 8l4-4 4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M9 2L4 7l5 5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <span className="text-[#F8F7F4] text-sm font-medium truncate hidden sm:block">{project.title}</span>
+        </div>
+
+        {/* Derecha: tres botones */}
+        <div className="flex items-center gap-1.5">
+
+          {/* Buscar */}
+          {showSearch ? (
+            <div className="flex items-center gap-2 bg-[#1E2028] border border-white/[0.08] rounded-xl px-3 h-8">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2"/>
+                <path d="M8 8l2.5 2.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Buscar canción..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setShowSearch(false); setSearchQuery('') }}}
+                className="bg-transparent text-[#F8F7F4] text-xs outline-none w-36 placeholder:text-[#383C47] font-mono"
+              />
+              <button onClick={() => { setShowSearch(false); setSearchQuery('') }} className="text-[#555966] hover:text-[#9BA0AD] transition-colors">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSearch(true)}
+              className="w-8 h-8 rounded-lg bg-[#1E2028] hover:bg-[#252830] border border-white/[0.06] flex items-center justify-center transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="6" cy="6" r="4" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3"/>
+                <path d="M10 10l2.5 2.5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+
+          {/* Compartir */}
+          <button
+            onClick={e => { e.stopPropagation(); setShowSharePanel(p => !p); setShowDotsMenu(false) }}
+            className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
+              showSharePanel
+                ? 'bg-[#7C6FFF]/15 border-[#7C6FFF]/30 text-[#7C6FFF]'
+                : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/50'
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M10 1.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM4 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM10 8.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M5.8 6.3l2.4-1.6M5.8 7.7l2.4 1.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          {/* Tres puntos */}
+          <div className="relative">
+            <button
+              onClick={e => { e.stopPropagation(); setShowDotsMenu(p => !p); setShowSharePanel(false) }}
+              className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
+                showDotsMenu
+                  ? 'bg-[#1E2028] border-white/[0.12] text-[#F8F7F4]'
+                  : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/50'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="2.5" r="1.2" fill="currentColor"/>
+                <circle cx="7" cy="7"   r="1.2" fill="currentColor"/>
+                <circle cx="7" cy="11.5" r="1.2" fill="currentColor"/>
+              </svg>
+            </button>
+            {showDotsMenu && (
+              <div
+                onClick={e => e.stopPropagation()}
+                className="absolute right-0 top-10 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1 min-w-[160px]"
+              >
+                {isMine && (
+                  <button
+                    onClick={() => { setRenamingProject(true); setRenameTitleInput(project.title); setShowDotsMenu(false) }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M9 1l3 3-8 8H1V9L9 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    <span className="text-white text-xs font-mono">Subir portada</span>
-                  </>
-                }
+                    Renombrar
+                  </button>
+                )}
+                <button
+                  onClick={handleExportProject}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                >
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <path d="M6.5 1v8M3.5 6l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1 10v1.5a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5V10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                  </svg>
+                  Exportar todo
+                </button>
               </div>
             )}
-            <input ref={coverInputRef} type="file" accept="image/png,image/jpeg" onChange={handleCoverUpload} className="hidden"/>
           </div>
+        </div>
+      </nav>
 
-          {/* Título */}
-          <div>
-            {editingTitle ? (
-              <input
-                autoFocus
-                type="text"
-                value={titleInput}
-                onChange={e => setTitleInput(e.target.value)}
-                onBlur={handleRenameProject}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') handleRenameProject()
-                  if (e.key === 'Escape') { setEditingTitle(false); setTitleInput(project.title) }
-                }}
-                className="w-full bg-[#1E2028] border border-[#7C6FFF]/40 text-[#F8F7F4] rounded-xl px-3 py-2 text-lg font-medium outline-none mb-1"
-              />
-            ) : (
-              <h2
-                onClick={() => isMine && setEditingTitle(true)}
-                className={`text-lg font-medium text-[#F8F7F4] mb-1 ${isMine ? 'cursor-pointer hover:text-[#7C6FFF] transition-colors' : ''}`}
-                title={isMine ? 'Clic para renombrar' : ''}
-              >
-                {project.title}
-              </h2>
-            )}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-xs font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
-              <span className="text-[#252830]">·</span>
-              <span className="text-xs font-mono text-[#555966]">
-                {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
-              </span>
-              {totalDuration > 0 && (
-                <>
-                  <span className="text-[#252830]">·</span>
-                  <span className="text-xs font-mono text-[#555966]">{formatDuration(totalDuration)}</span>
-                </>
-              )}
+      {/* Panel de compartición */}
+      {showSharePanel && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowSharePanel(false)}
+        >
+          <div
+            className="absolute right-4 top-14 w-80 bg-[#13141a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+              <span className="text-sm font-medium text-[#F8F7F4] truncate pr-4">{project.title}</span>
+              <button onClick={() => setShowSharePanel(false)} className="text-[#555966] hover:text-[#9BA0AD] transition-colors flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+              </button>
             </div>
-          </div>
 
-          {/* Visibilidad */}
-          {isMine && (
-            <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
-              <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Visibilidad</p>
-              <div className="flex flex-col gap-1">
+            {/* Visibilidad */}
+            <div className="p-3 border-b border-white/[0.06]">
+              <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Visibilidad</p>
+              <div className="flex flex-col gap-0.5">
                 {Object.entries(VISIBILITY_CONFIG).map(([key, cfg]) => (
                   <button
                     key={key}
                     onClick={() => handleVisibilityChange(key)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
                       project.visibility === key
-                        ? 'bg-[#7C6FFF]/10 text-[#7C6FFF] border border-[#7C6FFF]/20'
-                        : 'text-[#9BA0AD] hover:bg-white/[0.03]'
+                        ? 'bg-[#7C6FFF]/10 text-[#7C6FFF]'
+                        : 'text-[#9BA0AD] hover:bg-white/[0.04] hover:text-[#F8F7F4]'
                     }`}
                   >
-                    <span>{cfg.icon}</span>
-                    <span className="font-medium">{cfg.label}</span>
+                    <span className="text-base">{cfg.icon}</span>
+                    <div className="text-left flex-1">
+                      <p className="text-xs font-medium leading-none">{cfg.label}</p>
+                      <p className="text-[10px] font-mono mt-0.5 opacity-60">
+                        {key === 'private' ? 'Solo tú' : key === 'link' ? 'Cualquiera con el link' : 'Visible para todos'}
+                      </p>
+                    </div>
                     {project.visibility === key && (
-                      <svg className="ml-auto" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                         <path d="M2 5l2.5 2.5L8 3" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     )}
@@ -454,24 +513,22 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 ))}
               </div>
             </div>
-          )}
 
-          {/* Caducidad + Copiar link */}
-          {isMine && (project.visibility === 'link' || project.visibility === 'public') && (
-            <div className="flex flex-col gap-2">
-              <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
-                <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Caducidad del link</p>
-                <div className="flex flex-col gap-1">
+            {/* Caducidad — solo si tiene link */}
+            {(project.visibility === 'link' || project.visibility === 'public') && (
+              <div className="p-3 border-b border-white/[0.06]">
+                <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Caducidad del link</p>
+                <div className="flex flex-col gap-0.5">
                   {EXPIRY_OPTIONS.map(opt => {
                     const isSelected = opt.hours === null ? !project.link_expires_at : false
                     return (
                       <button
                         key={opt.value}
                         onClick={() => handleSetExpiry(opt.hours)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors ${
                           isSelected
-                            ? 'bg-[#7C6FFF]/10 text-[#7C6FFF] border border-[#7C6FFF]/20'
-                            : 'text-[#9BA0AD] hover:bg-white/[0.03]'
+                            ? 'bg-[#7C6FFF]/10 text-[#7C6FFF]'
+                            : 'text-[#9BA0AD] hover:bg-white/[0.04] hover:text-[#F8F7F4]'
                         }`}
                       >
                         <span>{opt.label}</span>
@@ -485,18 +542,22 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                   })}
                 </div>
                 {project.link_expires_at && (
-                  <div className="mt-2 pt-2 border-t border-white/[0.06]">
+                  <div className="mt-2 px-1">
                     <ExpiryCountdown expiresAt={project.link_expires_at}/>
                   </div>
                 )}
               </div>
+            )}
 
+            {/* Copiar link */}
+            <div className="p-3">
               <button
                 onClick={handleCopyLink}
+                disabled={!project.share_slug}
                 className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
                   copied
                     ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
-                    : 'bg-[#7C6FFF]/10 hover:bg-[#7C6FFF]/20 border border-[#7C6FFF]/20 text-[#7C6FFF]'
+                    : 'bg-[#7C6FFF] hover:bg-[#6B5FE8] text-white disabled:opacity-30'
                 }`}
               >
                 {copied ? (
@@ -517,230 +578,327 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 )}
               </button>
             </div>
-          )}
-
-          {!isMine && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#7C6FFF]/5 border border-[#7C6FFF]/15 rounded-xl">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2 6l3 3 5-5" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="text-[#7C6FFF] text-xs font-mono">Guardado en tu biblioteca</span>
-            </div>
-          )}
+          </div>
         </div>
+      )}
 
-        {/* Columna derecha */}
-        <div className="flex flex-col gap-4">
-          {isMine && (
-            <UploadTrack
-              projectId={project.id}
-              onUploadComplete={(track) => setTracks(prev => [...prev, { ...track, track_order: prev.length }])}
+      {/* Modal renombrar proyecto */}
+      {renamingProject && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={e => { if (e.target === e.currentTarget) setRenamingProject(false) }}
+        >
+          <div className="bg-[#13141a] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm">
+            <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Renombrar proyecto</p>
+            <h3 className="font-medium text-[#F8F7F4] text-base mb-4">¿Nuevo nombre?</h3>
+            <input
+              autoFocus
+              type="text"
+              value={renameTitleInput}
+              onChange={e => setRenameTitleInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleRenameProject()
+                if (e.key === 'Escape') setRenamingProject(false)
+              }}
+              className="bg-[#0d0d0f] border border-white/[0.06] focus:border-[#7C6FFF]/40 text-[#F8F7F4] placeholder:text-[#2E3140] rounded-xl px-4 py-3 text-sm outline-none transition-colors w-full font-mono mb-3"
             />
-          )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setRenamingProject(false)}
+                className="flex-1 border border-white/[0.06] text-[#555966] hover:text-[#9BA0AD] py-2.5 rounded-xl text-sm transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRenameProject}
+                disabled={!renameTitleInput.trim()}
+                className="flex-1 bg-[#7C6FFF] hover:bg-[#6B5FE8] disabled:opacity-30 text-white py-2.5 rounded-xl text-sm font-medium transition-colors"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-          {tracks.length > 0 && (
-            <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-visible">
-              <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-                <span className="text-[#555966] text-xs font-mono uppercase tracking-wider">Tracklist</span>
-                <span className="text-[#555966] text-xs font-mono">
-                  {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
-                  {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
+      {/* Contenido principal */}
+      <main className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
+
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
+
+          {/* Columna izquierda */}
+          <div className="flex flex-col gap-4">
+
+            {/* Portada */}
+            <div
+              onClick={() => isMine && coverInputRef.current?.click()}
+              className={`w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden relative group ${isMine ? 'cursor-pointer' : ''}`}
+            >
+              {project.cover_url
+                ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
+                : <div className="text-6xl opacity-30">💿</div>
+              }
+              {isMine && (
+                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                  {coverUploading
+                    ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                    : <>
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 13V4M6 8l4-4 4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                      <span className="text-white text-xs font-mono">Subir portada</span>
+                    </>
+                  }
+                </div>
+              )}
+              <input ref={coverInputRef} type="file" accept="image/png,image/jpeg" onChange={handleCoverUpload} className="hidden"/>
+            </div>
+
+            {/* Título */}
+            <div>
+              <h2 className="text-lg font-medium text-[#F8F7F4] mb-1">{project.title}</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-xs font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
+                <span className="text-[#252830]">·</span>
+                <span className="text-xs font-mono text-[#555966]">
+                  {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
                 </span>
+                {totalDuration > 0 && (
+                  <>
+                    <span className="text-[#252830]">·</span>
+                    <span className="text-xs font-mono text-[#555966]">{formatDuration(totalDuration)}</span>
+                  </>
+                )}
               </div>
-              {tracks.map((track, i) => {
-                const isPlaying   = currentTrack?.id === track.id
-                const isDragOver  = dragOverId === track.id
-                const isReplacing = replacingTrackId === track.id
-                return (
-                  <div
-                    key={track.id}
-                    draggable={isMine}
-                    onDragStart={() => handleDragStart(track.id)}
-                    onDragOver={e => handleDragOver(e, track.id)}
-                    onDrop={e => handleDrop(e, track.id)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <div className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
-                      isDragOver  ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
-                      isPlaying   ? 'bg-[#7C6FFF]/5' :
-                      'hover:bg-white/[0.02]'
-                    }`}>
+            </div>
 
-                      {isMine && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-[#333] hover:text-[#555966] flex-shrink-0 -ml-1">
-                          <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
-                            <circle cx="3" cy="2.5"  r="1.2" fill="currentColor"/>
-                            <circle cx="7" cy="2.5"  r="1.2" fill="currentColor"/>
-                            <circle cx="3" cy="7"    r="1.2" fill="currentColor"/>
-                            <circle cx="7" cy="7"    r="1.2" fill="currentColor"/>
-                            <circle cx="3" cy="11.5" r="1.2" fill="currentColor"/>
-                            <circle cx="7" cy="11.5" r="1.2" fill="currentColor"/>
-                          </svg>
-                        </div>
-                      )}
+            {!isMine && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#7C6FFF]/5 border border-[#7C6FFF]/15 rounded-xl">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-[#7C6FFF] text-xs font-mono">Guardado en tu biblioteca</span>
+              </div>
+            )}
+          </div>
 
-                      <button
-                        onClick={() => isPlaying
-                          ? closePlayer()
-                          : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
-                        }
-                        className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                          isPlaying
-                            ? 'bg-[#7C6FFF] text-white'
-                            : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
-                        }`}
-                      >
-                        {isReplacing ? (
-                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"/>
-                        ) : isPlaying ? (
-                          <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
-                            <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                            <rect x="5"   y="0.5" width="2.5" height="7" rx="0.5"/>
-                          </svg>
-                        ) : (
-                          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                            <path d="M1.5 1l5.5 3-5.5 3V1z"/>
-                          </svg>
+          {/* Columna derecha */}
+          <div className="flex flex-col gap-4">
+            {isMine && (
+              <UploadTrack
+                projectId={project.id}
+                onUploadComplete={(track) => setTracks(prev => [...prev, { ...track, track_order: prev.length }])}
+              />
+            )}
+
+            {tracks.length > 0 && (
+              <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-visible">
+                <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                  <span className="text-[#555966] text-xs font-mono uppercase tracking-wider">Tracklist</span>
+                  <span className="text-[#555966] text-xs font-mono">
+                    {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
+                    {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
+                  </span>
+                </div>
+
+                {/* Mensaje sin resultados en búsqueda */}
+                {searchQuery && filteredTracks.length === 0 && (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-[#383C47] text-xs font-mono">Sin resultados para "{searchQuery}"</p>
+                  </div>
+                )}
+
+                {filteredTracks.map((track, i) => {
+                  const isPlaying   = currentTrack?.id === track.id
+                  const isDragOver  = dragOverId === track.id
+                  const isReplacing = replacingTrackId === track.id
+                  return (
+                    <div
+                      key={track.id}
+                      draggable={isMine}
+                      onDragStart={() => handleDragStart(track.id)}
+                      onDragOver={e => handleDragOver(e, track.id)}
+                      onDrop={e => handleDrop(e, track.id)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div className={`flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-0 group transition-colors ${
+                        isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
+                        isPlaying  ? 'bg-[#7C6FFF]/5' :
+                        'hover:bg-white/[0.02]'
+                      }`}>
+
+                        {isMine && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-[#333] hover:text-[#555966] flex-shrink-0 -ml-1">
+                            <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+                              <circle cx="3" cy="2.5"  r="1.2" fill="currentColor"/>
+                              <circle cx="7" cy="2.5"  r="1.2" fill="currentColor"/>
+                              <circle cx="3" cy="7"    r="1.2" fill="currentColor"/>
+                              <circle cx="7" cy="7"    r="1.2" fill="currentColor"/>
+                              <circle cx="3" cy="11.5" r="1.2" fill="currentColor"/>
+                              <circle cx="7" cy="11.5" r="1.2" fill="currentColor"/>
+                            </svg>
+                          </div>
                         )}
-                      </button>
 
-                      <span className="text-[#252830] font-mono text-xs w-4 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
-                        {i + 1}
-                      </span>
-
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate transition-colors ${
-                          isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
-                        }`}>
-                          {track.title}
-                        </p>
-                        <p className="text-[11px] font-mono text-[#383C47] mt-0.5">
-                          {formatDate(track.created_at)}
-                          {track.duration && track.duration > 0 && (
-                            <span> · {formatTrackDuration(track.duration)}</span>
+                        <button
+                          onClick={() => isPlaying
+                            ? closePlayer()
+                            : playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title })
+                          }
+                          className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                            isPlaying
+                              ? 'bg-[#7C6FFF] text-white'
+                              : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
+                          }`}
+                        >
+                          {isReplacing ? (
+                            <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"/>
+                          ) : isPlaying ? (
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
+                              <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
+                              <rect x="5"   y="0.5" width="2.5" height="7" rx="0.5"/>
+                            </svg>
+                          ) : (
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                              <path d="M1.5 1l5.5 3-5.5 3V1z"/>
+                            </svg>
                           )}
-                        </p>
+                        </button>
+
+                        <span className="text-[#252830] font-mono text-xs w-4 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
+                          {i + 1}
+                        </span>
+
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate transition-colors ${
+                            isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
+                          }`}>
+                            {track.title}
+                          </p>
+                          <p className="text-[11px] font-mono text-[#383C47] mt-0.5">
+                            {formatDate(track.created_at)}
+                            {track.duration && track.duration > 0 && (
+                              <span> · {formatTrackDuration(track.duration)}</span>
+                            )}
+                          </p>
+                        </div>
+
+                        {isMine && (
+                          <div className="relative">
+                            <button
+                              onClick={e => {
+                                e.stopPropagation()
+                                setShowTrackMenu(showTrackMenu === track.id ? null : track.id)
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                <circle cx="7" cy="2"  r="1" fill="currentColor"/>
+                                <circle cx="7" cy="7"  r="1" fill="currentColor"/>
+                                <circle cx="7" cy="12" r="1" fill="currentColor"/>
+                              </svg>
+                            </button>
+                            {showTrackMenu === track.id && (
+                              <div
+                                onClick={e => e.stopPropagation()}
+                                className="absolute right-0 top-6 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1 min-w-[150px]"
+                              >
+                                <button
+                                  onClick={() => { setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M8 1l3 3-7 7H1V8L8 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  Renombrar
+                                </button>
+                                <button
+                                  onClick={async () => { await handleCopyLink(); setShowTrackMenu(null) }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M4 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                    <path d="M7 1h4v4M11 1L5 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  Compartir
+                                </button>
+                                <button
+                                  onClick={() => { setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M1 6a5 5 0 1 0 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                    <path d="M1 2v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  Reemplazar
+                                </button>
+                                <button
+                                  onClick={() => handleDuplicateTrack(track)}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                                    <path d="M1 8V2a1 1 0 0 1 1-1h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                  </svg>
+                                  Duplicar
+                                </button>
+                                <button
+                                  onClick={() => handleExportTrack(track)}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M1 9v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                  </svg>
+                                  Exportar
+                                </button>
+                                <div className="h-px bg-white/[0.06] my-1"/>
+                                <button
+                                  onClick={() => handleDeleteTrack(track.id)}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 3h8M4 3V2h4v1M5 5v4M7 5v4M3 3l.5 7h5L9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  Eliminar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
-                      {isMine && (
-                        <div className="relative">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowTrackMenu(showTrackMenu === track.id ? null : track.id)
+                      {editingTrackId === track.id && (
+                        <div className="px-4 py-2 bg-[#111318] border-b border-white/[0.04]">
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editingTrackName}
+                            onChange={e => setEditingTrackName(e.target.value)}
+                            onBlur={() => handleRenameTrack(track.id, editingTrackName)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') handleRenameTrack(track.id, editingTrackName)
+                              if (e.key === 'Escape') setEditingTrackId(null)
                             }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                              <circle cx="7" cy="2"  r="1" fill="currentColor"/>
-                              <circle cx="7" cy="7"  r="1" fill="currentColor"/>
-                              <circle cx="7" cy="12" r="1" fill="currentColor"/>
-                            </svg>
-                          </button>
-                          {showTrackMenu === track.id && (
-                            <div className="absolute right-0 top-6 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1 min-w-[150px]">
-                              <button
-                                onClick={() => {
-                                  setEditingTrackId(track.id)
-                                  setEditingTrackName(track.title)
-                                  setShowTrackMenu(null)
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <path d="M8 1l3 3-7 7H1V8L8 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Renombrar
-                              </button>
-                              <button
-                                onClick={async () => { await handleCopyLink(); setShowTrackMenu(null) }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <path d="M4 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                                  <path d="M7 1h4v4M11 1L5 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Compartir
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setReplacingTrackId(track.id)
-                                  setShowTrackMenu(null)
-                                  replaceInputRef.current?.click()
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <path d="M1 6a5 5 0 1 0 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                                  <path d="M1 2v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Reemplazar
-                              </button>
-                              <button
-                                onClick={() => handleDuplicateTrack(track)}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-                                  <path d="M1 8V2a1 1 0 0 1 1-1h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                                </svg>
-                                Duplicar
-                              </button>
-                              <button
-                                onClick={() => handleExportTrack(track)}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M1 9v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                                </svg>
-                                Exportar
-                              </button>
-                              <div className="h-px bg-white/[0.06] my-1"/>
-                              <button
-                                onClick={() => handleDeleteTrack(track.id)}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <path d="M2 3h8M4 3V2h4v1M5 5v4M7 5v4M3 3l.5 7h5L9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Eliminar
-                              </button>
-                            </div>
-                          )}
+                            className="w-full bg-transparent text-[#F8F7F4] text-sm outline-none border-b border-[#7C6FFF]/40 pb-0.5"
+                          />
                         </div>
                       )}
                     </div>
+                  )
+                })}
+              </div>
+            )}
 
-                    {editingTrackId === track.id && (
-                      <div className="px-4 py-2 bg-[#111318] border-b border-white/[0.04]">
-                        <input
-                          autoFocus
-                          type="text"
-                          value={editingTrackName}
-                          onChange={e => setEditingTrackName(e.target.value)}
-                          onBlur={() => handleRenameTrack(track.id, editingTrackName)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') handleRenameTrack(track.id, editingTrackName)
-                            if (e.key === 'Escape') setEditingTrackId(null)
-                          }}
-                          className="w-full bg-transparent text-[#F8F7F4] text-sm outline-none border-b border-[#7C6FFF]/40 pb-0.5"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {tracks.length === 0 && !isMine && (
-            <div className="border border-dashed border-white/[0.06] rounded-xl p-8 text-center">
-              <p className="text-[#555966] text-sm font-mono">Sin canciones todavía.</p>
-            </div>
-          )}
+            {tracks.length === 0 && !isMine && (
+              <div className="border border-dashed border-white/[0.06] rounded-xl p-8 text-center">
+                <p className="text-[#555966] text-sm font-mono">Sin canciones todavía.</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
