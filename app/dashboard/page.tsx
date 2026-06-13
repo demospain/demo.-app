@@ -59,12 +59,11 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0f1117] flex flex-col">
 
-      {/* Header integrado — logo centrado + controles en esquinas */}
-      <header className="relative flex items-center justify-center px-6 pt-10 pb-8">
-        <a href="/dashboard" className="font-mono text-4xl font-medium tracking-tight hover:opacity-80 transition-opacity">
+      <header className="relative flex items-center justify-center px-16 pt-12 pb-10">
+        <a href="/dashboard" className="font-mono text-5xl font-medium tracking-tight hover:opacity-80 transition-opacity">
           demo<span className="text-[#6E62F5]">.</span>
         </a>
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-3">
+        <div className="absolute right-16 top-1/2 -translate-y-1/2 flex items-center gap-3">
           <a href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {inicial}
