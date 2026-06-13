@@ -403,19 +403,21 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             </button>
           )}
 
-          <button
-            onClick={() => { setShowSharePanel(p => !p); setShowDotsMenu(false) }}
-            className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
-              showSharePanel
-                ? 'bg-[#7C6FFF]/15 border-[#7C6FFF]/30 text-[#7C6FFF]'
-                : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/55'
-            }`}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M11.5 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM4.5 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM11.5 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" stroke="currentColor" strokeWidth="1.3"/>
-              <path d="M6.5 7.3l3-2M6.5 8.7l3 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-            </svg>
-          </button>
+          {isMine && (
+            <button
+              onClick={() => { setShowSharePanel(p => !p); setShowDotsMenu(false) }}
+              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
+                showSharePanel
+                  ? 'bg-[#7C6FFF]/15 border-[#7C6FFF]/30 text-[#7C6FFF]'
+                  : 'bg-[#1E2028] hover:bg-[#252830] border-white/[0.06] text-white/55'
+              }`}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M11.5 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM4.5 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM11.5 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" stroke="currentColor" strokeWidth="1.3"/>
+                <path d="M6.5 7.3l3-2M6.5 8.7l3 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
 
           <div className="relative" ref={dotsMenuRef}>
             <button
