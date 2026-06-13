@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   }
 
   const ext      = fileName.split('.').pop()
-  const filePath = `covers/${projectId}.${ext}`
+  const filePath = `covers/${projectId}-${Date.now()}.${ext}`
 
   const command = new PutObjectCommand({
     Bucket:        process.env.R2_BUCKET_NAME!,
