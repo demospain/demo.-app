@@ -47,11 +47,20 @@ export default function UploadTrack({ projectId, onUploadComplete }: UploadTrack
       })
 
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
       const title = file.name.replace(/\.[^/.]+$/, '')
 
       const { data: track, error: dbError } = await supabase
         .from('tracks')
-        .insert({ project_id: projectId, title, file_path: filePath, file_size: file.size, format: file.name.split('.').pop()?.toLowerCase(), track_order: 0 })
+        .insert({
+          project_id:  projectId,
+          title,
+          file_path:   filePath,
+          file_size:   file.size,
+          format:      file.name.split('.').pop()?.toLowerCase(),
+          track_order: 0,
+          uploaded_by: user?.id,
+        })
         .select()
         .single()
 
