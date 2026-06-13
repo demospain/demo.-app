@@ -281,18 +281,18 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#4A3FCC] via-[#7C6FFF] to-[#a78bfa]"/>
                   )}
                   <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="text-xs font-mono text-[#555966] uppercase tracking-wider mb-1">{plan.label}</p>
-                      <div className="flex items-baseline gap-1">
-  {(plan as any).soon ? (
-    <span className="text-base font-medium text-[#555966]">Próximamente <span className="text-[#7C6FFF]">;)</span></span>
-  ) : (
-    <>
-      <span className="text-3xl font-medium text-[#F8F7F4]">{plan.price}</span>
-      <span className="text-sm text-[#9BA0AD]">{plan.period}</span>
-    </>
-  )}
-</div>
+                   <div>
+                     <p className="text-xs font-mono text-[#555966] uppercase tracking-wider mb-1">{plan.label}</p>
+                    <div className="flex items-baseline gap-1">
+                     {(plan as any).soon ? (
+                      <span className="text-base font-medium text-[#555966]">Próximamente <span className="text-[#7C6FFF]">;)</span></span>
+                       ) : (
+                        <>
+                        <span className="text-3xl font-medium text-[#F8F7F4]">{plan.price}</span>
+                        <span className="text-sm text-[#9BA0AD]">{plan.period}</span>
+                      </>
+                    )}
+                  </div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-all ${
                       selectedPlan === plan.id ? 'bg-[#7C6FFF] border-[#7C6FFF]' : 'border-white/25'
                     }`}>
