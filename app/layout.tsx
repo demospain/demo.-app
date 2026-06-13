@@ -7,14 +7,10 @@ export const metadata: Metadata = {
   description: 'Sube, organiza y comparte tu música antes de publicarla.',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className="min-h-screen bg-[#0d0d0f] text-[#F8F7F4] antialiased">
+      <body className="min-h-screen bg-[#0f1117] text-[#EAE9E6] antialiased">
         <ClientProviders>
           {children}
         </ClientProviders>
