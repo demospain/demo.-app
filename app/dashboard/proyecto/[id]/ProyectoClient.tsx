@@ -715,8 +715,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             )}
 
             {tracks.length > 0 && (
-              <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-visible">
-                <div className="px-5 py-3.5 border-b border-white/[0.06] flex items-center justify-between">
+              <div className="bg-[#181c27] border border-white/[0.07] rounded-xl overflow-visible">
+                <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
                   <span className="text-[#555966] text-sm font-mono uppercase tracking-wider">Tracklist</span>
                   <span className="text-[#555966] text-sm font-mono">
                     {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
