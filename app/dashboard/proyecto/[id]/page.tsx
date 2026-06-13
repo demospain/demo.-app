@@ -4,9 +4,7 @@ import ProyectoClient from './ProyectoClient'
 
 const R2_PUBLIC = 'https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev'
 
-interface Props {
-  params: { id: string }
-}
+interface Props { params: { id: string } }
 
 export default async function ProyectoPage({ params }: Props) {
   const supabase = await createServerSupabaseClient()
@@ -16,8 +14,7 @@ export default async function ProyectoPage({ params }: Props) {
   const { data: project } = await supabase
     .from('projects')
     .select('id, title, cover_url, visibility, status, created_at, share_slug, owner_id')
-    .eq('id', params.id)
-    .single()
+    .eq('id', params.id).single()
 
   if (!project) redirect('/dashboard')
 
@@ -28,11 +25,7 @@ export default async function ProyectoPage({ params }: Props) {
     .order('track_order', { ascending: true })
 
   const isMine = project.owner_id === user.id
-
-  const nombre = user.user_metadata?.full_name?.split(' ')[0]
-    ?? user.email?.split('@')[0]
-    ?? 'artista'
-
+  const nombre = user.user_metadata?.full_name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'artista'
   const inicial = nombre.charAt(0).toUpperCase()
 
   const projectWithCover = {
@@ -41,7 +34,7 @@ export default async function ProyectoPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#16171e] flex flex-col">
+    <div className="min-h-screen bg-[#0f1117] flex flex-col">
       <ProyectoClient
         project={projectWithCover}
         initialTracks={tracks ?? []}
