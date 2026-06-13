@@ -103,8 +103,6 @@ function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
 export default function ProyectoClient({ project: initialProject, initialTracks, isMine, userId, nombre, inicial }: Props) {
   const [project, setProject]               = useState<Project>(initialProject)
   const [tracks, setTracks]                 = useState<Track[]>(initialTracks)
-  const [editingTitle, setEditingTitle]     = useState(false)
-  const [titleInput, setTitleInput]         = useState(initialProject.title)
   const [showTrackMenu, setShowTrackMenu]   = useState<string | null>(null)
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
   const [editingTrackName, setEditingTrackName] = useState('')
@@ -122,6 +120,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const coverInputRef                       = useRef<HTMLInputElement>(null)
   const replaceInputRef                     = useRef<HTMLInputElement>(null)
   const searchInputRef                      = useRef<HTMLInputElement>(null)
+  const dotsMenuRef                         = useRef<HTMLDivElement>(null)
+  const trackMenuRefs                       = useRef<Map<string, HTMLDivElement>>(new Map())
   const { currentTrack, playTrack, closePlayer } = usePlayer()
   const router   = useRouter()
   const supabase = createClient()
@@ -137,9 +137,18 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   }, [showSearch])
 
   useEffect(() => {
-    const handler = () => { setShowDotsMenu(false); setShowTrackMenu(null) }
-    document.addEventListener('click', handler)
-    return () => document.removeEventListener('click', handler)
+    const handler = (e: MouseEvent) => {
+      if (dotsMenuRef.current && !dotsMenuRef.current.contains(e.target as Node)) {
+        setShowDotsMenu(false)
+      }
+      let clickedInsideTrackMenu = false
+      trackMenuRefs.current.forEach(ref => {
+        if (ref && ref.contains(e.target as Node)) clickedInsideTrackMenu = true
+      })
+      if (!clickedInsideTrackMenu) setShowTrackMenu(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [])
 
   const handleVisibilityChange = async (key: string) => {
@@ -395,7 +404,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
           )}
 
           <button
-            onClick={e => { e.stopPropagation(); setShowSharePanel(p => !p); setShowDotsMenu(false) }}
+            onClick={() => { setShowSharePanel(p => !p); setShowDotsMenu(false) }}
             className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
               showSharePanel
                 ? 'bg-[#7C6FFF]/15 border-[#7C6FFF]/30 text-[#7C6FFF]'
@@ -408,9 +417,9 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             </svg>
           </button>
 
-          <div className="relative">
+          <div className="relative" ref={dotsMenuRef}>
             <button
-              onClick={e => { e.stopPropagation(); setShowDotsMenu(p => !p); setShowSharePanel(false) }}
+              onClick={() => { setShowDotsMenu(p => !p); setShowSharePanel(false) }}
               className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
                 showDotsMenu
                   ? 'bg-[#252830] border-white/[0.12] text-[#F8F7F4]'
@@ -424,10 +433,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </svg>
             </button>
             {showDotsMenu && (
-              <div
-                onClick={e => e.stopPropagation()}
-                className="absolute right-0 top-11 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[170px]"
-              >
+              <div className="absolute right-0 top-11 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[170px]">
                 {isMine && (
                   <button
                     onClick={() => { setRenamingProject(true); setRenameTitleInput(project.title); setShowDotsMenu(false) }}
@@ -612,7 +618,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
 
           {/* Columna izquierda */}
           <div className="flex flex-col gap-5">
-
             <div
               onClick={() => isMine && coverInputRef.current?.click()}
               className={`w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden relative group ${isMine ? 'cursor-pointer' : ''}`}
@@ -766,25 +771,25 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         </div>
 
                         {isMine && (
-                          <div className="relative">
+                          <div
+                            className="relative"
+                            ref={el => {
+                              if (el) trackMenuRefs.current.set(track.id, el)
+                              else trackMenuRefs.current.delete(track.id)
+                            }}
+                          >
                             <button
-                              onClick={e => {
-                                e.stopPropagation()
-                                setShowTrackMenu(showTrackMenu === track.id ? null : track.id)
-                              }}
+                              onClick={() => setShowTrackMenu(showTrackMenu === track.id ? null : track.id)}
                               className="opacity-0 group-hover:opacity-100 transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1.5"
                             >
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <circle cx="8" cy="2.5" r="1.2" fill="currentColor"/>
-                                <circle cx="8" cy="8"   r="1.2" fill="currentColor"/>
+                                <circle cx="8" cy="2.5"  r="1.2" fill="currentColor"/>
+                                <circle cx="8" cy="8"    r="1.2" fill="currentColor"/>
                                 <circle cx="8" cy="13.5" r="1.2" fill="currentColor"/>
                               </svg>
                             </button>
                             {showTrackMenu === track.id && (
-                              <div
-                                onClick={e => e.stopPropagation()}
-                                className="absolute right-0 top-8 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[160px]"
-                              >
+                              <div className="absolute right-0 top-8 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[160px]">
                                 <button
                                   onClick={() => { setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
