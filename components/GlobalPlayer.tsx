@@ -21,16 +21,19 @@ export default function GlobalPlayer() {
   useEffect(() => {
     if (!currentTrack) return
     let ws: any = null
+    let objectUrl: string | null = null
     setLoading(true)
     setCurrentTime(0)
     setDuration(0)
 
     const init = async () => {
       try {
+        // Descargar el audio como blob para evitar problemas de CORS
         const res = await fetch(`/api/play-url?path=${encodeURIComponent(currentTrack.file_path)}`)
-        if (!res.ok) throw new Error('No se pudo obtener la URL')
-        const audioUrl = `/api/play-url?path=${encodeURIComponent(currentTrack.file_path)}`
-        ws.load(audioUrl)
+        if (!res.ok) throw new Error('No se pudo obtener el audio')
+
+        const blob = await res.blob()
+        objectUrl = URL.createObjectURL(blob)
 
         const WaveSurfer = (await import('wavesurfer.js')).default
         if (!containerRef.current) return
@@ -60,13 +63,20 @@ export default function GlobalPlayer() {
         ws.on('pause',  () => setLocalPlaying(false))
         ws.on('play',   () => setLocalPlaying(true))
         ws.on('finish', () => { setLocalPlaying(false); setCurrentTime(0) })
+        ws.on('error',  () => setLoading(false))
+
+        ws.load(objectUrl)
       } catch {
         setLoading(false)
       }
     }
 
     init()
-    return () => { ws?.destroy() }
+
+    return () => {
+      ws?.destroy()
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
   }, [currentTrack?.id])
 
   const togglePlay = () => {
@@ -90,7 +100,6 @@ export default function GlobalPlayer() {
 
         {/* Controles */}
         <div className="flex items-center gap-4 pb-2">
-          {/* Play/pause */}
           <button
             onClick={togglePlay}
             disabled={loading}
@@ -110,7 +119,6 @@ export default function GlobalPlayer() {
             )}
           </button>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[#F8F7F4] truncate leading-tight">{currentTrack.title}</p>
             {currentTrack.projectTitle && (
@@ -118,12 +126,10 @@ export default function GlobalPlayer() {
             )}
           </div>
 
-          {/* Tiempo */}
           <span className="text-xs font-mono text-[#555966] flex-shrink-0 hidden sm:block">
             {fmt(currentTime)} / {fmt(duration)}
           </span>
 
-          {/* Velocidad */}
           <div className="hidden sm:flex items-center gap-1">
             {[0.75, 1, 1.25, 1.5].map(s => (
               <button
@@ -140,7 +146,6 @@ export default function GlobalPlayer() {
             ))}
           </div>
 
-          {/* Cerrar */}
           <button
             onClick={closePlayer}
             className="text-[#555966] hover:text-[#F8F7F4] transition-colors flex-shrink-0 p-1"
