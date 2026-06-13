@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     .filter((p: any) => !projects?.some(own => own.id === p.id))
 
   // Traer nombres de los owners de proyectos guardados
-  const ownerIds = [...new Set(savedProjects.map((p: any) => p.owner_id).filter(Boolean))]
+  const ownerIds = Array.from(new Set(savedProjects.map((p: any) => p.owner_id).filter(Boolean)))
   const { data: ownerProfiles } = ownerIds.length > 0
     ? await supabase.from('profiles').select('id, full_name').in('id', ownerIds)
     : { data: [] }
