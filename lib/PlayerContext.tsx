@@ -3,19 +3,18 @@
 import { createContext, useContext, useState, useRef, useCallback, ReactNode } from 'react'
 
 interface Track {
-  id:        string
-  title:     string
-  file_path: string
+  id:            string
+  title:         string
+  file_path:     string
   projectTitle?: string
 }
 
 interface PlayerContextType {
-  currentTrack:  Track | null
-  isPlaying:     boolean
-  playTrack:     (track: Track) => void
-  pauseTrack:    () => void
-  closePlayer:   () => void
-  wsRef:         React.MutableRefObject<any>
+  currentTrack: Track | null
+  isPlaying:    boolean
+  playTrack:    (track: Track) => void
+  closePlayer:  () => void
+  wsRef:        React.MutableRefObject<any>
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null)
@@ -37,11 +36,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setIsPlaying(true)
   }, [currentTrack])
 
-  const pauseTrack = useCallback(() => {
-    wsRef.current?.pause()
-    setIsPlaying(false)
-  }, [])
-
   const closePlayer = useCallback(() => {
     wsRef.current?.destroy()
     wsRef.current = null
@@ -50,7 +44,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <PlayerContext.Provider value={{ currentTrack, isPlaying, playTrack, pauseTrack, closePlayer, wsRef }}>
+    <PlayerContext.Provider value={{ currentTrack, isPlaying, playTrack, closePlayer, wsRef }}>
       {children}
     </PlayerContext.Provider>
   )
