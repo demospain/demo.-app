@@ -301,13 +301,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     const file = e.target.files?.[0]
     if (!file) return
     setCoverUploading(true)
-    const res = await fetch('/api/upload-url', {
+    const res = await fetch('/api/upload-cover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fileName: `cover-${project.id}.${file.name.split('.').pop()}`,
-        fileType: file.type,
-        fileSize: file.size,
+        fileName:  file.name,
+        fileType:  file.type,
+        fileSize:  file.size,
+        projectId: project.id,
       }),
     })
     const { uploadUrl, filePath } = await res.json()
