@@ -43,7 +43,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
   const [activeSource, setActiveSource]     = useState<'mine' | 'saved'>('mine')
   const [tracks, setTracks]                 = useState<Track[]>([])
   const [copied, setCopied]                 = useState(false)
-  const [tab, setTab]                       = useState<'projects' | 'library'>('projects')
   const { currentTrack, playTrack, closePlayer } = usePlayer()
   const supabase = createClient()
 
@@ -119,8 +118,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
 
     return (
       <div className={currentTrack ? 'pb-36' : ''}>
-
-        {/* Breadcrumb */}
         <div className="flex items-center gap-3 mb-8">
           <button
             onClick={() => { setActiveProject(null); closePlayer() }}
@@ -130,9 +127,7 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
               <path d="M9 2L4 7l5 5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <span className="text-[#555966] text-sm font-mono">
-            {isMine ? 'Mis proyectos' : 'Biblioteca'}
-          </span>
+          <span className="text-[#555966] text-sm font-mono">Biblioteca</span>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M4 2l4 4-4 4" stroke="rgba(255,255,255,0.15)" strokeWidth="1.2" strokeLinecap="round"/>
           </svg>
@@ -140,8 +135,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
-
-          {/* Columna izquierda */}
           <div className="flex flex-col gap-4">
             <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden">
               {activeProject.cover_url
@@ -226,7 +219,6 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
             )}
           </div>
 
-          {/* Columna derecha */}
           <div className="flex flex-col gap-4">
             {isMine && (
               <UploadTrack
@@ -311,9 +303,12 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
     )
   }
 
-  // ── GRID PRINCIPAL ───────────────────────────────────────────
+  // ── BIBLIOTECA ───────────────────────────────────────────────
+  const isEmpty = projects.length === 0 && savedProjects.length === 0
+
   return (
     <div>
+      {/* Modal nuevo proyecto */}
       {showNewProject && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#1E2028] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -350,119 +345,76 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 bg-[#1E2028] rounded-xl p-1 w-fit">
-        <button
-          onClick={() => setTab('projects')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            tab === 'projects' ? 'bg-[#0d0d0f] text-[#F8F7F4] shadow-sm' : 'text-[#555966] hover:text-[#9BA0AD]'
-          }`}
-        >
-          Mis proyectos
-        </button>
-        <button
-          onClick={() => setTab('library')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-            tab === 'library' ? 'bg-[#0d0d0f] text-[#F8F7F4] shadow-sm' : 'text-[#555966] hover:text-[#9BA0AD]'
-          }`}
-        >
-          Biblioteca
-          {savedProjects.length > 0 && (
-            <span className="bg-[#7C6FFF]/20 text-[#7C6FFF] text-xs font-mono px-1.5 py-0.5 rounded-md">
-              {savedProjects.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Tab: Mis proyectos */}
-      {tab === 'projects' && (
-        <div>
-          {projects.length > 0 && (
-            <div className="flex items-center justify-between mb-5">
-              <p className="text-[#555966] text-xs font-mono">
-                {projects.length} {projects.length === 1 ? 'proyecto' : 'proyectos'}
-              </p>
-              <button
-                onClick={() => setShowNewProject(true)}
-                className="flex items-center gap-2 bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M6 1v10M1 6h10" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-                Nuevo
-              </button>
-            </div>
-          )}
-
-          {projects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-[#1E2028] border border-[#7C6FFF]/10 flex items-center justify-center text-3xl mb-5">
-                💿
-              </div>
-              <h2 className="text-[#F8F7F4] font-medium text-lg mb-2">Sin proyectos todavía</h2>
-              <p className="text-[#555966] text-sm max-w-xs mb-6 leading-relaxed">
-                Crea tu primer proyecto y empieza a subir canciones.
-              </p>
-              <button
-                onClick={() => setShowNewProject(true)}
-                className="bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors"
-              >
-                + Nuevo proyecto
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {projects.map(project => {
-                const vis = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
-                return (
-                  <button key={project.id} onClick={() => openProject(project, 'mine')} className="text-left group">
-                    <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
-                      {project.cover_url
-                        ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
-                        : <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
-                      }
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"/>
-                      <div className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><path d="M1.5 1l5.5 3-5.5 3V1z"/></svg>
-                      </div>
-                    </div>
-                    <p className="text-sm font-medium text-[#F8F7F4] truncate leading-tight">{project.title}</p>
-                    <p className={`text-xs font-mono mt-0.5 ${vis.color}`}>{vis.label}</p>
-                  </button>
-                )
-              })}
-              <button onClick={() => setShowNewProject(true)} className="text-left group">
-                <div className="w-full aspect-square rounded-xl border-2 border-dashed border-white/[0.06] group-hover:border-[#7C6FFF]/30 transition-colors mb-2.5 flex items-center justify-center">
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 3v14M3 10h14" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <p className="text-xs text-[#333] group-hover:text-[#555966] transition-colors font-mono">Nuevo proyecto</p>
-              </button>
-            </div>
-          )}
+      {isEmpty ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#1E2028] border border-[#7C6FFF]/10 flex items-center justify-center text-3xl mb-5">
+            💿
+          </div>
+          <h2 className="text-[#F8F7F4] font-medium text-lg mb-2">Tu biblioteca está vacía</h2>
+          <p className="text-[#555966] text-sm max-w-xs mb-6 leading-relaxed">
+            Crea tu primer proyecto o guarda música que alguien comparta contigo.
+          </p>
+          <button
+            onClick={() => setShowNewProject(true)}
+            className="bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors"
+          >
+            + Nuevo proyecto
+          </button>
         </div>
-      )}
+      ) : (
+        <div className="flex flex-col gap-8">
 
-      {/* Tab: Biblioteca */}
-      {tab === 'library' && (
-        <div>
-          {savedProjects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-[#1E2028] border border-[#7C6FFF]/10 flex items-center justify-center text-3xl mb-5">
-                🎧
-              </div>
-              <h2 className="text-[#F8F7F4] font-medium text-lg mb-2">Tu biblioteca está vacía</h2>
-              <p className="text-[#555966] text-sm max-w-xs leading-relaxed">
-                Cuando alguien te comparta música y la guardes, aparecerá aquí.
-              </p>
-            </div>
-          ) : (
+          {/* Mis proyectos */}
+          {projects.length > 0 && (
             <div>
-              <p className="text-[#555966] text-xs font-mono mb-5">
-                {savedProjects.length} {savedProjects.length === 1 ? 'proyecto guardado' : 'proyectos guardados'}
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[#F8F7F4] text-sm font-medium">Mis proyectos</p>
+                <button
+                  onClick={() => setShowNewProject(true)}
+                  className="flex items-center gap-1.5 text-[#7C6FFF] hover:text-[#4A3FCC] text-xs font-mono transition-colors"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  Nuevo
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {projects.map(project => {
+                  const vis = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
+                  return (
+                    <button key={project.id} onClick={() => openProject(project, 'mine')} className="text-left group">
+                      <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] group-hover:border-[#7C6FFF]/25 transition-all duration-200 mb-2.5 flex items-center justify-center relative overflow-hidden">
+                        {project.cover_url
+                          ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
+                          : <div className="text-4xl opacity-20 group-hover:opacity-30 transition-opacity">💿</div>
+                        }
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"/>
+                        <div className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><path d="M1.5 1l5.5 3-5.5 3V1z"/></svg>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium text-[#F8F7F4] truncate leading-tight">{project.title}</p>
+                      <p className={`text-xs font-mono mt-0.5 ${vis.color}`}>{vis.label}</p>
+                    </button>
+                  )
+                })}
+                <button onClick={() => setShowNewProject(true)} className="text-left group">
+                  <div className="w-full aspect-square rounded-xl border-2 border-dashed border-white/[0.06] group-hover:border-[#7C6FFF]/30 transition-colors mb-2.5 flex items-center justify-center">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M10 3v14M3 10h14" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <p className="text-xs text-[#333] group-hover:text-[#555966] transition-colors font-mono">Nuevo proyecto</p>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Guardados */}
+          {savedProjects.length > 0 && (
+            <div>
+              <p className="text-[#F8F7F4] text-sm font-medium mb-4">Guardado</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {savedProjects.map(project => {
                   const vis = VISIBILITY_CONFIG[project.visibility] ?? VISIBILITY_CONFIG.private
@@ -486,6 +438,19 @@ export default function DashboardClient({ userId, initialProjects, savedProjects
                 })}
               </div>
             </div>
+          )}
+
+          {/* Si no hay proyectos propios pero sí guardados, mostrar botón de crear */}
+          {projects.length === 0 && savedProjects.length > 0 && (
+            <button
+              onClick={() => setShowNewProject(true)}
+              className="flex items-center gap-2 text-[#555966] hover:text-[#9BA0AD] text-sm font-mono transition-colors"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              Crear mi primer proyecto
+            </button>
           )}
         </div>
       )}
