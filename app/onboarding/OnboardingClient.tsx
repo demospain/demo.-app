@@ -23,14 +23,16 @@ const PLANS_ARTIST = [
     label: 'Free',
     price: '0',
     period: 'EUR/mes',
+    soon: false,
     features: ['50 tracks / 3 GB', 'Proyectos ilimitados', 'Reproductor waveform', 'Notificaciones básicas', 'Comentarios en tiempo exacto', 'Historial de versiones']
   },
   {
     id: 'pro_artist',
     label: 'Pro Artista',
-    price: 'Próximamente',
+    price: '',
     period: '',
     soon: true,
+    highlight: true,
     features: ['Tracks ilimitados', 'Analíticas profundas', 'Links con contraseña', 'Plantillas para redes', 'Speed control y pitch shifting']
   },
 ]
@@ -41,20 +43,22 @@ const PLANS_PRO = [
     label: 'Free',
     price: '0',
     period: 'EUR/mes',
+    soon: false,
     features: ['2 clientes activos', '3 GB almacenamiento', 'Links de compartición']
   },
   {
     id: 'pro_producer',
     label: 'Pro Productor',
-    price: 'Próximamente',
+    price: '',
     period: '',
     soon: true,
+    highlight: true,
     features: ['15 clientes activos', '30 GB almacenamiento', 'Historial de versiones', 'Notas privadas', 'Estados por track']
   },
   {
     id: 'studio',
     label: 'Studio',
-    price: 'Próximamente',
+    price: '',
     period: '',
     soon: true,
     features: ['Clientes ilimitados', '100 GB almacenamiento', 'Dashboard multi-cliente', 'White-label básico']
@@ -71,21 +75,15 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
   const [saving, setSaving]               = useState(false)
   const supabase = createClient()
 
-  const isListener    = roles.length === 1 && roles[0] === 'listener'
-  const needsProPlan  = roles.includes('producer') || roles.includes('engineer')
-  const plansToShow   = needsProPlan ? PLANS_PRO : PLANS_ARTIST
+  const isListener   = roles.length === 1 && roles[0] === 'listener'
+  const needsProPlan = roles.includes('producer') || roles.includes('engineer')
+  const plansToShow  = needsProPlan ? PLANS_PRO : PLANS_ARTIST
 
   const toggleRole = (role: Role) => {
     if (role === 'listener') {
-      // Si ya está seleccionado como oyente, deseleccionar
-      if (roles.includes('listener')) {
-        setRoles([])
-      } else {
-        setRoles(['listener'])
-      }
+      setRoles(prev => prev.includes('listener') ? [] : ['listener'])
       return
     }
-    // Si hay otros roles seleccionados (no oyente), toggle normal
     setRoles(prev => {
       const without = prev.filter(r => r !== 'listener')
       if (without.includes(role)) return without.filter(r => r !== role)
@@ -223,9 +221,7 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
                   >
                     <span className="text-2xl flex-shrink-0 leading-none">{role.emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-base font-medium ${isSelected ? 'text-[#F8F7F4]' : disabled ? 'text-[#555966]' : 'text-[#F8F7F4]'}`}>
-                        {role.label}
-                      </p>
+                      <p className="text-base font-medium text-[#F8F7F4]">{role.label}</p>
                       <p className="text-sm text-[#9BA0AD] mt-0.5">{role.desc}</p>
                     </div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
@@ -270,44 +266,51 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
               {plansToShow.map(plan => (
                 <button
                   key={plan.id}
-                  onClick={() => setSelectedPlan(plan.id)}
+                  onClick={() => !plan.soon && setSelectedPlan(plan.id)}
                   className={`p-6 rounded-xl border text-left transition-all relative overflow-hidden ${
-                    selectedPlan === plan.id
+                    plan.soon
+                      ? 'bg-[#1E2028]/50 border-white/[0.05] cursor-default opacity-70'
+                      : selectedPlan === plan.id
                       ? 'bg-[#7C6FFF]/8 border-[#7C6FFF]/40'
                       : 'bg-[#1E2028] border-white/[0.08] hover:border-white/20'
                   }`}
                 >
-                  {plan.highlight && (
+                  {plan.highlight && !plan.soon && (
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#4A3FCC] via-[#7C6FFF] to-[#a78bfa]"/>
                   )}
                   <div className="flex items-start justify-between mb-4">
-                   <div>
-                     <p className="text-xs font-mono text-[#555966] uppercase tracking-wider mb-1">{plan.label}</p>
-                    <div className="flex items-baseline gap-1">
-                     {(plan as any).soon ? (
-                      <span className="text-base font-medium text-[#555966]">Próximamente <span className="text-[#7C6FFF]">;)</span></span>
-                       ) : (
-                        <>
-                        <span className="text-3xl font-medium text-[#F8F7F4]">{plan.price}</span>
-                        <span className="text-sm text-[#9BA0AD]">{plan.period}</span>
-                      </>
-                    )}
-                  </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-all ${
-                      selectedPlan === plan.id ? 'bg-[#7C6FFF] border-[#7C6FFF]' : 'border-white/25'
-                    }`}>
-                      {selectedPlan === plan.id && (
-                        <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                          <path d="M1.5 4.5l2 2 4-4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
+                    <div>
+                      <p className="text-xs font-mono text-[#555966] uppercase tracking-wider mb-1">{plan.label}</p>
+                      <div className="flex items-baseline gap-1">
+                        {plan.soon ? (
+                          <span className="text-base font-medium text-[#555966]">
+                            Próximamente <span className="text-[#7C6FFF]">;)</span>
+                          </span>
+                        ) : (
+                          <>
+                            <span className="text-3xl font-medium text-[#F8F7F4]">{plan.price}</span>
+                            <span className="text-sm text-[#9BA0AD]">{plan.period}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
+                    {!plan.soon && (
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-all ${
+                        selectedPlan === plan.id ? 'bg-[#7C6FFF] border-[#7C6FFF]' : 'border-white/25'
+                      }`}>
+                        {selectedPlan === plan.id && (
+                          <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                            <path d="M1.5 4.5l2 2 4-4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <ul className="flex flex-col gap-2">
                     {plan.features.map((f, i) => (
                       <li key={i} className="flex items-center gap-2 text-sm text-[#9BA0AD]">
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="flex-shrink-0">
-                          <path d="M2 6l3 3 5-5" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M2 6l3 3 5-5" stroke={plan.soon ? '#555966' : '#7C6FFF'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                         {f}
                       </li>
