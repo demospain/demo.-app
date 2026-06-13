@@ -479,7 +479,11 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </button>
             </div>
 
-            <div className="p-3 border-b border-white/[0.06]">
+            {isMine && (
+              <div className="p-3 border-b border-white/[0.06]">
+                {/* sección visibilidad */}
+              </div>
+            )}
               <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Visibilidad</p>
               <div className="flex flex-col gap-0.5">
                 {Object.entries(VISIBILITY_CONFIG).map(([key, cfg]) => (
@@ -509,8 +513,11 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </div>
             </div>
 
-            {(project.visibility === 'link' || project.visibility === 'public') && (
+            {isMine && (project.visibility === 'link' || project.visibility === 'public') && (
               <div className="p-3 border-b border-white/[0.06]">
+                {/* sección caducidad */}
+              </div>
+            )}
                 <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Caducidad del link</p>
                 <div className="flex flex-col gap-0.5">
                   {EXPIRY_OPTIONS.map(opt => {
