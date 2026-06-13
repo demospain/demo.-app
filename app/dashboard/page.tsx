@@ -58,11 +58,13 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0f1117] flex flex-col">
-      <nav className="h-14 border-b border-white/[0.07] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#0f1117]/90 backdrop-blur-md">
-        <a href="/dashboard" className="font-mono text-lg font-medium tracking-tight hover:opacity-80 transition-opacity flex-shrink-0">
+
+      {/* Header integrado — logo centrado + controles en esquinas */}
+      <header className="relative flex items-center justify-center px-6 pt-10 pb-8">
+        <a href="/dashboard" className="font-mono text-4xl font-medium tracking-tight hover:opacity-80 transition-opacity">
           demo<span className="text-[#6E62F5]">.</span>
         </a>
-        <div className="flex items-center gap-3">
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-3">
           <a href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {inicial}
@@ -72,17 +74,9 @@ export default async function DashboardPage() {
           <div className="w-px h-4 bg-white/[0.08]"/>
           <LogoutButton/>
         </div>
-      </nav>
+      </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
-        <div className="mb-10">
-          <h1 className="text-2xl font-medium text-[#EAE9E6]">
-            Hola, {nombre}<span className="text-[#6E62F5]">.</span>
-          </h1>
-          <p className="text-[#555966] text-sm font-mono mt-1">
-            Tu biblioteca. Tu música, antes de existir para el mundo.
-          </p>
-        </div>
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 pb-10">
         <DashboardClient
           userId={user.id}
           userName={nombre}
