@@ -230,32 +230,73 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
           )}
 
           {isMine && (project.visibility === 'link' || project.visibility === 'public') && (
-            <button
-              onClick={handleCopyLink}
-              className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
-                copied
-                  ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
-                  : 'bg-[#7C6FFF]/10 hover:bg-[#7C6FFF]/20 border border-[#7C6FFF]/20 text-[#7C6FFF]'
-              }`}
-            >
-              {copied ? (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                    <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  ¡Link copiado!
-                </>
-              ) : (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                    <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                    <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Copiar link
-                </>
-              )}
-            </button>
-          )}
+  <div className="flex flex-col gap-2">
+    {/* Selector de caducidad */}
+    <div className="bg-[#1E2028] border border-white/[0.06] rounded-xl p-3">
+      <p className="text-[#555966] text-xs font-mono mb-2 uppercase tracking-wider">Caducidad del link</p>
+      <div className="flex flex-col gap-1">
+        {[
+          { label: '24 horas',    value: '24h',       hours: 24 },
+          { label: '7 días',      value: '7d',        hours: 168 },
+          { label: '30 días',     value: '30d',       hours: 720 },
+          { label: 'Permanente',  value: 'permanent', hours: null },
+        ].map(opt => (
+          <button
+            key={opt.value}
+            onClick={async () => {
+              const expiresAt = opt.hours
+                ? new Date(Date.now() + opt.hours * 60 * 60 * 1000).toISOString()
+                : null
+              await supabase.from('projects').update({ link_expires_at: expiresAt }).eq('id', project.id)
+              setProject(prev => ({ ...prev, link_expires_at: expiresAt } as any))
+            }}
+            className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
+              (project as any).link_expires_at === undefined && opt.value === 'permanent'
+                ? 'bg-[#7C6FFF]/10 text-[#7C6FFF] border border-[#7C6FFF]/20'
+                : 'text-[#9BA0AD] hover:bg-white/[0.03]'
+            }`}
+          >
+            <span>{opt.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Mostrar caducidad actual */}
+      {(project as any).link_expires_at && (
+        <div className="mt-2 pt-2 border-t border-white/[0.06]">
+          <ExpiryCountdown expiresAt={(project as any).link_expires_at}/>
+        </div>
+      )}
+    </div>
+
+    {/* Botón copiar */}
+    <button
+      onClick={handleCopyLink}
+      className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
+        copied
+          ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
+          : 'bg-[#7C6FFF]/10 hover:bg-[#7C6FFF]/20 border border-[#7C6FFF]/20 text-[#7C6FFF]'
+      }`}
+    >
+      {copied ? (
+        <>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          ¡Link copiado!
+        </>
+      ) : (
+        <>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Copiar link
+        </>
+      )}
+    </button>
+  </div>
+)}
 
           {!isMine && (
             <div className="flex items-center gap-2 px-3 py-2 bg-[#7C6FFF]/5 border border-[#7C6FFF]/15 rounded-xl">
