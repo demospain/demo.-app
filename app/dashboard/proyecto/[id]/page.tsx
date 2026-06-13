@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import ProyectoClient from './ProyectoClient'
 
+const R2_PUBLIC = 'https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev'
+
 interface Props {
   params: { id: string }
 }
@@ -33,10 +35,15 @@ export default async function ProyectoPage({ params }: Props) {
 
   const inicial = nombre.charAt(0).toUpperCase()
 
+  const projectWithCover = {
+    ...project,
+    cover_url: project.cover_url ? `${R2_PUBLIC}/${project.cover_url}` : null,
+  }
+
   return (
-    <div className="min-h-screen bg-[#0d0d0f] flex flex-col">
+    <div className="min-h-screen bg-[#16171e] flex flex-col">
       <ProyectoClient
-        project={project}
+        project={projectWithCover}
         initialTracks={tracks ?? []}
         isMine={isMine}
         userId={user.id}
