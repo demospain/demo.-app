@@ -14,9 +14,7 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile?.onboarded) {
-    redirect('/onboarding')
-  }
+  if (!profile?.onboarded) redirect('/onboarding')
 
   const { data: projects } = await supabase
     .from('projects')
@@ -30,7 +28,7 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
- const savedProjects = (savedRaw ?? [])
+  const savedProjects = (savedRaw ?? [])
     .map((s: any) => s.projects)
     .filter(Boolean)
     .filter((p: any) => !projects?.some(own => own.id === p.id))
@@ -44,30 +42,28 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0d0d0f] flex flex-col">
 
-      {/* Navbar */}
-      <nav className="h-12 border-b border-white/[0.05] flex items-center justify-between px-5 sticky top-0 z-50 bg-[#0d0d0f]/90 backdrop-blur-md">
-        <a href="/dashboard" className="font-mono text-base font-medium tracking-tight hover:opacity-80 transition-opacity flex-shrink-0">
+      <nav className="h-14 border-b border-white/[0.05] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#0d0d0f]/90 backdrop-blur-md">
+        <a href="/dashboard" className="font-mono text-lg font-medium tracking-tight hover:opacity-80 transition-opacity flex-shrink-0">
           demo<span className="text-[#7C6FFF]">.</span>
         </a>
         <div className="flex items-center gap-3">
           <a href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7C6FFF] to-[#4A3FCC] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C6FFF] to-[#4A3FCC] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {inicial}
             </div>
-            <span className="text-[#9BA0AD] text-xs hidden sm:block font-mono">{nombre}</span>
+            <span className="text-[#9BA0AD] text-sm hidden sm:block font-mono">{nombre}</span>
           </a>
           <div className="w-px h-4 bg-white/[0.08]"/>
           <LogoutButton/>
         </div>
       </nav>
 
-      {/* Contenido */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
-        <div className="mb-8">
-          <h1 className="text-xl font-medium text-[#F8F7F4]">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
+        <div className="mb-10">
+          <h1 className="text-2xl font-medium text-[#F8F7F4]">
             Hola, {nombre}<span className="text-[#7C6FFF]">.</span>
           </h1>
-          <p className="text-[#555966] text-sm font-mono mt-0.5">
+          <p className="text-[#555966] text-sm font-mono mt-1">
             Tu biblioteca. Tu música, antes de existir para el mundo.
           </p>
         </div>
