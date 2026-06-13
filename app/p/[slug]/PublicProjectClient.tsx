@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
-import AudioPlayer from '@/components/AudioPlayer'
 
 interface Track {
   id:          string
@@ -29,20 +28,44 @@ interface Props {
 
 type AuthMode = 'signup' | 'login'
 
-export default function PublicProjectClient({ project, tracks, isLoggedIn, userId }: Props) {
-  const [playingTrack, setPlayingTrack] = useState<Track | null>(null)
-  const [showAuth, setShowAuth]         = useState(false)
-  const [authMode, setAuthMode]         = useState<AuthMode>('signup')
-  const [email, setEmail]               = useState('')
-  const [password, setPassword]         = useState('')
-  const [loading, setLoading]           = useState(false)
-  const [error, setError]               = useState('')
-  const [sent, setSent]                 = useState(false)
-  const [saved, setSaved]               = useState(false)
-  const [savingLoading, setSavingLoading] = useState(false)
-  const supabase = createClient()
+function formatDuration(s: number | null): string {
+  if (!s) return ''
+  const m   = Math.floor(s / 60)
+  const sec = Math.floor(s % 60)
+  return `${m}:${sec.toString().padStart(2, '0')}`
+}
 
-  // Comprobar si ya está guardado en la biblioteca
+function formatTotalDuration(tracks: Track[]): string {
+  const total = tracks.reduce((acc, t) => acc + (t.duration ?? 0), 0)
+  if (!total) return ''
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  if (h > 0) return `${h}h ${m}m`
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
+}
+
+export default function PublicProjectClient({ project, tracks, isLoggedIn, userId }: Props) {
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
+  const [audioUrl, setAudioUrl]             = useState<string | null>(null)
+  const [loadingTrackId, setLoadingTrackId] = useState<string | null>(null)
+  const [currentTime, setCurrentTime]       = useState(0)
+  const [duration, setDuration]             = useState(0)
+  const [showAuth, setShowAuth]             = useState(false)
+  const [authMode, setAuthMode]             = useState<AuthMode>('signup')
+  const [email, setEmail]                   = useState('')
+  const [password, setPassword]             = useState('')
+  const [loading, setLoading]               = useState(false)
+  const [error, setError]                   = useState('')
+  const [sent, setSent]                     = useState(false)
+  const [saved, setSaved]                   = useState(false)
+  const [savingLoading, setSavingLoading]   = useState(false)
+  const audioRef                            = useRef<HTMLAudioElement>(null)
+  const supabase                            = createClient()
+
+  const playingTrack = tracks.find(t => t.id === playingTrackId) ?? null
+
   useEffect(() => {
     if (!isLoggedIn || !userId) return
     const check = async () => {
@@ -57,36 +80,67 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
     check()
   }, [isLoggedIn, userId, project.id])
 
+  // Cargar URL de audio directamente desde R2 (sin proxy)
+  const loadAndPlay = async (track: Track) => {
+    if (!isLoggedIn) { setShowAuth(true); setAuthMode('signup'); return }
+    if (playingTrackId === track.id) {
+      const audio = audioRef.current
+      if (!audio) return
+      audio.paused ? audio.play() : audio.pause()
+      return
+    }
+    setLoadingTrackId(track.id)
+    try {
+      const res = await fetch('/api/play-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ filePath: track.file_path }),
+      })
+      const { url } = await res.json()
+      setAudioUrl(url)
+      setPlayingTrackId(track.id)
+    } catch {}
+    setLoadingTrackId(null)
+  }
+
+  useEffect(() => {
+    if (!audioUrl || !audioRef.current) return
+    audioRef.current.src = audioUrl
+    audioRef.current.play()
+  }, [audioUrl])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onTime = () => setCurrentTime(audio.currentTime)
+    const onMeta = () => setDuration(audio.duration)
+    const onEnd  = () => {
+      // Pasar a la siguiente canción automáticamente
+      const idx = tracks.findIndex(t => t.id === playingTrackId)
+      if (idx < tracks.length - 1) loadAndPlay(tracks[idx + 1])
+      else setPlayingTrackId(null)
+    }
+    audio.addEventListener('timeupdate', onTime)
+    audio.addEventListener('loadedmetadata', onMeta)
+    audio.addEventListener('ended', onEnd)
+    return () => {
+      audio.removeEventListener('timeupdate', onTime)
+      audio.removeEventListener('loadedmetadata', onMeta)
+      audio.removeEventListener('ended', onEnd)
+    }
+  }, [playingTrackId, tracks])
+
   const handleSave = async () => {
     if (!isLoggedIn) { setShowAuth(true); setAuthMode('signup'); return }
     setSavingLoading(true)
     if (saved) {
-      await supabase.from('saved_projects')
-        .delete()
-        .eq('user_id', userId!)
-        .eq('project_id', project.id)
+      await supabase.from('saved_projects').delete().eq('user_id', userId!).eq('project_id', project.id)
       setSaved(false)
     } else {
-      await supabase.from('saved_projects')
-        .insert({ user_id: userId!, project_id: project.id })
+      await supabase.from('saved_projects').insert({ user_id: userId!, project_id: project.id })
       setSaved(true)
     }
     setSavingLoading(false)
-  }
-
-  const fmt = (s: number | null) => {
-    if (!s) return ''
-    const m = Math.floor(s / 60)
-    const sec = Math.floor(s % 60)
-    return `${m}:${sec.toString().padStart(2, '0')}`
-  }
-
-  const handlePlayAttempt = (track: Track) => {
-    if (isLoggedIn) {
-      setPlayingTrack(playingTrack?.id === track.id ? null : track)
-    } else {
-      setShowAuth(true)
-    }
   }
 
   const handleGoogle = async () => {
@@ -117,23 +171,27 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
     }
   }
 
+  const totalDuration = formatTotalDuration(tracks)
+
   return (
-    <div className="min-h-screen bg-[#0d0d0f]">
+    <div className={`min-h-screen bg-[#0d0d0f] flex flex-col ${playingTrack ? 'pb-28' : ''}`}>
+
+      <audio ref={audioRef}/>
 
       {/* Navbar */}
-      <nav className="h-12 border-b border-white/[0.05] flex items-center justify-between px-5 sticky top-0 z-50 bg-[#0d0d0f]/90 backdrop-blur-md">
-        <span className="font-mono text-base font-medium tracking-tight">
+      <nav className="h-14 border-b border-white/[0.05] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#0d0d0f]/95 backdrop-blur-md">
+        <span className="font-mono text-lg font-medium tracking-tight">
           demo<span className="text-[#7C6FFF]">.</span>
         </span>
         <div className="flex items-center gap-3">
           {isLoggedIn ? (
-            <a href="/dashboard" className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors">
+            <a href="/dashboard" className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors font-mono">
               Mi biblioteca →
             </a>
           ) : (
             <button
               onClick={() => { setShowAuth(true); setAuthMode('login') }}
-              className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors"
+              className="text-[#9BA0AD] hover:text-[#F8F7F4] text-sm transition-colors font-mono"
             >
               Entrar
             </button>
@@ -141,142 +199,206 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
         </div>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-5 py-10 pb-36">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
 
-        {/* Cabecera del proyecto */}
-        <div className="flex items-end gap-6 mb-8">
-          <div className="w-36 h-36 flex-shrink-0 rounded-2xl bg-gradient-to-br from-[#1E2028] to-[#16171c] border border-white/[0.06] flex items-center justify-center shadow-2xl">
-            {project.cover_url ? (
-              <img src={project.cover_url} alt={project.title} className="w-full h-full object-cover rounded-2xl"/>
-            ) : (
-              <span className="text-5xl opacity-20">💿</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0 pb-1">
-            <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-1">Proyecto</p>
-            <h1 className="text-2xl font-medium text-[#F8F7F4] leading-tight mb-1">{project.title}</h1>
-            <p className="text-[#9BA0AD] text-sm">{project.ownerName}</p>
-            <p className="text-[#555966] text-xs font-mono mt-1">
-              {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
-            </p>
-          </div>
-        </div>
+          {/* Columna izquierda */}
+          <div className="flex flex-col gap-5">
 
-        {/* Botón guardar en biblioteca */}
-        <div className="mb-5">
-          <button
-            onClick={handleSave}
-            disabled={savingLoading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
-              saved
-                ? 'bg-[#7C6FFF]/10 border-[#7C6FFF]/30 text-[#7C6FFF]'
-                : 'bg-transparent border-white/[0.08] text-[#9BA0AD] hover:border-white/20 hover:text-[#F8F7F4]'
-            }`}
-          >
-            {saved ? (
-              <>
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                  <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Guardado en biblioteca
-              </>
-            ) : (
-              <>
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                  <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-                Guardar en biblioteca
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Tracklist */}
-        <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-hidden mb-6">
-          {tracks.length === 0 ? (
-            <div className="px-4 py-8 text-center text-[#555966] text-sm font-mono">
-              Sin canciones todavía.
+            {/* Portada */}
+            <div className="w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden">
+              {project.cover_url
+                ? <img src={project.cover_url} alt={project.title} className="w-full h-full object-cover"/>
+                : <div className="text-6xl opacity-30">💿</div>
+              }
             </div>
-          ) : tracks.map((track, i) => (
-            <div
-              key={track.id}
-              onClick={() => handlePlayAttempt(track)}
-              className={`flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
-                playingTrack?.id === track.id ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
-              }`}
-            >
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                playingTrack?.id === track.id
-                  ? 'bg-[#7C6FFF]'
-                  : 'bg-[#1E2028] border border-white/[0.06] group-hover:border-[#7C6FFF]/30'
-              }`}>
-                {playingTrack?.id === track.id ? (
-                  <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
-                    <rect x="0.5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                    <rect x="5" y="0.5" width="2.5" height="7" rx="0.5"/>
-                  </svg>
-                ) : (
-                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                    <path d="M1.5 1l5.5 3-5.5 3V1z" fill={isLoggedIn ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'}/>
-                  </svg>
+
+            {/* Info */}
+            <div>
+              <h1 className="text-xl font-medium text-[#F8F7F4] mb-1.5">{project.title}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-[#9BA0AD]">{project.ownerName}</span>
+                <span className="text-[#252830]">·</span>
+                <span className="text-sm font-mono text-[#555966]">
+                  {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+                </span>
+                {totalDuration && (
+                  <>
+                    <span className="text-[#252830]">·</span>
+                    <span className="text-sm font-mono text-[#555966]">{totalDuration}</span>
+                  </>
                 )}
               </div>
-
-              <span className="font-mono text-xs text-[#333] w-4 text-right flex-shrink-0">{i + 1}</span>
-
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate transition-colors ${
-                  playingTrack?.id === track.id ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
-                }`}>
-                  {track.title}
-                </p>
-              </div>
-
-              {track.duration && (
-                <span className="text-[#555966] text-xs font-mono flex-shrink-0">{fmt(track.duration)}</span>
-              )}
-
-              {!isLoggedIn && (
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M6 1a3 3 0 013 3v1H3V4a3 3 0 013-3z" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                    <rect x="1" y="5" width="10" height="7" rx="1.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                  </svg>
-                </div>
-              )}
             </div>
-          ))}
-        </div>
 
-        {/* CTA para no logueados */}
-        {!isLoggedIn && (
-          <div className="bg-[#1E2028] border border-[#7C6FFF]/15 rounded-xl p-5 text-center">
-            <p className="text-[#F8F7F4] font-medium mb-1">Crea una cuenta gratis para escuchar</p>
-            <p className="text-[#555966] text-xs font-mono mb-4">demo. es gratis. Sin tarjeta. Sin spam.</p>
+            {/* Guardar */}
             <button
-              onClick={() => { setShowAuth(true); setAuthMode('signup') }}
-              className="bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors"
+              onClick={handleSave}
+              disabled={savingLoading}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+                saved
+                  ? 'bg-[#7C6FFF]/10 border-[#7C6FFF]/30 text-[#7C6FFF]'
+                  : 'bg-transparent border-white/[0.08] text-[#9BA0AD] hover:border-white/20 hover:text-[#F8F7F4]'
+              }`}
             >
-              Crear cuenta gratis
+              {saved ? (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Guardado en biblioteca
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  Guardar en biblioteca
+                </>
+              )}
             </button>
+
+            {/* CTA no logueados */}
+            {!isLoggedIn && (
+              <div className="bg-[#13141a] border border-[#7C6FFF]/15 rounded-xl p-4">
+                <p className="text-[#F8F7F4] text-sm font-medium mb-1">Crea una cuenta para escuchar</p>
+                <p className="text-[#555966] text-xs font-mono mb-3">Gratis. Sin tarjeta. Sin spam.</p>
+                <button
+                  onClick={() => { setShowAuth(true); setAuthMode('signup') }}
+                  className="w-full bg-[#7C6FFF] hover:bg-[#6B5FE8] text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors"
+                >
+                  Crear cuenta gratis
+                </button>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Columna derecha — tracklist */}
+          <div className="flex flex-col gap-4">
+            {tracks.length > 0 && (
+              <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-visible">
+                <div className="px-5 py-3.5 border-b border-white/[0.06] flex items-center justify-between">
+                  <span className="text-[#555966] text-sm font-mono uppercase tracking-wider">Tracklist</span>
+                  <span className="text-[#555966] text-sm font-mono">
+                    {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
+                    {totalDuration && ` · ${totalDuration}`}
+                  </span>
+                </div>
+
+                {tracks.map((track, i) => {
+                  const isPlaying  = playingTrackId === track.id
+                  const isLoading  = loadingTrackId === track.id
+                  return (
+                    <div
+                      key={track.id}
+                      onClick={() => loadAndPlay(track)}
+                      className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
+                        isPlaying ? 'bg-[#7C6FFF]/5' : 'hover:bg-white/[0.02]'
+                      }`}
+                    >
+                      <button className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                        isPlaying
+                          ? 'bg-[#7C6FFF] text-white'
+                          : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
+                      }`}>
+                        {isLoading ? (
+                          <div className="w-3.5 h-3.5 border border-white/30 border-t-white rounded-full animate-spin"/>
+                        ) : isPlaying ? (
+                          <svg width="9" height="9" viewBox="0 0 9 9" fill="white">
+                            <rect x="0.5" y="0.5" width="3" height="8" rx="0.5"/>
+                            <rect x="5.5" y="0.5" width="3" height="8" rx="0.5"/>
+                          </svg>
+                        ) : (
+                          <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
+                            <path d="M2 1l6 3.5L2 8V1z"/>
+                          </svg>
+                        )}
+                      </button>
+
+                      <span className="text-[#2E3140] font-mono text-sm w-5 text-right flex-shrink-0 group-hover:text-[#555966] transition-colors">
+                        {i + 1}
+                      </span>
+
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-base font-medium truncate transition-colors ${
+                          isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
+                        }`}>
+                          {track.title}
+                        </p>
+                      </div>
+
+                      {track.duration && (
+                        <span className="text-[#555966] text-sm font-mono flex-shrink-0">
+                          {formatDuration(track.duration)}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {tracks.length === 0 && (
+              <div className="border border-dashed border-white/[0.06] rounded-xl p-10 text-center">
+                <p className="text-[#555966] text-sm font-mono">Sin canciones todavía.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </main>
 
-      {/* Reproductor */}
-      {playingTrack && isLoggedIn && (
-        <AudioPlayer
-          trackId={playingTrack.id}
-          filePath={playingTrack.file_path}
-          title={playingTrack.title}
-          onClose={() => setPlayingTrack(null)}
-        />
+      {/* Reproductor inline */}
+      {playingTrack && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#13141a]/95 backdrop-blur-md border-t border-white/[0.06] px-6 py-3">
+          <div className="max-w-6xl mx-auto flex items-center gap-4">
+            <button
+              onClick={() => audioRef.current?.paused ? audioRef.current.play() : audioRef.current?.pause()}
+              className="w-9 h-9 rounded-full bg-[#7C6FFF] hover:bg-[#6B5FE8] flex items-center justify-center flex-shrink-0 transition-colors"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="white">
+                <rect x="0.5" y="0.5" width="3.5" height="9" rx="0.5"/>
+                <rect x="6" y="0.5" width="3.5" height="9" rx="0.5"/>
+              </svg>
+            </button>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[#F8F7F4] truncate">{playingTrack.title}</p>
+              <p className="text-xs font-mono text-[#555966]">{project.ownerName}</p>
+            </div>
+
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <span className="text-xs font-mono text-[#555966]">
+                {formatDuration(Math.floor(currentTime))} / {formatDuration(Math.floor(duration))}
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={duration || 0}
+                value={currentTime}
+                onChange={e => {
+                  const t = Number(e.target.value)
+                  if (audioRef.current) audioRef.current.currentTime = t
+                  setCurrentTime(t)
+                }}
+                className="w-32 accent-[#7C6FFF]"
+              />
+              <button
+                onClick={() => { audioRef.current?.pause(); setPlayingTrackId(null); setAudioUrl(null) }}
+                className="text-[#555966] hover:text-[#9BA0AD] transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal auth */}
       {showAuth && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1E2028] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
+          <div className="bg-[#13141a] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm relative">
             {sent ? (
               <div className="text-center py-4">
                 <div className="text-3xl mb-3">📬</div>
@@ -297,7 +419,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
                 <button
                   onClick={handleGoogle}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 bg-[#111318] hover:bg-[#0d0d0f] border border-white/10 hover:border-white/20 text-[#F8F7F4] font-medium py-3 px-4 rounded-xl transition-all text-sm mb-4 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-3 bg-[#1E2028] hover:bg-[#252830] border border-white/[0.08] text-[#F8F7F4] font-medium py-3 px-4 rounded-xl transition-all text-sm mb-4 disabled:opacity-50"
                 >
                   <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
                     <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -318,17 +440,17 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
                   <input
                     type="email" placeholder="tu@email.com" value={email}
                     onChange={e => setEmail(e.target.value)} required
-                    className="bg-[#111318] border border-white/[0.08] focus:border-[#7C6FFF]/50 text-[#F8F7F4] placeholder:text-[#333] rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+                    className="bg-[#0d0d0f] border border-white/[0.06] focus:border-[#7C6FFF]/40 text-[#F8F7F4] placeholder:text-[#2E3140] rounded-xl px-4 py-3 text-sm outline-none transition-colors"
                   />
                   <input
                     type="password" placeholder="Contraseña" value={password}
                     onChange={e => setPassword(e.target.value)} required minLength={6}
-                    className="bg-[#111318] border border-white/[0.08] focus:border-[#7C6FFF]/50 text-[#F8F7F4] placeholder:text-[#333] rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+                    className="bg-[#0d0d0f] border border-white/[0.06] focus:border-[#7C6FFF]/40 text-[#F8F7F4] placeholder:text-[#2E3140] rounded-xl px-4 py-3 text-sm outline-none transition-colors"
                   />
                   {error && <p className="text-red-400 text-xs font-mono">{error}</p>}
                   <button
                     type="submit" disabled={loading}
-                    className="bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium py-3 rounded-xl text-sm transition-colors disabled:opacity-50"
+                    className="bg-[#7C6FFF] hover:bg-[#6B5FE8] text-white font-medium py-3 rounded-xl text-sm transition-colors disabled:opacity-50"
                   >
                     {loading ? 'Cargando...' : authMode === 'signup' ? 'Crear cuenta' : 'Entrar'}
                   </button>
