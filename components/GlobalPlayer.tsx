@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 import { usePlayer } from '@/lib/PlayerContext'
 
 export default function GlobalPlayer() {
-  const { currentTrack, closePlayer, wsRef } = usePlayer()
-  const containerRef                          = useRef<HTMLDivElement>(null)
-  const [loading, setLoading]                 = useState(false)
-  const [currentTime, setCurrentTime]         = useState(0)
-  const [duration, setDuration]               = useState(0)
-  const [speed, setSpeed]                     = useState(1)
-  const [localPlaying, setLocalPlaying]       = useState(false)
+  const { currentTrack, closePlayer } = usePlayer()
+  const containerRef                  = useRef<HTMLDivElement>(null)
+  const wsRef                         = useRef<any>(null)
+  const objectUrlRef                  = useRef<string | null>(null)
+  const [loading, setLoading]         = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration]       = useState(0)
+  const [speed, setSpeed]             = useState(1)
+  const [localPlaying, setLocalPlaying] = useState(false)
 
   const fmt = (s: number) => {
     const m = Math.floor(s / 60)
@@ -19,21 +21,37 @@ export default function GlobalPlayer() {
   }
 
   useEffect(() => {
-    if (!currentTrack) return
+    if (!currentTrack) {
+      wsRef.current?.destroy()
+      wsRef.current = null
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+      return
+    }
+
     let ws: any = null
-    let objectUrl: string | null = null
     setLoading(true)
     setCurrentTime(0)
     setDuration(0)
+    setLocalPlaying(false)
 
     const init = async () => {
       try {
-        // Descargar el audio como blob para evitar problemas de CORS
+        wsRef.current?.destroy()
+        wsRef.current = null
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current)
+          objectUrlRef.current = null
+        }
+
         const res = await fetch(`/api/play-url?path=${encodeURIComponent(currentTrack.file_path)}`)
-        if (!res.ok) throw new Error('No se pudo obtener el audio')
+        if (!res.ok) throw new Error('Error al obtener el audio')
 
         const blob = await res.blob()
-        objectUrl = URL.createObjectURL(blob)
+        const objectUrl = URL.createObjectURL(blob)
+        objectUrlRef.current = objectUrl
 
         const WaveSurfer = (await import('wavesurfer.js')).default
         if (!containerRef.current) return
@@ -58,7 +76,6 @@ export default function GlobalPlayer() {
           ws.play()
           setLocalPlaying(true)
         })
-
         ws.on('audioprocess', (t: number) => setCurrentTime(t))
         ws.on('pause',  () => setLocalPlaying(false))
         ws.on('play',   () => setLocalPlaying(true))
@@ -72,16 +89,10 @@ export default function GlobalPlayer() {
     }
 
     init()
-
-    return () => {
-      ws?.destroy()
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
   }, [currentTrack?.id])
 
   const togglePlay = () => {
-    if (!wsRef.current) return
-    wsRef.current.playPause()
+    wsRef.current?.playPause()
   }
 
   const changeSpeed = (s: number) => {
@@ -94,11 +105,7 @@ export default function GlobalPlayer() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#111318]/95 backdrop-blur-md border-t border-white/[0.06]">
       <div className="max-w-5xl mx-auto px-5 py-2">
-
-        {/* Waveform */}
         <div ref={containerRef} className="w-full cursor-pointer mb-2"/>
-
-        {/* Controles */}
         <div className="flex items-center gap-4 pb-2">
           <button
             onClick={togglePlay}
@@ -136,9 +143,7 @@ export default function GlobalPlayer() {
                 key={s}
                 onClick={() => changeSpeed(s)}
                 className={`font-mono text-xs px-2 py-1 rounded-lg transition-colors ${
-                  speed === s
-                    ? 'bg-[#7C6FFF]/20 text-[#7C6FFF]'
-                    : 'text-[#555966] hover:text-[#9BA0AD]'
+                  speed === s ? 'bg-[#7C6FFF]/20 text-[#7C6FFF]' : 'text-[#555966] hover:text-[#9BA0AD]'
                 }`}
               >
                 {s}×
