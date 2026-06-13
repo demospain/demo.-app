@@ -277,7 +277,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
           )}
 
           {tracks.length > 0 && (
-            <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-hidden">
+            <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-visible">
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
                 <span className="text-[#555966] text-xs font-mono uppercase tracking-wider">Tracklist</span>
                 <span className="text-[#555966] text-xs font-mono">
@@ -345,7 +345,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                             </svg>
                           </button>
                           {showTrackMenu === track.id && (
-                            <div className="absolute right-0 top-6 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-20 py-1 min-w-[140px]">
+                            <div className="absolute right-0 top-6 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1 min-w-[140px]">
                               <button
                                 onClick={() => {
                                   setEditingTrackId(track.id)
