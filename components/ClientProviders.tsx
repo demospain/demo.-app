@@ -1,7 +1,6 @@
 'use client'
 
 import { PlayerProvider } from '@/lib/PlayerContext'
-import GlobalPlayer from '@/components/GlobalPlayer'
 
 export default function ClientProviders({
   children,
@@ -11,7 +10,6 @@ export default function ClientProviders({
   return (
     <PlayerProvider>
       {children}
-      <GlobalPlayer />
     </PlayerProvider>
   )
 }
