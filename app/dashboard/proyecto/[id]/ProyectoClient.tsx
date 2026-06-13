@@ -494,7 +494,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                     <div className="text-left flex-1">
                       <p className="text-sm font-medium leading-none">{cfg.label}</p>
                       <p className="text-xs font-mono mt-0.5 opacity-60">
-                        {key === 'private' ? 'Solo tú' : key === 'link' ? 'Cualquiera con el link' : 'Visible para todos'}
+                        {key === 'private' ? 'Solo tú' : key === 'link' ? 'Solo quien tú invites' : 'Tus invitados pueden compartirlo'}
                       </p>
                     </div>
                     {project.visibility === key && (
@@ -541,33 +541,43 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </div>
             )}
 
-            <div className="p-3">
-              <button
-                onClick={handleCopyLink}
-                disabled={!project.share_slug}
-                className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
-                  copied
-                    ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
-                    : 'bg-[#7C6FFF] hover:bg-[#6B5FE8] text-white disabled:opacity-30'
-                }`}
-              >
-                {copied ? (
-                  <>
-                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                      <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    ¡Link copiado!
-                  </>
-                ) : (
-                  <>
-                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                      <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                      <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Copiar link
-                  </>
-                )}
-              </button>
+                        <div className="p-3">
+              {project.visibility === 'private' ? (
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm bg-white/[0.03] border border-white/[0.06] text-[#383C47]">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <path d="M6.5 1a3 3 0 013 3v1.5H3.5V4a3 3 0 013-3z" stroke="currentColor" strokeWidth="1.2"/>
+                    <rect x="1" y="5.5" width="11" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                  </svg>
+                  Cambia la visibilidad para compartir
+                </div>
+              ) : (
+                <button
+                  onClick={handleCopyLink}
+                  disabled={!project.share_slug}
+                  className={`w-full flex items-center justify-center gap-2 font-medium px-4 py-2.5 rounded-xl text-sm transition-all ${
+                    copied
+                      ? 'bg-[#1D9E75]/10 border border-[#1D9E75]/20 text-[#1D9E75]'
+                      : 'bg-[#7C6FFF] hover:bg-[#6B5FE8] text-white disabled:opacity-30'
+                  }`}
+                >
+                  {copied ? (
+                    <>
+                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                        <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      ¡Link copiado!
+                    </>
+                  ) : (
+                    <>
+                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                        <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                        <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Copiar link
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
