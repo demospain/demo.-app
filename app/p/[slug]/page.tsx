@@ -78,19 +78,22 @@ export default async function PublicProjectPage({ params }: Props) {
     .order('track_order', { ascending: true })
 
   const { data: { user } } = await supabase.auth.getUser()
+  const isOwner = user?.id === project.owner_id
 
   return (
     <PublicProjectClient
       project={{
-        id:        project.id,
-        title:     project.title,
-        cover_url: project.cover_url,
-        slug:      params.slug,
-        ownerName: ownerProfile?.full_name ?? 'Artista',
+        id:         project.id,
+        title:      project.title,
+        cover_url:  project.cover_url,
+        slug:       params.slug,
+        ownerName:  ownerProfile?.full_name ?? 'Artista',
+        visibility: project.visibility,
       }}
       tracks={tracks ?? []}
       isLoggedIn={!!user}
       userId={user?.id ?? null}
+      isOwner={isOwner}
     />
   )
 }
