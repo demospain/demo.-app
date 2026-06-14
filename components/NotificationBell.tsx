@@ -184,3 +184,58 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
                 <div className="w-5 h-5 border-2 border-white/10 border-t-[#6E62F5] rounded-full animate-spin"/>
               </div>
             ) : notifs.length === 0 ? (
+              <div className="py-10 text-center">
+                <p className="text-[#555966] text-sm font-mono">Sin notificaciones</p>
+              </div>
+            ) : (
+              notifs.map(n => (
+                <button
+                  key={n.id}
+                  onClick={() => handleNotifClick(n)}
+                  className={`w-full flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.04] last:border-0 text-left transition-colors hover:bg-white/[0.03] ${
+                    !n.read ? 'bg-[#6E62F5]/5' : ''
+                  }`}
+                >
+                  {/* Icono tipo notif */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                    n.type === 'project_saved'   ? 'bg-[#6E62F5]/10' :
+                    n.type === 'project_playing' ? 'bg-[#1D9E75]/10' :
+                    'bg-[#F59E0B]/10'
+                  }`}>
+                    {notifIcon(n.type)}
+                  </div>
+
+                  {/* Texto */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm leading-snug ${n.read ? 'text-[#9BA0AD]' : 'text-[#EAE9E6]'}`}>
+                      {notifMessage(n)}
+                    </p>
+                    <p className="text-xs font-mono text-[#555966] mt-1">{timeAgo(n.created_at)}</p>
+                  </div>
+
+                  {/* Portada del proyecto */}
+                  <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-[#1f2335] flex items-center justify-center">
+                    {n.project?.cover_url ? (
+                      <img
+                        src={`${R2_PUBLIC}/${n.project.cover_url}`}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-lg opacity-30">💿</span>
+                    )}
+                  </div>
+
+                  {/* Punto no leído */}
+                  {!n.read && (
+                    <div className="w-2 h-2 rounded-full bg-[#6E62F5] flex-shrink-0 mt-1.5"/>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
