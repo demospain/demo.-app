@@ -69,33 +69,11 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0f1117] flex flex-col">
 
-      {/* Desktop header */}
-      <header className="hidden sm:grid grid-cols-3 items-center px-16 pt-12 pb-10">
-        <div/> {/* columna izquierda vacía para balancear */}
-        <div className="flex justify-center">
-          <a href="/dashboard" className="font-mono text-5xl font-medium tracking-tight hover:opacity-80 transition-opacity">
-            demo<span className="text-[#6E62F5]">.</span>
-          </a>
-        </div>
-        <div className="flex items-center justify-end gap-3">
-          <NotificationBell unreadCount={unreadCount} userId={user.id}/>
-          <a href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
-              {inicial}
-            </div>
-            <span className="text-[#9BA0AD] text-sm font-mono">{nombre}</span>
-          </a>
-          <div className="w-px h-4 bg-white/[0.08]"/>
-          <LogoutButton/>
-        </div>
-      </header>
-
-      {/* Mobile header */}
-      <header className="sm:hidden flex items-center justify-between px-5 pt-6 pb-5">
-        <a href="/dashboard" className="font-mono text-3xl font-medium tracking-tight">
+      <header className="flex items-center justify-between px-8 sm:px-16 pt-8 sm:pt-12 pb-6 sm:pb-10">
+        <a href="/dashboard" className="font-mono text-3xl sm:text-5xl font-medium tracking-tight hover:opacity-80 transition-opacity">
           demo<span className="text-[#6E62F5]">.</span>
         </a>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           <NotificationBell unreadCount={unreadCount} userId={user.id}/>
           <a href="/profile">
             <div className="w-9 h-9 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white">
@@ -104,7 +82,7 @@ export default async function DashboardPage() {
           </a>
         </div>
       </header>
-
+      
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 pb-10">
         <DashboardClient
           userId={user.id}
