@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import LogoutButton from '@/components/LogoutButton'
 import DashboardClient from '@/components/DashboardClient'
+import NotificationBell from '@/components/NotificationBell'
 
 const R2_PUBLIC = 'https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev'
 
@@ -49,6 +50,15 @@ export default async function DashboardPage() {
     ownerNames[p.id] = p.username ?? 'Artista'
   }
 
+  // Notificaciones no leídas
+  const { data: unreadNotifs } = await supabase
+    .from('notifications')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('read', false)
+
+  const unreadCount = unreadNotifs?.length ?? 0
+
   const nombre = profile?.username
     ?? user.user_metadata?.full_name?.split(' ')[0]
     ?? user.email?.split('@')[0]
@@ -59,19 +69,36 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0f1117] flex flex-col">
 
-      <header className="relative flex items-center justify-center px-16 pt-12 pb-10">
+      {/* Desktop header */}
+      <header className="hidden sm:flex relative items-center justify-center px-16 pt-12 pb-10">
         <a href="/dashboard" className="font-mono text-5xl font-medium tracking-tight hover:opacity-80 transition-opacity">
           demo<span className="text-[#6E62F5]">.</span>
         </a>
         <div className="absolute right-16 top-1/2 -translate-y-1/2 flex items-center gap-3">
+          <NotificationBell unreadCount={unreadCount} userId={user.id}/>
           <a href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {inicial}
             </div>
-            <span className="text-[#9BA0AD] text-sm hidden sm:block font-mono">{nombre}</span>
+            <span className="text-[#9BA0AD] text-sm font-mono">{nombre}</span>
           </a>
           <div className="w-px h-4 bg-white/[0.08]"/>
           <LogoutButton/>
+        </div>
+      </header>
+
+      {/* Mobile header */}
+      <header className="sm:hidden flex items-center justify-between px-5 pt-6 pb-5">
+        <a href="/dashboard" className="font-mono text-3xl font-medium tracking-tight">
+          demo<span className="text-[#6E62F5]">.</span>
+        </a>
+        <div className="flex items-center gap-2">
+          <NotificationBell unreadCount={unreadCount} userId={user.id}/>
+          <a href="/profile">
+            <div className="w-9 h-9 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white">
+              {inicial}
+            </div>
+          </a>
         </div>
       </header>
 
