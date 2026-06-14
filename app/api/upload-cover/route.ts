@@ -17,17 +17,17 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { fileName, fileType, fileSize } = await request.json()
+  const { fileName, fileType, fileSize, projectId } = await request.json()
 
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowedTypes.includes(fileType))
-    return NextResponse.json({ error: 'Tipo no permitido' }, { status: 400 })
+    return NextResponse.json({ error: 'Solo JPG, PNG o WEBP' }, { status: 400 })
 
-  if (fileSize > 5 * 1024 * 1024)
-    return NextResponse.json({ error: 'Máximo 5MB' }, { status: 400 })
+  if (fileSize > 10 * 1024 * 1024)
+    return NextResponse.json({ error: 'Máximo 10MB' }, { status: 400 })
 
   const ext      = fileName.split('.').pop()
-  const filePath = `avatars/${user.id}-${Date.now()}.${ext}`
+  const filePath = `covers/${projectId}-${Date.now()}.${ext}`
 
   const command = new PutObjectCommand({
     Bucket:        process.env.R2_BUCKET_NAME!,
