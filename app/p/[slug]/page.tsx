@@ -2,6 +2,12 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import PublicProjectClient from './PublicProjectClient'
 import type { Metadata } from 'next'
 
+const R2_PUBLIC = 'https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev'
+
+function withCover(url: string | null) {
+  return url ? `${R2_PUBLIC}/${url}` : null
+}
+
 interface Props {
   params: { slug: string }
 }
@@ -24,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title       = `${project.title} — ${ownerProfile?.full_name ?? 'Artista'}`
   const description = 'Escucha este proyecto en demo. antes de que salga al mundo.'
-  const image       = project.cover_url ?? undefined
+  const image       = withCover(project.cover_url) ?? undefined
 
   return {
     title,
@@ -55,10 +61,10 @@ export default async function PublicProjectPage({ params }: Props) {
 
   if (!project || project.visibility === 'private') {
     return (
-      <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-4">
         <div className="text-center max-w-xs">
           <div className="text-4xl mb-4">🔒</div>
-          <h1 className="text-[#F8F7F4] font-medium mb-2">Proyecto privado</h1>
+          <h1 className="text-[#EAE9E6] font-medium mb-2">Proyecto privado</h1>
           <p className="text-[#555966] text-sm">Este proyecto no está disponible públicamente.</p>
         </div>
       </div>
@@ -85,7 +91,7 @@ export default async function PublicProjectPage({ params }: Props) {
       project={{
         id:         project.id,
         title:      project.title,
-        cover_url:  project.cover_url,
+        cover_url:  withCover(project.cover_url),
         slug:       params.slug,
         ownerName:  ownerProfile?.full_name ?? 'Artista',
         visibility: project.visibility,
