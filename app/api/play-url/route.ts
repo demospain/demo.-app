@@ -113,5 +113,14 @@ export async function POST(request: Request) {
 
   const url = await getSignedUrl(r2, command, { expiresIn: 3600 })
 
+  // Notificar al dueño si quien escucha no es él
+if (user && ownerId && user.id !== ownerId) {
+  await supabase.from('notifications').insert({
+    user_id:    ownerId,
+    type:       'project_playing',
+    project_id: track.project_id,
+    actor_id:   user.id,
+  })
+}
   return NextResponse.json({ url })
 }
