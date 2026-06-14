@@ -217,4 +217,136 @@ export default function ProfileClient({ userId, email, profile: initialProfile }
         {tab === 'profile' && (
           <div className="flex flex-col gap-3">
             <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
-              <p className="text-[#555966] text-xs font-mono uppercase
+              <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-3">Nombre de usuario</p>
+              {editing ? (
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555966] font-mono text-sm">@</div>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value.toLowerCase())}
+                    className="w-full bg-[#0f1117] border border-white/[0.07] focus:border-[#6E62F5]/40 text-[#EAE9E6] rounded-xl pl-8 pr-4 py-2.5 text-sm outline-none transition-colors font-mono"
+                  />
+                </div>
+              ) : (
+                <p className="text-[#EAE9E6] font-mono">@{profile.username || 'sin nombre'}</p>
+              )}
+            </div>
+
+            <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
+              <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-3">Foto de perfil</p>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#6E62F5] flex items-center justify-center text-lg font-bold text-white overflow-hidden flex-shrink-0">
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt="" className="w-full h-full object-cover"/>
+                    : inicial
+                  }
+                </div>
+                <div className="flex-1">
+                  <p className="text-[#9BA0AD] text-sm mb-1">JPG, PNG o WEBP · Máx. 5MB</p>
+                  <button
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={avatarUploading}
+                    className="text-xs font-mono text-[#6E62F5] hover:text-[#5A4FD4] transition-colors disabled:opacity-40"
+                  >
+                    {avatarUploading ? 'Subiendo...' : 'Cambiar foto'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
+              <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-3">Roles públicos</p>
+              {editing ? (
+                <div className="flex flex-col gap-2">
+                  {Object.entries(ROLE_LABELS).map(([id, { label, emoji }]) => {
+                    const isSelected = roles.includes(id)
+                    const isDisabled = (id !== 'listener' && roles.includes('listener')) ||
+                      (id === 'listener' && roles.length > 0 && !roles.includes('listener'))
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => !isDisabled && toggleRole(id)}
+                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'bg-[#6E62F5]/10 border-[#6E62F5]/25 text-[#EAE9E6]'
+                            : isDisabled
+                            ? 'opacity-20 cursor-not-allowed border-white/[0.04]'
+                            : 'border-white/[0.07] text-[#9BA0AD] hover:border-white/[0.14] hover:text-[#EAE9E6]'
+                        }`}
+                      >
+                        <span>{emoji}</span>
+                        <span className="text-sm font-medium flex-1">{label}</span>
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          isSelected ? 'bg-[#6E62F5] border-[#6E62F5]' : 'border-white/20'
+                        }`}>
+                          {isSelected && (
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                              <path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {(profile.roles ?? []).length === 0
+                    ? <p className="text-[#555966] text-sm font-mono">Sin roles asignados</p>
+                    : (profile.roles ?? []).map(r => (
+                      <span key={r} className="flex items-center gap-1.5 text-sm bg-[#1f2335] border border-white/[0.07] text-[#9BA0AD] px-3 py-1.5 rounded-xl font-mono">
+                        <span>{ROLE_LABELS[r]?.emoji}</span>
+                        <span>{ROLE_LABELS[r]?.label}</span>
+                      </span>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Seguridad */}
+        {tab === 'security' && (
+          <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
+            <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-4">Correo electrónico</p>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#1f2335] border border-white/[0.07] flex items-center justify-center flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="1" y="3" width="12" height="8" rx="1" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+                  <path d="M1 4l6 4 6-4" stroke="rgba(255,255,255,0.3)" strokeWidth="1" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-[#EAE9E6] text-sm font-mono">{email}</p>
+                <p className="text-[#555966] text-xs mt-0.5">Privado — no visible públicamente</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Plan */}
+        {tab === 'plan' && (
+          <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[#555966] text-xs font-mono uppercase tracking-wider">Plan actual</p>
+              {profile.plan !== 'free' && (
+                <span className="text-xs bg-[#6E62F5]/10 text-[#6E62F5] font-mono px-2 py-0.5 rounded-md border border-[#6E62F5]/20">Activo</span>
+              )}
+            </div>
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className={`text-2xl font-medium ${plan.color}`}>{plan.label}</span>
+              <span className="text-[#555966] text-sm font-mono">{plan.price}</span>
+            </div>
+            {profile.plan === 'free' && (
+              <p className="text-[#555966] text-sm leading-relaxed">
+                Mejora tu plan para acceder a analíticas, links con contraseña y más.
+              </p>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
