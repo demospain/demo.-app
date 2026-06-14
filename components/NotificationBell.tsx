@@ -11,9 +11,9 @@ interface Notification {
   actor_id:   string | null
   read:       boolean
   created_at: string
-  project?:   { title: string }
-  actor?:     { username: string }
-  track?:     { title: string }
+  project?:   { title: string } | null
+  actor?:     { username: string } | null
+  track?:     { title: string } | null
 }
 
 interface Props {
@@ -26,9 +26,9 @@ function timeAgo(dateStr: string): string {
   const mins  = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
   const days  = Math.floor(diff / 86400000)
-  if (mins < 1)    return 'Ahora'
-  if (mins < 60)   return `Hace ${mins}m`
-  if (hours < 24)  return `Hace ${hours}h`
+  if (mins < 1)   return 'Ahora'
+  if (mins < 60)  return `Hace ${mins}m`
+  if (hours < 24) return `Hace ${hours}h`
   return `Hace ${days}d`
 }
 
@@ -36,9 +36,9 @@ function notifMessage(n: Notification): string {
   const actor   = n.actor?.username ?? 'Alguien'
   const project = n.project?.title  ?? 'un proyecto'
   const track   = n.track?.title    ?? 'una canción'
-  if (n.type === 'project_saved') return `${actor} guardó "${project}" en su biblioteca`
+  if (n.type === 'project_saved')   return `${actor} guardó "${project}" en su biblioteca`
   if (n.type === 'project_playing') return `${actor} está escuchando "${project}"`
-  if (n.type === 'track_added') return `${actor} añadió "${track}" a "${project}"`
+  if (n.type === 'track_added')     return `${actor} añadió "${track}" a "${project}"`
   return 'Nueva notificación'
 }
 
@@ -62,12 +62,12 @@ function notifIcon(type: string) {
 }
 
 export default function NotificationBell({ unreadCount: initialCount, userId }: Props) {
-  const [open, setOpen]             = useState(false)
-  const [notifs, setNotifs]         = useState<Notification[]>([])
-  const [unreadCount, setUnread]    = useState(initialCount)
-  const [loading, setLoading]       = useState(false)
-  const panelRef                    = useRef<HTMLDivElement>(null)
-  const supabase                    = createClient()
+  const [open, setOpen]           = useState(false)
+  const [notifs, setNotifs]       = useState<Notification[]>([])
+  const [unreadCount, setUnread]  = useState(initialCount)
+  const [loading, setLoading]     = useState(false)
+  const panelRef                  = useRef<HTMLDivElement>(null)
+  const supabase                  = createClient()
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -79,18 +79,44 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
 
   const loadNotifs = async () => {
     setLoading(true)
-    const { data } = await supabase
+
+    const { data: notifsRaw } = await supabase
       .from('notifications')
-      .select(`
-        id, type, project_id, track_id, actor_id, read, created_at,
-        project:projects(title),
-        actor:profiles!notifications_actor_id_fkey(username),
-        track:tracks(title)
-      `)
+      .select('id, type, project_id, track_id, actor_id, read, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(20)
-    setNotifs((data ?? []) as any)
+
+    if (!notifsRaw) { setLoading(false); return }
+
+    const projectIds = [...new Set(notifsRaw.map(n => n.project_id).filter(Boolean))]
+    const actorIds   = [...new Set(notifsRaw.map(n => n.actor_id).filter(Boolean))]
+    const trackIds   = [...new Set(notifsRaw.map(n => n.track_id).filter(Boolean))]
+
+    const [{ data: projects }, { data: actors }, { data: tracks }] = await Promise.all([
+      projectIds.length > 0
+        ? supabase.from('projects').select('id, title').in('id', projectIds)
+        : { data: [] },
+      actorIds.length > 0
+        ? supabase.from('profiles').select('id, username').in('id', actorIds)
+        : { data: [] },
+      trackIds.length > 0
+        ? supabase.from('tracks').select('id, title').in('id', trackIds)
+        : { data: [] },
+    ])
+
+    const projectMap = Object.fromEntries((projects ?? []).map(p => [p.id, p]))
+    const actorMap   = Object.fromEntries((actors   ?? []).map(a => [a.id, a]))
+    const trackMap   = Object.fromEntries((tracks   ?? []).map(t => [t.id, t]))
+
+    const enriched = notifsRaw.map(n => ({
+      ...n,
+      project: n.project_id ? projectMap[n.project_id] ?? null : null,
+      actor:   n.actor_id   ? actorMap[n.actor_id]     ?? null : null,
+      track:   n.track_id   ? trackMap[n.track_id]     ?? null : null,
+    }))
+
+    setNotifs(enriched)
     setLoading(false)
   }
 
@@ -123,7 +149,9 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
       <button
         onClick={handleOpen}
         className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-          open ? 'bg-[#6E62F5]/15 text-[#6E62F5]' : 'bg-[#181c27] hover:bg-[#1f2335] text-[#555966] hover:text-[#EAE9E6]'
+          open
+            ? 'bg-[#6E62F5]/15 text-[#6E62F5]'
+            : 'bg-[#181c27] hover:bg-[#1f2335] text-[#555966] hover:text-[#EAE9E6]'
         }`}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -140,7 +168,6 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
       {open && (
         <div className="absolute right-0 top-11 w-80 bg-[#181c27] border border-white/[0.07] rounded-2xl shadow-2xl z-50 overflow-hidden">
 
-          {/* Header panel */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
             <span className="text-sm font-medium text-[#EAE9E6]">Notificaciones</span>
             {unreadCount > 0 && (
@@ -153,7 +180,6 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
             )}
           </div>
 
-          {/* Lista */}
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-10">
