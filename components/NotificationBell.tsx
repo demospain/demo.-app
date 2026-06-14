@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 
+const R2_PUBLIC = 'https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev'
+
 interface Notification {
   id:         string
   type:       string
@@ -11,7 +13,7 @@ interface Notification {
   actor_id:   string | null
   read:       boolean
   created_at: string
-  project?:   { title: string } | null
+  project?:   { title: string; cover_url: string | null } | null
   actor?:     { username: string } | null
   track?:     { title: string } | null
 }
@@ -36,9 +38,9 @@ function notifMessage(n: Notification): string {
   const actor   = n.actor?.username ?? 'Alguien'
   const project = n.project?.title  ?? 'un proyecto'
   const track   = n.track?.title    ?? 'una canción'
-  if (n.type === 'project_saved')   return `${actor} guardó "${project}" en su biblioteca`
-  if (n.type === 'project_playing') return `${actor} está escuchando "${project}"`
-  if (n.type === 'track_added')     return `${actor} añadió "${track}" a "${project}"`
+  if (n.type === 'project_saved')   return `@${actor} guardó "${project}" en su biblioteca`
+  if (n.type === 'project_playing') return `@${actor} está escuchando "${track}" de "${project}"`
+  if (n.type === 'track_added')     return `@${actor} añadió "${track}" a "${project}"`
   return 'Nueva notificación'
 }
 
@@ -62,12 +64,12 @@ function notifIcon(type: string) {
 }
 
 export default function NotificationBell({ unreadCount: initialCount, userId }: Props) {
-  const [open, setOpen]           = useState(false)
-  const [notifs, setNotifs]       = useState<Notification[]>([])
-  const [unreadCount, setUnread]  = useState(initialCount)
-  const [loading, setLoading]     = useState(false)
-  const panelRef                  = useRef<HTMLDivElement>(null)
-  const supabase                  = createClient()
+  const [open, setOpen]          = useState(false)
+  const [notifs, setNotifs]      = useState<Notification[]>([])
+  const [unreadCount, setUnread] = useState(initialCount)
+  const [loading, setLoading]    = useState(false)
+  const panelRef                 = useRef<HTMLDivElement>(null)
+  const supabase                 = createClient()
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -90,12 +92,12 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
     if (!notifsRaw) { setLoading(false); return }
 
     const projectIds = Array.from(new Set(notifsRaw.map((n: any) => n.project_id).filter(Boolean)))
-    const actorIds = Array.from(new Set(notifsRaw.map((n: any) => n.actor_id).filter(Boolean)))
-    const trackIds = Array.from(new Set(notifsRaw.map((n: any) => n.track_id).filter(Boolean)))
+    const actorIds   = Array.from(new Set(notifsRaw.map((n: any) => n.actor_id).filter(Boolean)))
+    const trackIds   = Array.from(new Set(notifsRaw.map((n: any) => n.track_id).filter(Boolean)))
 
     const [{ data: projects }, { data: actors }, { data: tracks }] = await Promise.all([
       projectIds.length > 0
-        ? supabase.from('projects').select('id, title').in('id', projectIds)
+        ? supabase.from('projects').select('id, title, cover_url').in('id', projectIds)
         : { data: [] },
       actorIds.length > 0
         ? supabase.from('profiles').select('id, username').in('id', actorIds)
@@ -105,11 +107,11 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
         : { data: [] },
     ])
 
-    const projectMap = Object.fromEntries((projects ?? []).map(p => [p.id, p]))
-    const actorMap   = Object.fromEntries((actors   ?? []).map(a => [a.id, a]))
-    const trackMap   = Object.fromEntries((tracks   ?? []).map(t => [t.id, t]))
+    const projectMap = Object.fromEntries((projects ?? []).map((p: any) => [p.id, p]))
+    const actorMap   = Object.fromEntries((actors   ?? []).map((a: any) => [a.id, a]))
+    const trackMap   = Object.fromEntries((tracks   ?? []).map((t: any) => [t.id, t]))
 
-    const enriched = notifsRaw.map(n => ({
+    const enriched = notifsRaw.map((n: any) => ({
       ...n,
       project: n.project_id ? projectMap[n.project_id] ?? null : null,
       actor:   n.actor_id   ? actorMap[n.actor_id]     ?? null : null,
@@ -121,11 +123,7 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
   }
 
   const markAllRead = async () => {
-    await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('user_id', userId)
-      .eq('read', false)
+    await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false)
     setUnread(0)
     setNotifs(prev => prev.map(n => ({ ...n, read: true })))
   }
@@ -166,7 +164,7 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 w-80 bg-[#181c27] border border-white/[0.07] rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-11 w-96 bg-[#181c27] border border-white/[0.07] rounded-2xl shadow-2xl z-50 overflow-hidden">
 
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
             <span className="text-sm font-medium text-[#EAE9E6]">Notificaciones</span>
@@ -180,46 +178,9 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
             )}
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[480px] overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-10">
                 <div className="w-5 h-5 border-2 border-white/10 border-t-[#6E62F5] rounded-full animate-spin"/>
               </div>
             ) : notifs.length === 0 ? (
-              <div className="py-10 text-center">
-                <p className="text-[#555966] text-sm font-mono">Sin notificaciones</p>
-              </div>
-            ) : (
-              notifs.map(n => (
-                <button
-                  key={n.id}
-                  onClick={() => handleNotifClick(n)}
-                  className={`w-full flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.04] last:border-0 text-left transition-colors hover:bg-white/[0.03] ${
-                    !n.read ? 'bg-[#6E62F5]/5' : ''
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                    n.type === 'project_saved'   ? 'bg-[#6E62F5]/10' :
-                    n.type === 'project_playing' ? 'bg-[#1D9E75]/10' :
-                    'bg-[#F59E0B]/10'
-                  }`}>
-                    {notifIcon(n.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm leading-snug ${n.read ? 'text-[#9BA0AD]' : 'text-[#EAE9E6]'}`}>
-                      {notifMessage(n)}
-                    </p>
-                    <p className="text-xs font-mono text-[#555966] mt-1">{timeAgo(n.created_at)}</p>
-                  </div>
-                  {!n.read && (
-                    <div className="w-2 h-2 rounded-full bg-[#6E62F5] flex-shrink-0 mt-1.5"/>
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
