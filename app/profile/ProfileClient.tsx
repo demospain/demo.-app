@@ -37,16 +37,18 @@ const PLAN_LABELS: Record<string, { label: string; price: string; color: string 
 type Tab = 'profile' | 'security' | 'plan'
 
 export default function ProfileClient({ userId, email, profile: initialProfile }: Props) {
-  const [profile, setProfile]         = useState(initialProfile)
-  const [tab, setTab]                 = useState<Tab>('profile')
-  const [editing, setEditing]         = useState(false)
-  const [username, setUsername]       = useState(initialProfile.username)
-  const [roles, setRoles]             = useState<string[]>(initialProfile.roles ?? [])
-  const [saving, setSaving]           = useState(false)
-  const [saved, setSaved]             = useState(false)
+  const [profile, setProfile]               = useState(initialProfile)
+  const [tab, setTab]                       = useState<Tab>('profile')
+  const [editing, setEditing]               = useState(false)
+  const [username, setUsername]             = useState(initialProfile.username)
+  const [roles, setRoles]                   = useState<string[]>(initialProfile.roles ?? [])
+  const [saving, setSaving]                 = useState(false)
+  const [saved, setSaved]                   = useState(false)
+  const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
-  const avatarInputRef                = useRef<HTMLInputElement>(null)
-  const supabase                      = createClient()
+  const [avatarError, setAvatarError]       = useState('')
+  const avatarInputRef                      = useRef<HTMLInputElement>(null)
+  const supabase                            = createClient()
 
   const inicial = (profile.username || profile.full_name || 'U').charAt(0).toUpperCase()
   const plan    = PLAN_LABELS[profile.plan] ?? PLAN_LABELS.free
@@ -60,6 +62,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile }
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setAvatarError('')
     setAvatarUploading(true)
     try {
       const res = await fetch('/api/upload-avatar', {
@@ -67,13 +70,17 @@ export default function ProfileClient({ userId, email, profile: initialProfile }
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
       })
-      const { uploadUrl, filePath } = await res.json()
+      const { uploadUrl, filePath, error } = await res.json()
+      if (error) { setAvatarError(error); setAvatarUploading(false); return }
       await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-      const { error } = await supabase.from('profiles').update({ avatar_url: filePath }).eq('id', userId)
-      if (!error) {
+      const { error: dbError } = await supabase.from('profiles').update({ avatar_url: filePath }).eq('id', userId)
+      if (!dbError) {
         setProfile(p => ({ ...p, avatar_url: filePath }))
+        setShowAvatarModal(false)
       }
-    } catch {}
+    } catch {
+      setAvatarError('Error al subir la imagen. Inténtalo de nuevo.')
+    }
     setAvatarUploading(false)
     e.target.value = ''
   }
@@ -105,7 +112,60 @@ export default function ProfileClient({ userId, email, profile: initialProfile }
   return (
     <div className="min-h-screen bg-[#0f1117]">
 
-      <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarUpload}/>
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleAvatarUpload}
+      />
+
+      {/* Modal foto de perfil */}
+      {showAvatarModal && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowAvatarModal(false) }}
+        >
+          <div className="bg-[#181c27] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm">
+            <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Foto de perfil</p>
+            <h3 className="font-medium text-[#EAE9E6] text-base mb-6">Elige una nueva foto</h3>
+
+            {/* Preview */}
+            <div className="flex justify-center mb-6">
+              <div className="w-24 h-24 rounded-2xl bg-[#6E62F5] flex items-center justify-center text-3xl font-bold text-white overflow-hidden">
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="" className="w-full h-full object-cover"/>
+                  : inicial
+                }
+              </div>
+            </div>
+
+            <p className="text-[#555966] text-xs font-mono text-center mb-4">
+              JPG, PNG o WEBP · Máx. 5MB
+            </p>
+
+            {avatarError && (
+              <p className="text-red-400 text-xs font-mono text-center mb-3">{avatarError}</p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowAvatarModal(false); setAvatarError('') }}
+                className="flex-1 border border-white/[0.07] text-[#555966] hover:text-[#9BA0AD] py-2.5 rounded-xl text-sm transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="flex-1 bg-[#6E62F5] hover:bg-[#5A4FD4] disabled:opacity-40 text-white py-2.5 rounded-xl text-sm font-medium transition-colors"
+              >
+                {avatarUploading ? 'Subiendo...' : 'Elegir foto'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <nav className="h-14 border-b border-white/[0.07] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#0f1117]/90 backdrop-blur-md">
         <a href="/dashboard" className="font-mono text-lg font-medium tracking-tight hover:opacity-80 transition-opacity">
@@ -126,9 +186,9 @@ export default function ProfileClient({ userId, email, profile: initialProfile }
         <div className="bg-[#181c27] border border-white/[0.07] rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-5">
 
-            {/* Avatar con hover para cambiar */}
+            {/* Avatar — click abre modal */}
             <div
-              onClick={() => avatarInputRef.current?.click()}
+              onClick={() => setShowAvatarModal(true)}
               className="relative w-16 h-16 rounded-xl bg-[#6E62F5] flex items-center justify-center text-xl font-bold text-white overflow-hidden flex-shrink-0 cursor-pointer group"
             >
               {avatarUploading ? (
@@ -231,28 +291,6 @@ export default function ProfileClient({ userId, email, profile: initialProfile }
               ) : (
                 <p className="text-[#EAE9E6] font-mono">@{profile.username || 'sin nombre'}</p>
               )}
-            </div>
-
-            <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
-              <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-3">Foto de perfil</p>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#6E62F5] flex items-center justify-center text-lg font-bold text-white overflow-hidden flex-shrink-0">
-                  {avatarUrl
-                    ? <img src={avatarUrl} alt="" className="w-full h-full object-cover"/>
-                    : inicial
-                  }
-                </div>
-                <div className="flex-1">
-                  <p className="text-[#9BA0AD] text-sm mb-1">JPG, PNG o WEBP · Máx. 5MB</p>
-                  <button
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={avatarUploading}
-                    className="text-xs font-mono text-[#6E62F5] hover:text-[#5A4FD4] transition-colors disabled:opacity-40"
-                  >
-                    {avatarUploading ? 'Subiendo...' : 'Cambiar foto'}
-                  </button>
-                </div>
-              </div>
             </div>
 
             <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
