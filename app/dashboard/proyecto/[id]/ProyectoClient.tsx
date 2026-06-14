@@ -765,31 +765,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                           </div>
                         )}
 
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title })))
-                          }}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                            isPlaying
-                              ? 'bg-[#7C6FFF] text-white'
-                              : 'bg-[#1E2028] text-[#555966] group-hover:bg-[#252830] group-hover:text-[#9BA0AD]'
-                          }`}
-                        >
-                          {isReplacing ? (
-                            <div className="w-3.5 h-3.5 border border-white/30 border-t-white rounded-full animate-spin"/>
-                          ) : isPlaying ? (
-                            <svg width="9" height="9" viewBox="0 0 9 9" fill="white">
-                              <rect x="0.5" y="0.5" width="3" height="8" rx="0.5"/>
-                              <rect x="5.5" y="0.5" width="3" height="8" rx="0.5"/>
-                            </svg>
-                          ) : (
-                            <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
-                              <path d="M2 1l6 3.5L2 8V1z"/>
-                            </svg>
-                          )}
-                        </button>
-
                         <span className="text-[#555966] font-mono text-sm w-5 text-right flex-shrink-0 group-hover:text-[#9BA0AD] transition-colors">
                           {i + 1}
                         </span>
