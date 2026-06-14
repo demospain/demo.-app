@@ -1,9 +1,15 @@
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-[#0d0d0f]">
-      <nav className="h-14 border-b border-white/[0.05] flex items-center px-6 sticky top-0 bg-[#0d0d0f]/95 backdrop-blur-md z-10">
+      <nav className="h-14 border-b border-white/[0.05] flex items-center justify-between px-6 sticky top-0 bg-[#0d0d0f]/95 backdrop-blur-md z-10">
         <a href="/" className="font-mono text-lg font-medium tracking-tight">
           demo<span className="text-[#7C6FFF]">.</span>
+        </a>
+        <a
+          href="/profile"
+          className="flex items-center gap-2 bg-[#1E2028] hover:bg-[#252830] border border-white/[0.08] text-[#9BA0AD] hover:text-[#F8F7F4] px-4 py-2 rounded-xl text-sm transition-colors"
+        >
+          Tu perfil
         </a>
       </nav>
       <main className="max-w-2xl mx-auto px-6 py-16">
