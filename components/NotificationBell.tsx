@@ -89,9 +89,9 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
 
     if (!notifsRaw) { setLoading(false); return }
 
-    const projectIds = [...new Set(notifsRaw.map(n => n.project_id).filter(Boolean))]
-    const actorIds   = [...new Set(notifsRaw.map(n => n.actor_id).filter(Boolean))]
-    const trackIds   = [...new Set(notifsRaw.map(n => n.track_id).filter(Boolean))]
+    const projectIds = Array.from(new Set(notifsRaw.map((n: any) => n.project_id).filter(Boolean)))
+    const actorIds = Array.from(new Set(notifsRaw.map((n: any) => n.actor_id).filter(Boolean)))
+    const trackIds = Array.from(new Set(notifsRaw.map((n: any) => n.track_id).filter(Boolean)))
 
     const [{ data: projects }, { data: actors }, { data: tracks }] = await Promise.all([
       projectIds.length > 0
