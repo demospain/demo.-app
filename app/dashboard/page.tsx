@@ -17,7 +17,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('onboarded, username')
+    .select('onboarded, username, avatar_url')
     .eq('id', user.id)
     .single()
 
@@ -76,8 +76,16 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-2 sm:gap-3">
           <NotificationBell unreadCount={unreadCount} userId={user.id}/>
           <a href="/profile">
-            <div className="w-9 h-9 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white">
-              {inicial}
+            <div className="w-9 h-9 rounded-full bg-[#6E62F5] flex items-center justify-center text-sm font-bold text-white overflow-hidden">
+              {profile?.avatar_url ? (
+                <img
+                  src={`https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev/${profile.avatar_url}`}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                inicial
+              )}
             </div>
           </a>
         </div>
