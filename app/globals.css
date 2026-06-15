@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg:        #0f1117;
+  --surface:   #181c27;
+  --elevated:  #1f2335;
+  --border:    rgba(255,255,255,0.07);
+  --border-hv: rgba(255,255,255,0.12);
+  --purple:    #6E62F5;
+  --purple-dk: #5A4FD4;
+  --text:      #EAE9E6;
+  --muted:     #9BA0AD;
+  --dim:       #555966;
+  --vdim:      #383C47;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Brandbook: DM Mono para identidad, etiquetas técnicas y metadatos */
+.font-mono, code, kbd, samp, pre {
+  font-family: var(--font-dm-mono), 'DM Mono', monospace !important;
+}
+
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--elevated); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--dim); }
