@@ -67,11 +67,13 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
       .select('id, title, file_path')
       .eq('project_id', project.id)
       .order('track_order', { ascending: true })
-      .limit(1)
     setLoadingPlayId(null)
     if (tracks && tracks.length > 0) {
-      const track = tracks[0]
-      playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })
+      const queue = tracks.map(t => ({
+        id: t.id, title: t.title, file_path: t.file_path,
+        projectTitle: project.title, coverUrl: project.cover_url ?? undefined,
+      }))
+      playTrack(queue[0], queue)
     }
   }
 
