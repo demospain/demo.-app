@@ -25,7 +25,6 @@ interface Props {
 const ROLE_LABELS: Record<string, { label: string; emoji: string }> = {
   artist:   { label: 'Artista',            emoji: '🎤' },
   producer: { label: 'Productor',           emoji: '🎛️' },
-  engineer: { label: 'Ingeniero de sonido', emoji: '🎚️' },
   listener: { label: 'Oyente',              emoji: '🎧' },
 }
 
@@ -411,7 +410,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
                 <div className="flex flex-wrap gap-2">
                   {(profile.roles ?? []).length === 0
                     ? <p className="text-[#555966] text-sm font-mono">Sin roles asignados</p>
-                    : (profile.roles ?? []).map(r => (
+                    : (profile.roles ?? []).filter(r => ROLE_LABELS[r]).map(r => (
                       <span key={r} className="flex items-center gap-1.5 text-sm bg-[#1f2335] border border-white/[0.07] text-[#9BA0AD] px-3 py-1.5 rounded-xl font-mono">
                         <span>{ROLE_LABELS[r]?.emoji}</span>
                         <span>{ROLE_LABELS[r]?.label}</span>
