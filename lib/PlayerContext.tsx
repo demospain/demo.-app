@@ -81,12 +81,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         const track = currentTrackRef.current
         if (track) {
           const origin  = typeof window !== 'undefined' ? window.location.origin : ''
-          const imgType = track.coverUrl?.match(/\.png$/i) ? 'image/png' : 'image/jpeg'
+          // Siempre mismo origen (sin problemas de CORS) y siempre un JPEG
+          // 512x512 normalizado por el proxy — ver /api/artwork
           const artwork = track.coverUrl
-            ? [
-                { src: track.coverUrl, sizes: '512x512', type: imgType },
-                { src: `${origin}/api/artwork?url=${encodeURIComponent(track.coverUrl)}`, sizes: '256x256', type: imgType },
-              ]
+            ? [{ src: `${origin}/api/artwork?url=${encodeURIComponent(track.coverUrl)}`, sizes: '512x512', type: 'image/jpeg' }]
             : [{ src: `${origin}/icon-512.png`, sizes: '512x512', type: 'image/png' }]
           navigator.mediaSession.metadata = new MediaMetadata({
             title: track.title, artist: track.projectTitle ?? 'demo.',
@@ -152,13 +150,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       await audio.play()
       if ('mediaSession' in navigator) {
         const origin  = typeof window !== 'undefined' ? window.location.origin : ''
-        const imgType = track.coverUrl?.match(/\.png$/i) ? 'image/png' : 'image/jpeg'
-        // Pasar tanto la URL directa como el proxy — el navegador usa la primera que cargue
+        // Siempre mismo origen y normalizado a JPEG 512x512 válido (ver onPlay)
         const artwork = track.coverUrl
-          ? [
-              { src: track.coverUrl, sizes: '512x512', type: imgType },
-              { src: `${origin}/api/artwork?url=${encodeURIComponent(track.coverUrl)}`, sizes: '256x256', type: imgType },
-            ]
+          ? [{ src: `${origin}/api/artwork?url=${encodeURIComponent(track.coverUrl)}`, sizes: '512x512', type: 'image/jpeg' }]
           : [{ src: `${origin}/icon-512.png`, sizes: '512x512', type: 'image/png' }]
         navigator.mediaSession.metadata = new MediaMetadata({
           title: track.title, artist: track.projectTitle ?? 'demo.',
