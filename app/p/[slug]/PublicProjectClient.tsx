@@ -259,7 +259,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
       <nav className="h-[72px] flex items-center justify-between px-6 sticky top-0 z-50 bg-[#0f1117]/95 backdrop-blur-sm">
         <a
           href="/"
-          style={{ fontFamily: "'DM Mono', monospace", fontSize: '32px', fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1, color: '#EAE9E6', textDecoration: 'none' }}
+          style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: '32px', fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1, color: '#EAE9E6', textDecoration: 'none' }}
           className="hover:opacity-80 transition-opacity"
         >
           demo<span style={{ color: '#6E62F5' }}>.</span>
@@ -284,7 +284,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
             <a
               href="/dashboard"
               className="h-10 px-4 rounded-xl bg-[#F8F7F4] hover:bg-white text-[#0f1117] text-sm font-medium flex items-center transition-colors"
-              style={{ fontFamily: "'DM Mono', monospace" }}
+              style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace" }}
             >
               Mi biblioteca →
             </a>
@@ -292,7 +292,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
             <button
               onClick={() => { setShowAuth(true); setAuthMode('login') }}
               className="h-10 px-4 rounded-xl bg-[#F8F7F4] hover:bg-white text-[#0f1117] text-sm font-medium flex items-center transition-colors"
-              style={{ fontFamily: "'DM Mono', monospace" }}
+              style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace" }}
             >
               Entrar
             </button>
