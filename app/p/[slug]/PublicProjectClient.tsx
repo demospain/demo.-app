@@ -305,7 +305,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
       {showSharePanel && canShare && (
         <div className="fixed inset-0 z-40" onClick={() => setShowSharePanel(false)}>
           <div
-            className="absolute right-6 top-16 w-72 bg-[#13141a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
+            className="absolute right-6 top-16 w-72 card-elevated rounded-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
@@ -420,7 +420,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
           {/* Columna derecha — tracklist */}
           <div className="flex flex-col gap-4">
             {tracks.length > 0 && (
-              <div className="bg-[#13141a] border border-white/[0.06] rounded-xl overflow-visible">
+              <div className="card-elevated rounded-xl overflow-visible">
                 <div className="px-5 py-3.5 border-b border-white/[0.06] flex items-center justify-between">
                   <span className="text-[#555966] text-xs font-mono uppercase tracking-wider">Tracklist</span>
                   <span className="text-[#555966] text-xs font-mono">
@@ -605,7 +605,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
       {/* Modal auth */}
       {showAuth && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#13141a] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm relative">
+          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm relative">
             {sent ? (
               <div className="text-center py-4">
                 <div className="text-3xl mb-3">📬</div>
