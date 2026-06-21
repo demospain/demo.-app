@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
+import { translateAuthError } from '@/lib/auth-errors'
 
 interface Track {
   id:          string
@@ -223,7 +224,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/p/${project.slug}` },
     })
-    if (error) { setError(error.message); setLoading(false) }
+    if (error) { setError(translateAuthError(error.message)); setLoading(false) }
   }
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -235,7 +236,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
         email, password,
         options: { emailRedirectTo: `${window.location.origin}/p/${project.slug}` },
       })
-      if (error) { setError(error.message); setLoading(false) }
+      if (error) { setError(translateAuthError(error.message)); setLoading(false) }
       else setSent(true)
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
