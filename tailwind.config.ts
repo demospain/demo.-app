@@ -21,8 +21,8 @@ const config: Config = {
         'demo-green':   '#1D9E75',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        mono: ['DM Mono', 'monospace'],
+        sans: ['var(--font-inter)', 'Inter', 'sans-serif'],
+        mono: ['var(--font-dm-mono)', 'DM Mono', 'monospace'],
       },
       borderColor: {
         DEFAULT: 'rgba(255,255,255,0.06)',
