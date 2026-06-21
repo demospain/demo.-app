@@ -460,7 +460,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const PlayPauseBtn = ({ size }: { size: string }) => (
     <button
       onTouchStart={e => e.stopPropagation()}
-      onClick={() => { const a = audioRef.current; if (!a) return; a.paused ? a.play() : a.pause() }}
+      onClick={() => { const a = audioRef.current; if (!a) return; a.paused ? a.play().catch(() => {}) : a.pause() }}
       disabled={loading}
       className={`${size} rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors disabled:opacity-40 flex-shrink-0`}
     >
