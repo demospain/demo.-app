@@ -32,7 +32,8 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
   const [createError, setCreateError]       = useState('')
   const router   = useRouter()
   const supabase = createClient()
-  const { setLibraryUserId } = usePlayer()
+  const { setLibraryUserId, playTrack } = usePlayer()
+  const [loadingPlayId, setLoadingPlayId] = useState<string | null>(null)
 
   useEffect(() => {
     setLibraryUserId(userId)
@@ -57,17 +58,44 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
 
   const isEmpty = projects.length === 0 && savedProjects.length === 0
 
+  const handlePlayProject = async (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation()
+    if (loadingPlayId) return
+    setLoadingPlayId(project.id)
+    const { data: tracks } = await supabase
+      .from('tracks')
+      .select('id, title, file_path')
+      .eq('project_id', project.id)
+      .order('track_order', { ascending: true })
+      .limit(1)
+    setLoadingPlayId(null)
+    if (tracks && tracks.length > 0) {
+      const track = tracks[0]
+      playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })
+    }
+  }
+
   const ProjectCard = ({ project, ownerName }: { project: Project; ownerName: string }) => (
-    <button onClick={() => router.push(`/dashboard/proyecto/${project.id}`)} className="text-left group">
+    <div onClick={() => router.push(`/dashboard/proyecto/${project.id}`)} className="text-left group cursor-pointer">
       <div className="w-full aspect-square rounded-[14px] card-elevated mb-3 flex items-center justify-center relative overflow-hidden">
         {project.cover_url
           ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
           : <div className="text-4xl opacity-25 group-hover:opacity-35 transition-opacity">💿</div>
         }
+        <button
+          onClick={e => handlePlayProject(e, project)}
+          aria-label="Reproducir"
+          className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-md flex items-center justify-center transition-all duration-150 hover:scale-105 shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
+        >
+          {loadingPlayId === project.id
+            ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+            : <svg width="13" height="13" viewBox="0 0 13 13" fill="white"><path d="M2 1.3l9.5 5.2L2 11.7V1.3z"/></svg>
+          }
+        </button>
       </div>
       <p className="text-base font-medium text-[#EAE9E6] truncate leading-tight group-hover:text-white transition-colors">{project.title}</p>
       <p className="text-xs font-mono text-[#555966] mt-0.5 truncate">{ownerName}</p>
-    </button>
+    </div>
   )
 
   return (
