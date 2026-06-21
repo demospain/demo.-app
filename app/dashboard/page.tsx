@@ -15,6 +15,8 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
+  console.log('[dashboard] user.id resuelto en el servidor:', user.id)
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('onboarded, username, avatar_url')
@@ -23,11 +25,13 @@ export default async function DashboardPage() {
 
   if (!profile?.onboarded) redirect('/onboarding')
 
-  const { data: myProjectsRaw } = await supabase
+  const { data: myProjectsRaw, error: projectsError } = await supabase
     .from('projects')
     .select('id, title, cover_url, visibility, status, created_at, owner_id, share_slug')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
+
+  console.log('[dashboard] proyectos encontrados:', myProjectsRaw?.length ?? 0, '— error:', projectsError ?? 'ninguno')
 
   const { data: savedRaw } = await supabase
     .from('saved_projects')
