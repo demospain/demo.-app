@@ -60,6 +60,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const loadTrackRef       = useRef<((track: Track, newQueue?: Track[]) => Promise<void>) | null>(null)
   const pickNextShuffleRef = useRef<(() => void) | null>(null)
   const userIdRef          = useRef<string | null>(null)
+  const loadTokenRef       = useRef(0)
   const supabase           = createClient()
 
   useEffect(() => { currentTrackRef.current = currentTrack }, [currentTrack])
@@ -129,6 +130,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loadTrack = useCallback(async (track: Track, newQueue?: Track[]) => {
+    const token = ++loadTokenRef.current
     setCurrentTrack(track)
     currentTrackRef.current = track
     if (newQueue) { setQueue(newQueue); queueRef.current = newQueue }
@@ -147,7 +149,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.src    = `https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev/${track.file_path}`
       audio.volume = volume
       audio.load()
-      await audio.play()
+      // .catch() silencia el aborto cuando una llamada más reciente (p. ej. "siguiente" pulsado dos veces)
+      // interrumpe esta misma carga — sin esto, el error se quedaba sin gestionar y la pista podía
+      // quedar pausada hasta un segundo clic.
+      await audio.play().catch(() => {})
+      // Si mientras esperábamos ya se lanzó una carga más nueva, no seguimos pisando su estado.
+      if (token !== loadTokenRef.current) return
       if ('mediaSession' in navigator) {
         const origin  = typeof window !== 'undefined' ? window.location.origin : ''
         // Siempre mismo origen y normalizado a JPEG 512x512 válido (ver onPlay)
@@ -159,7 +166,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           album: track.projectTitle ?? 'demo.', artwork,
         })
         navigator.mediaSession.playbackState = 'playing'
-        navigator.mediaSession.setActionHandler('play',          () => audio.play())
+        navigator.mediaSession.setActionHandler('play',          () => audio.play().catch(() => {}))
         navigator.mediaSession.setActionHandler('pause',         () => audio.pause())
         navigator.mediaSession.setActionHandler('previoustrack', () => playPrev())
         navigator.mediaSession.setActionHandler('nexttrack',     () => playNext())
@@ -171,7 +178,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         })
       }
     } catch {}
-    setLoading(false)
+    if (token === loadTokenRef.current) setLoading(false)
   }, [volume])
 
   useEffect(() => { loadTrackRef.current = loadTrack }, [loadTrack])
@@ -194,7 +201,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (currentTrackRef.current?.id === track.id) {
       const audio = audioRef.current
       if (!audio) return
-      audio.paused ? audio.play() : audio.pause()
+      audio.paused ? audio.play().catch(() => {}) : audio.pause()
       return
     }
     await loadTrack(track, newQueue ?? [track])
@@ -642,7 +649,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             <button
               onTouchStart={e => e.stopPropagation()}
               onClick={handleShuffleClick}
-              className={`w-8 h-8 relative ${btnCls(shuffleMode !== 'none')}`}
+              disabled={shuffleLoading}
+              className={`w-8 h-8 relative ${btnCls(shuffleMode !== 'none')} disabled:opacity-50`}
             >
               {shuffleLoading
                 ? <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"/>
@@ -733,7 +741,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             <button onClick={playPrev} disabled={!hasPrev} className={`w-7 h-7 ${btnCls()} disabled:opacity-20`}><IconPrev /></button>
             <PlayPauseBtn size="w-9 h-9"/>
             <button onClick={playNext} disabled={!hasNext && shuffleMode === 'none'} className={`w-7 h-7 ${btnCls()} disabled:opacity-20`}><IconNext /></button>
-            <button onClick={handleShuffleClick} className={`w-7 h-7 relative ${btnCls(shuffleMode !== 'none')}`}>
+            <button onClick={handleShuffleClick} disabled={shuffleLoading} className={`w-7 h-7 relative ${btnCls(shuffleMode !== 'none')} disabled:opacity-50`}>
               {shuffleLoading ? (
                 <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"/>
               ) : (
