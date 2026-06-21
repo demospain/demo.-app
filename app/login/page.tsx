@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { translateAuthError } from '@/lib/auth-errors'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
@@ -23,7 +24,7 @@ export default function LoginPage() {
       },
     })
     if (error) {
-      setError(error.message)
+      setError(translateAuthError(error.message))
       setLoading(false)
     }
   }
@@ -40,7 +41,7 @@ export default function LoginPage() {
         options: { emailRedirectTo: `https://www.demospain.app/auth/callback` },
       })
       if (error) {
-        setError(error.message)
+        setError(translateAuthError(error.message))
       } else {
         setSent(true)
       }
@@ -49,7 +50,7 @@ export default function LoginPage() {
         redirectTo: `https://www.demospain.app/auth/callback?next=/reset-password`,
       })
       if (error) {
-        setError(error.message)
+        setError(translateAuthError(error.message))
       } else {
         setSent(true)
       }
