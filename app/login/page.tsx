@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
-  const [mode, setMode]         = useState<'login' | 'signup'>('login')
+  const [mode, setMode]         = useState<'login' | 'signup' | 'forgot'>('login')
   const [sent, setSent]         = useState(false)
 
   const supabase = createClient()
@@ -44,6 +44,15 @@ export default function LoginPage() {
       } else {
         setSent(true)
       }
+    } else if (mode === 'forgot') {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `https://www.demospain.app/auth/callback?next=/reset-password`,
+      })
+      if (error) {
+        setError(error.message)
+      } else {
+        setSent(true)
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
@@ -64,7 +73,7 @@ export default function LoginPage() {
             demo<span className="text-[#7C6FFF]">.</span>
           </span>
           <p className="text-[#9BA0AD] text-sm mt-2">
-            {mode === 'login' ? 'Entra en tu cuenta' : 'Crea tu cuenta gratis'}
+            {mode === 'login' ? 'Entra en tu cuenta' : mode === 'signup' ? 'Crea tu cuenta gratis' : 'Recupera tu contraseña'}
           </p>
         </div>
 
@@ -72,10 +81,41 @@ export default function LoginPage() {
           <div className="bg-[#1E2028] border border-[#7C6FFF]/30 rounded-xl p-6 text-center">
             <p className="text-[#F8F7F4] font-medium mb-2">Revisa tu email</p>
             <p className="text-[#9BA0AD] text-sm">
-              Te hemos enviado un enlace de confirmación a <strong className="text-[#F8F7F4]">{email}</strong>.
-              Haz clic en él para activar tu cuenta.
+              {mode === 'forgot' ? (
+                <>Te hemos enviado un enlace para restablecer tu contraseña a <strong className="text-[#F8F7F4]">{email}</strong>.</>
+              ) : (
+                <>Te hemos enviado un enlace de confirmación a <strong className="text-[#F8F7F4]">{email}</strong>. Haz clic en él para activar tu cuenta.</>
+              )}
             </p>
           </div>
+        ) : mode === 'forgot' ? (
+          <>
+            <form onSubmit={handleEmail} className="flex flex-col gap-3">
+              <input
+                type="email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                className="w-full bg-[#1E2028] border border-white/10 focus:border-[#7C6FFF]/50 text-[#F8F7F4] placeholder:text-[#555966] rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+              />
+              {error && (
+                <p className="text-red-400 text-xs font-mono">{error}</p>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Enviando...' : 'Enviar enlace'}
+              </button>
+            </form>
+            <p className="text-center text-[#9BA0AD] text-sm mt-4">
+              <button onClick={() => { setMode('login'); setError('') }} className="text-[#7C6FFF] hover:underline">
+                ← Volver a entrar
+              </button>
+            </p>
+          </>
         ) : (
           <>
             <button
@@ -116,6 +156,16 @@ export default function LoginPage() {
                 minLength={6}
                 className="w-full bg-[#1E2028] border border-white/10 focus:border-[#7C6FFF]/50 text-[#F8F7F4] placeholder:text-[#555966] rounded-xl px-4 py-3 text-sm outline-none transition-colors"
               />
+
+              {mode === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => { setMode('forgot'); setError('') }}
+                  className="text-[#7C6FFF] hover:underline text-xs self-end -mt-1"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              )}
 
               {error && (
                 <p className="text-red-400 text-xs font-mono">{error}</p>
