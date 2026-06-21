@@ -67,7 +67,7 @@ export default function SearchClient({ userId }: { userId: string }) {
         </div>
 
         {results.length > 0 && (
-          <div className="bg-[#0d0d0f] border border-white/[0.06] rounded-xl overflow-hidden">
+          <div className="card-elevated rounded-xl overflow-hidden">
             {results.map((track, i) => {
               const proj = track.projects as any
               const isPlaying = currentTrack?.id === track.id
