@@ -36,3 +36,20 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--elevated); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+
+/* Feedback sutil al pulsar cualquier botón de la web */
+button:not(:disabled) {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* Fundido de entrada al cambiar de página — usado por app/template.tsx */
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-fade-in {
+  animation: pageFadeIn 0.18s ease-out;
+}
