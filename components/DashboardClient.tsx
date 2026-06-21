@@ -59,7 +59,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
 
   const ProjectCard = ({ project, ownerName }: { project: Project; ownerName: string }) => (
     <button onClick={() => router.push(`/dashboard/proyecto/${project.id}`)} className="text-left group">
-      <div className="w-full aspect-square rounded-[14px] bg-[#181c27] border border-white/[0.07] mb-3 flex items-center justify-center relative overflow-hidden">
+      <div className="w-full aspect-square rounded-[14px] card-elevated mb-3 flex items-center justify-center relative overflow-hidden">
         {project.cover_url
           ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
           : <div className="text-4xl opacity-25 group-hover:opacity-35 transition-opacity">💿</div>
@@ -77,7 +77,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={e => { if (e.target === e.currentTarget) { setShowNewProject(false); setCreateError('') } }}
         >
-          <div className="bg-[#181c27] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm">
+          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
             <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Nuevo proyecto</p>
             <h3 className="font-medium text-[#EAE9E6] text-base mb-4">¿Cómo se llama?</h3>
             <form onSubmit={handleCreateProject} className="flex flex-col gap-3">
