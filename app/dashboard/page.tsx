@@ -4,6 +4,9 @@ import Link from 'next/link'
 import DashboardClient from '@/components/DashboardClient'
 import NotificationBell from '@/components/NotificationBell'
 
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 const R2_PUBLIC = 'https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev'
 
 export default async function DashboardPage() {
