@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { translateAuthError } from '@/lib/auth-errors'
 
 export default function ResetPasswordPage() {
   const [password, setPassword]     = useState('')
@@ -39,7 +40,7 @@ export default function ResetPasswordPage() {
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
-      setError(error.message)
+      setError(translateAuthError(error.message))
       setLoading(false)
     } else {
       setDone(true)
