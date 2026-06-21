@@ -130,7 +130,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={e => { if (e.target === e.currentTarget) setShowAvatarModal(false) }}
         >
-          <div className="bg-[#181c27] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm">
+          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
             <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Foto de perfil</p>
             <h3 className="font-medium text-[#EAE9E6] text-base mb-6">Elige una nueva foto</h3>
 
@@ -174,7 +174,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
       {/* Modal de confirmación */}
       {confirmModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-[#181c27] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm">
+          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-[#F8F7F4] font-medium text-base mb-2">{confirmModal.title}</h3>
             <p className="text-[#9BA0AD] text-sm mb-6 leading-relaxed">{confirmModal.desc}</p>
             <div className="flex gap-2">
@@ -272,7 +272,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
       <main className="max-w-2xl mx-auto px-8 py-10">
 
         {/* Tarjeta de perfil */}
-        <div className="bg-[#181c27] border border-white/[0.07] rounded-2xl p-6 mb-6">
+        <div className="card-elevated rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-5">
 
             {/* Avatar — click abre modal */}
@@ -354,7 +354,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
         {/* Tab: Perfil */}
         {tab === 'profile' && (
           <div className="flex flex-col gap-3">
-            <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
+            <div className="card-elevated rounded-xl p-5">
               <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-3">Nombre de usuario</p>
               {editing ? (
                 <div className="relative">
@@ -371,7 +371,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
               )}
             </div>
 
-            <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
+            <div className="card-elevated rounded-xl p-5">
               <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-3">Roles públicos</p>
               {editing ? (
                 <div className="flex flex-col gap-2">
@@ -425,7 +425,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
 
         {/* Tab: Seguridad */}
         {tab === 'security' && (
-          <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
+          <div className="card-elevated rounded-xl p-5">
             <p className="text-[#555966] text-xs font-mono uppercase tracking-wider mb-4">Correo electrónico</p>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#1f2335] border border-white/[0.07] flex items-center justify-center flex-shrink-0">
@@ -444,7 +444,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
 
         {/* Tab: Plan */}
         {tab === 'plan' && (
-          <div className="bg-[#181c27] border border-white/[0.07] rounded-xl p-5">
+          <div className="card-elevated rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[#555966] text-xs font-mono uppercase tracking-wider">Plan actual</p>
               {profile.plan !== 'free' && (
@@ -482,7 +482,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
         )}
 
         {/* Enlaces legales */}
-        <div className="mt-4 bg-[#181c27] border border-white/[0.07] rounded-xl overflow-hidden">
+        <div className="mt-4 card-elevated rounded-xl overflow-hidden">
           {[
             { label: 'Política de Privacidad', href: '/privacy' },
             { label: 'Términos de Uso',        href: '/terms' },
