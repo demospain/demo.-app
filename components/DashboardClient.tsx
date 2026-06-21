@@ -49,7 +49,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
       .from('projects')
       .insert({ title: newTitle.trim(), owner_id: userId, visibility: 'private', status: 'draft' })
       .select().single()
-    if (error) { setCreateError(`Error: ${error.message}`); setCreating(false); return }
+    if (error) { setCreateError('No se ha podido crear el proyecto. Inténtalo de nuevo.'); setCreating(false); return }
     if (data) { setNewTitle(''); setShowNewProject(false); router.push(`/dashboard/proyecto/${data.id}`) }
     setCreating(false)
   }
