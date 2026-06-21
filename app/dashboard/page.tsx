@@ -83,7 +83,7 @@ export default async function DashboardPage() {
           <Link
             href="/dashboard"
             className="hover:opacity-80 transition-opacity"
-            style={{ fontFamily: "'DM Mono', monospace", fontSize: '32px', fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1, color: '#EAE9E6', textDecoration: 'none' }}
+            style={{ fontFamily: "var(--font-dm-mono), 'DM Mono', monospace", fontSize: '32px', fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1, color: '#EAE9E6', textDecoration: 'none' }}
           >
             demo<span style={{ color: '#6E62F5' }}>.</span>
           </Link>
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
             <Link href="/profile">
               <div
                 className="h-10 w-10 rounded-xl overflow-hidden flex items-center justify-center text-sm font-bold hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: '#F8F7F4', color: '#0f1117', fontFamily: "'Inter', sans-serif" }}
+                style={{ backgroundColor: '#F8F7F4', color: '#0f1117', fontFamily: "var(--font-inter), 'Inter', sans-serif" }}
               >
                 {avatarUrl
                   ? <img src={avatarUrl} alt="" className="w-full h-full object-cover"/>
