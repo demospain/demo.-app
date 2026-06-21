@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
 
 // Landing page completa servida como HTML estático en /landing.
-// Contenido idéntico al de demospain.github.io/demo., con las secciones
-// actualizadas (instalación, sin mockup interactivo, sin planes de precio
-// de artista, sin testimonios, con términos/cookies en el footer).
 const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -502,156 +499,124 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
       <p class="sec-sub" style="max-width:420px;margin:0 auto 32px">Se instala como cualquier app, directa desde tu navegador. Sin tiendas, sin esperas, sin ocupar de más.</p>
       <a href="https://demospain.app/instalar" class="btn btn-lg btn-purple" style="padding:17px 36px;font-size:17px;box-shadow:0 8px 24px rgba(110,98,245,.35)">Instalar app ahora →</a>
       <p style="font-family:var(--mono);font-size:11px;color:var(--gray-dim);margin-top:16px;letter-spacing:.04em">Gratis · 10 segundos · Sin tarjeta</p>
+      <a href="https://www.demospain.app/profile" style="display:inline-block;margin-top:22px;font-size:12px;color:var(--gray-dim);text-decoration:underline;text-underline-offset:3px">o usa la app en el navegador</a>
     </div>
   </div>
 </section>
 
 <!-- PLAN GRATUITO -->
-<section style="background:var(--dark);padding:80px 20px">
-  <div style="max-width:700px;margin:0 auto;text-align:center">
-    <div class="reveal" style="display:inline-block;background:rgba(124,111,255,.1);border:1px solid rgba(124,111,255,.2);border-radius:20px;padding:5px 16px;font-family:var(--mono);font-size:11px;color:var(--purple);letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px">Plan gratuito para siempre</div>
-    <div class="reveal d1" style="font-family:var(--mono);font-size:clamp(72px,16vw,112px);font-weight:500;line-height:1;letter-spacing:-.04em;color:var(--white);margin-bottom:8px">0<span style="font-size:.26em;color:var(--gray-mid);vertical-align:baseline;font-weight:400"> EUR/mes</span></div>
-    <p class="reveal d2" style="font-size:15px;color:var(--gray-mid);margin-bottom:28px">Sin tarjeta · Sin límite de tiempo · Sin letra pequeña</p>
-    <div class="reveal d3" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px">
-      <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>50 canciones</div>
-      <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Proyectos ilimitados</div>
-      <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Waveform player</div>
-      <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Sin descargas al móvil</div>
-      <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Notificaciones</div>
-      <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Proyectos grupales</div>
-    </div>
-    <div class="reveal d4" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <a href="#waitlist" class="btn btn-lg btn-purple">Crear mi cuenta gratis</a>
-      <a href="#artista" class="btn btn-lg btn-ghost">Ver planes</a>
+<section style="padding:90px 20px">
+  <div class="container" style="max-width:700px">
+    <div class="reveal" style="position:relative;border-radius:24px;padding:56px 32px;text-align:center;background:radial-gradient(120% 140% at 50% 0%,rgba(110,98,245,.16),rgba(110,98,245,0) 60%),var(--dark);border:1px solid rgba(110,98,245,.25);overflow:hidden">
+      <div style="display:inline-block;background:rgba(110,98,245,.1);border:1px solid rgba(110,98,245,.2);border-radius:20px;padding:5px 16px;font-family:var(--mono);font-size:11px;color:var(--purple);letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px">Plan gratuito para siempre</div>
+      <div style="font-family:var(--mono);font-size:clamp(64px,14vw,96px);font-weight:500;line-height:1;letter-spacing:-.04em;color:var(--white);margin-bottom:8px">0<span style="font-size:.26em;color:var(--gray-mid);vertical-align:baseline;font-weight:400"> EUR/mes</span></div>
+      <p style="font-size:15px;color:var(--gray-mid);margin-bottom:28px">Sin tarjeta · Sin límite de tiempo · Sin letra pequeña</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px">
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>50 canciones</div>
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Proyectos ilimitados</div>
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Waveform player</div>
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Sin descargas al móvil</div>
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Notificaciones</div>
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Proyectos grupales</div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="#waitlist" class="btn btn-lg btn-purple">Crear mi cuenta gratis</a>
+        <a href="#artista" class="btn btn-lg btn-ghost">Ver funcionalidades</a>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- HOW -->
-<section style="padding:96px 20px">
-  <div class="container">
-    <span class="eyebrow reveal" style="text-align:center;display:block">Cómo funciona</span>
-    <h2 class="sec-title reveal d1" style="text-align:center">Tres pasos, sin complicaciones.</h2>
-    <div class="steps">
-      <div class="step reveal d2"><p class="step-num">01</p><div class="step-icon">⬆️</div><h3 class="step-title">Sube tu música</h3><p class="step-desc">WAV, MP3, FLAC o AIFF. Los archivos viven en la nube, no en tu móvil.</p></div>
-      <div class="step reveal d3"><p class="step-num">02</p><div class="step-icon">💿</div><h3 class="step-title">Crea un proyecto</h3><p class="step-desc">Organiza con portada y tracklist. Previsualiza tu álbum antes de publicarlo.</p></div>
-      <div class="step reveal d4"><p class="step-num">03</p><div class="step-icon">🔗</div><h3 class="step-title">Comparte con un link</h3><p class="step-desc">Privado, con link o público. El receptor escucha en el navegador, sin descargar nada.</p></div>
+<section style="padding:90px 20px">
+  <div class="container" style="max-width:780px">
+    <div class="reveal" style="position:relative;border-radius:24px;padding:56px 32px;background:radial-gradient(120% 140% at 50% 0%,rgba(110,98,245,.16),rgba(110,98,245,0) 60%),var(--dark);border:1px solid rgba(110,98,245,.25);overflow:hidden">
+      <span class="eyebrow" style="text-align:center;display:block">Cómo funciona</span>
+      <h2 class="sec-title" style="text-align:center;margin-bottom:8px">Tres pasos, sin complicaciones.</h2>
+      <div class="steps">
+        <div class="step"><p class="step-num">01</p><div class="step-icon">⬆️</div><h3 class="step-title">Sube tu música</h3><p class="step-desc">WAV, MP3, FLAC o AIFF. Los archivos viven en la nube, no en tu móvil.</p></div>
+        <div class="step"><p class="step-num">02</p><div class="step-icon">💿</div><h3 class="step-title">Crea un proyecto</h3><p class="step-desc">Organiza con portada y tracklist. Previsualiza tu álbum antes de publicarlo.</p></div>
+        <div class="step"><p class="step-num">03</p><div class="step-icon">🔗</div><h3 class="step-title">Comparte con un link</h3><p class="step-desc">Privado, con link o público. El receptor escucha en el navegador, sin descargar nada.</p></div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ARTISTA -->
-<section style="padding:96px 20px" id="artista">
-  <div class="container">
-    <span class="eyebrow reveal" style="display:block">Para artistas independientes</span>
-    <h2 class="sec-title reveal d1">Tu espacio antes de publicar.</h2>
-    <p class="sec-sub reveal d2">Todo lo que necesitas para guardar, organizar y compartir tu música. Gratis.</p>
-    <div class="feat-grid reveal d3" style="margin-top:40px">
-      <div class="feat-card"><div class="feat-icon">📁</div><div class="feat-title">50 canciones gratis</div><div class="feat-desc">Sube hasta 50 canciones sin que ocupen espacio en tu móvil. Tus archivos viven en la nube.</div></div>
-      <div class="feat-card"><div class="feat-icon">💿</div><div class="feat-title">Proyectos tipo álbum</div><div class="feat-desc">Crea proyectos con portada y tracklist. Previsualiza tu EP o álbum antes de subirlo a Spotify.</div><span class="feat-tag">diferencial</span></div>
-      <div class="feat-card"><div class="feat-icon">🔔</div><div class="feat-title">Notificaciones de escuchas</div><div class="feat-desc">Sabes quién escuchó tu música, qué canción y cuándo. No hay que adivinar.</div><span class="feat-tag">diferencial</span></div>
-      <div class="feat-card"><div class="feat-icon">👥</div><div class="feat-title">Proyectos grupales</div><div class="feat-desc">Varios artistas administran el mismo proyecto. Perfecto para grupos y colectivos.</div></div>
-      <div class="feat-card"><div class="feat-icon">📂</div><div class="feat-title">Compartido conmigo</div><div class="feat-desc">Lo que otros te comparten aparece en tu página principal, organizado y con notificaciones.</div></div>
-      <div class="feat-card"><div class="feat-icon">🔒</div><div class="feat-title">Control total del acceso</div><div class="feat-desc">Privado, solo con link o público. Cambia la visibilidad cuando quieras.</div></div>
-      <div class="feat-card wide"><div class="feat-icon">💬</div><div class="feat-title">Comentarios en el segundo exacto</div><div class="feat-desc">Tu colaborador comenta exactamente en el 1:32. Sin "en el minuto uno y algo". Feedback preciso, directo al punto.</div></div>
+<section style="padding:90px 20px" id="artista">
+  <div class="container" style="max-width:820px">
+    <div class="reveal" style="position:relative;border-radius:24px;padding:56px 32px;background:radial-gradient(120% 140% at 50% 0%,rgba(110,98,245,.16),rgba(110,98,245,0) 60%),var(--dark);border:1px solid rgba(110,98,245,.25);overflow:hidden">
+      <span class="eyebrow" style="display:block">Para artistas independientes</span>
+      <h2 class="sec-title">Tu espacio antes de publicar.</h2>
+      <p class="sec-sub">Todo lo que necesitas para guardar, organizar y compartir tu música. Gratis.</p>
+      <div class="feat-grid" style="margin-top:40px">
+        <div class="feat-card"><div class="feat-icon">📁</div><div class="feat-title">50 canciones gratis</div><div class="feat-desc">Sube hasta 50 canciones sin que ocupen espacio en tu móvil. Tus archivos viven en la nube.</div></div>
+        <div class="feat-card"><div class="feat-icon">💿</div><div class="feat-title">Proyectos tipo álbum</div><div class="feat-desc">Crea proyectos con portada y tracklist. Previsualiza tu EP o álbum antes de subirlo a Spotify.</div><span class="feat-tag">diferencial</span></div>
+        <div class="feat-card"><div class="feat-icon">🔔</div><div class="feat-title">Notificaciones de escuchas</div><div class="feat-desc">Sabes quién escuchó tu música, qué canción y cuándo. No hay que adivinar.</div><span class="feat-tag">diferencial</span></div>
+        <div class="feat-card"><div class="feat-icon">👥</div><div class="feat-title">Proyectos grupales</div><div class="feat-desc">Varios artistas administran el mismo proyecto. Perfecto para grupos y colectivos.</div></div>
+        <div class="feat-card"><div class="feat-icon">📂</div><div class="feat-title">Compartido conmigo</div><div class="feat-desc">Lo que otros te comparten aparece en tu página principal, organizado y con notificaciones.</div></div>
+        <div class="feat-card"><div class="feat-icon">🔒</div><div class="feat-title">Control total del acceso</div><div class="feat-desc">Privado, solo con link o público. Cambia la visibilidad cuando quieras.</div></div>
+        <div class="feat-card wide"><div class="feat-icon">💬</div><div class="feat-title">Comentarios en el segundo exacto</div><div class="feat-desc">Tu colaborador comenta exactamente en el 1:32. Sin "en el minuto uno y algo". Feedback preciso, directo al punto.</div></div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- PRODUCTOR -->
-<section style="background:var(--dark);padding:96px 20px" id="productor">
-  <div class="container" style="max-width:600px;text-align:center">
-    <span class="eyebrow reveal" style="display:block">Para productores e ingenieros</span>
-    <h2 class="sec-title reveal d1">El flujo con tus clientes, ordenado.</h2>
-    <p class="sec-sub reveal d2" style="margin:12px auto 40px">Gestiona revisiones, versiones y aprobaciones sin perder el hilo. Tu cliente accede siempre gratis.</p>
-    <div class="reveal d3" style="display:inline-flex;flex-direction:column;align-items:center;gap:12px;background:var(--black);border:1px solid rgba(110,98,245,.25);border-radius:var(--r-lg);padding:40px 32px;max-width:420px">
-      <div style="font-size:32px">🎛️</div>
-      <div style="font-family:var(--mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--purple)">Próximamente</div>
-      <p style="font-size:14px;color:var(--gray-mid);line-height:1.6">Estamos terminando esta parte. Si gestionas clientes como productor o ingeniero, apúntate y te avisamos en cuanto esté lista.</p>
-      <a href="#waitlist" class="btn btn-lg btn-purple" style="margin-top:8px">Avísame</a>
+<section style="padding:90px 20px" id="productor">
+  <div class="container" style="max-width:600px">
+    <div class="reveal" style="position:relative;border-radius:24px;padding:56px 32px;text-align:center;background:radial-gradient(120% 140% at 50% 0%,rgba(110,98,245,.16),rgba(110,98,245,0) 60%),var(--dark);border:1px solid rgba(110,98,245,.25);overflow:hidden">
+      <div style="font-size:32px;margin-bottom:12px">🎛️</div>
+      <span class="eyebrow" style="display:block">Para productores e ingenieros</span>
+      <h2 class="sec-title" style="margin-bottom:14px">El flujo con tus clientes, ordenado.</h2>
+      <p class="sec-sub" style="max-width:420px;margin:0 auto 28px">Gestiona revisiones, versiones y aprobaciones sin perder el hilo. Tu cliente accede siempre gratis.</p>
+      <div style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);margin-bottom:10px">Próximamente</div>
+      <p style="font-size:13px;color:var(--gray-dim);max-width:360px;margin:0 auto 24px;line-height:1.6">Estamos terminando esta parte. Si gestionas clientes como productor o ingeniero, apúntate y te avisamos en cuanto esté lista.</p>
+      <a href="#waitlist" class="btn btn-lg btn-purple">Avísame</a>
     </div>
   </div>
 </section>
 
 <!-- WAITLIST -->
-<section style="padding:96px 20px;text-align:center" id="waitlist">
-  <h2 class="wl-title reveal">demo<span>.</span></h2>
-  <p class="reveal d1" style="font-size:16px;color:var(--gray-mid);max-width:380px;margin:0 auto 40px;line-height:1.6">Estamos construyendo la plataforma. Sé de los primeros — gratis.</p>
-  <form class="wl-form reveal d2" id="wlform" onsubmit="handleSubmit(event)">
-    <input class="wl-input" id="wname" type="text" required placeholder="Tu nombre o artista" autocomplete="name"/>
-    <input class="wl-input" id="wemail" type="email" required placeholder="tu@email.com" autocomplete="email"/>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <label style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-mid);text-align:left">¿Cómo usarás demo.?</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button type="button" class="role-opt" onclick="selRole(this,'Artista independiente')"><span style="font-size:18px;display:block;margin-bottom:4px">🎤</span><span style="font-size:13px;font-weight:500;display:block">Artista</span><span style="font-size:11px;color:var(--gray-mid)">Subo y comparto mi música</span></button>
-        <button type="button" class="role-opt" onclick="selRole(this,'Productor')"><span style="font-size:18px;display:block;margin-bottom:4px">🎛️</span><span style="font-size:13px;font-weight:500;display:block">Productor</span><span style="font-size:11px;color:var(--gray-mid)">Gestiono proyectos de clientes</span></button>
-        <button type="button" class="role-opt" onclick="selRole(this,'Ingeniero de sonido')"><span style="font-size:18px;display:block;margin-bottom:4px">🎚️</span><span style="font-size:13px;font-weight:500;display:block">Ingeniero de sonido</span><span style="font-size:11px;color:var(--gray-mid)">Mezcla, máster y entrega</span></button>
-        <button type="button" class="role-opt" onclick="selRole(this,'Estudio')"><span style="font-size:18px;display:block;margin-bottom:4px">🏢</span><span style="font-size:13px;font-weight:500;display:block">Estudio</span><span style="font-size:11px;color:var(--gray-mid)">Gestiono varios artistas</span></button>
-      </div>
-      <button type="button" class="role-opt" onclick="selRole(this,'Oyente')" style="display:flex;align-items:center;justify-content:center;gap:12px;text-align:left">
-        <span style="font-size:20px;flex-shrink:0">🎧</span>
-        <div><div style="font-size:13px;font-weight:500">Oyente de compartidos</div><div style="font-size:11px;color:var(--gray-mid)">Me comparten música, no subo</div></div>
-      </button>
-      <input type="hidden" id="wrole" value=""/>
-      <p id="role-err" style="font-family:var(--mono);font-size:11px;color:#EF4444;display:none;text-align:left">Selecciona cómo usarás demo. antes de continuar</p>
+<section style="padding:90px 20px" id="waitlist">
+  <div class="container" style="max-width:560px">
+    <div class="reveal" style="position:relative;border-radius:24px;padding:56px 32px;text-align:center;background:radial-gradient(120% 140% at 50% 0%,rgba(110,98,245,.16),rgba(110,98,245,0) 60%),var(--dark);border:1px solid rgba(110,98,245,.25);overflow:hidden">
+      <h2 class="wl-title" style="font-size:clamp(40px,10vw,64px)">demo<span>.</span></h2>
+      <p style="font-size:16px;color:var(--gray-mid);max-width:380px;margin:0 auto 40px;line-height:1.6">Estamos construyendo la plataforma. Sé de los primeros — gratis.</p>
+      <form class="wl-form" id="wlform" onsubmit="handleSubmit(event)">
+        <input class="wl-input" id="wname" type="text" required placeholder="Tu nombre o artista" autocomplete="name"/>
+        <input class="wl-input" id="wemail" type="email" required placeholder="tu@email.com" autocomplete="email"/>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-mid);text-align:left">¿Cómo usarás demo.?</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button type="button" class="role-opt" onclick="selRole(this,'Artista independiente')"><span style="font-size:18px;display:block;margin-bottom:4px">🎤</span><span style="font-size:13px;font-weight:500;display:block">Artista</span><span style="font-size:11px;color:var(--gray-mid)">Subo y comparto mi música</span></button>
+            <button type="button" class="role-opt" onclick="selRole(this,'Productor')"><span style="font-size:18px;display:block;margin-bottom:4px">🎛️</span><span style="font-size:13px;font-weight:500;display:block">Productor</span><span style="font-size:11px;color:var(--gray-mid)">Gestiono proyectos de clientes</span></button>
+            <button type="button" class="role-opt" onclick="selRole(this,'Ingeniero de sonido')"><span style="font-size:18px;display:block;margin-bottom:4px">🎚️</span><span style="font-size:13px;font-weight:500;display:block">Ingeniero de sonido</span><span style="font-size:11px;color:var(--gray-mid)">Mezcla, máster y entrega</span></button>
+            <button type="button" class="role-opt" onclick="selRole(this,'Estudio')"><span style="font-size:18px;display:block;margin-bottom:4px">🏢</span><span style="font-size:13px;font-weight:500;display:block">Estudio</span><span style="font-size:11px;color:var(--gray-mid)">Gestiono varios artistas</span></button>
+          </div>
+          <button type="button" class="role-opt" onclick="selRole(this,'Oyente')" style="display:flex;align-items:center;justify-content:center;gap:12px;text-align:left">
+            <span style="font-size:20px;flex-shrink:0">🎧</span>
+            <div><div style="font-size:13px;font-weight:500">Oyente de compartidos</div><div style="font-size:11px;color:var(--gray-mid)">Me comparten música, no subo</div></div>
+          </button>
+          <input type="hidden" id="wrole" value=""/>
+          <p id="role-err" style="font-family:var(--mono);font-size:11px;color:#EF4444;display:none;text-align:left">Selecciona cómo usarás demo. antes de continuar</p>
+        </div>
+        <button type="submit" id="wbtn" class="btn btn-lg btn-purple btn-full">Apuntarme gratis</button>
+        <input type="text" name="website" id="hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" aria-hidden="true"/>
+      </form>
+      <div class="wl-msg" id="wmsg"></div>
+      <p style="font-family:var(--mono);font-size:11px;color:var(--gray-dim);margin-top:12px">Sin spam · Te avisamos cuando esté lista · <a href="https://www.demospain.app/privacy" style="color:var(--gray-mid);text-decoration:underline;text-underline-offset:3px">Política de privacidad</a></p>
     </div>
-    <button type="submit" id="wbtn" class="btn btn-lg btn-purple btn-full">Apuntarme gratis</button>
-    <input type="text" name="website" id="hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" aria-hidden="true"/>
-  </form>
-  <div class="wl-msg" id="wmsg"></div>
-  <p class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--gray-dim);margin-top:12px">Sin spam · Te avisamos cuando esté lista · <a href="#privacidad" style="color:var(--gray-mid);text-decoration:underline;text-underline-offset:3px">Política de privacidad</a></p>
-</section>
-
-<!-- PRIVACIDAD -->
-<section style="padding:64px 20px;background:var(--dark)" id="privacidad">
-  <div class="container" style="max-width:680px">
-    <span class="eyebrow reveal" style="display:block">Protección de datos</span>
-    <h2 class="sec-title reveal d1" style="font-size:clamp(22px,4vw,30px);margin-bottom:24px">Tu información, protegida.</h2>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div style="background:var(--black);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">¿Qué datos recogemos?</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">Tu nombre, email y rol cuando te apuntas a la lista de espera.</p></div>
-      <div style="background:var(--black);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">¿Para qué los usamos?</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">Exclusivamente para avisarte del lanzamiento y comunicaciones relacionadas con demo. Nunca cederemos tus datos a terceros.</p></div>
-      <div style="background:var(--black);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">Tus derechos (RGPD)</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">Acceso, rectificación, supresión y oposición. Canal: <span style="color:var(--purple);font-family:var(--mono)">hola@demo.fm</span>. Plazo: 30 días.</p></div>
-      <div style="background:var(--black);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">Base legal</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">Consentimiento expreso al rellenar el formulario. Conforme al RGPD y LOPDGDD.</p></div>
-    </div>
-    <p style="font-size:11px;color:var(--gray-dim);margin-top:20px;font-family:var(--mono)">Última actualización: junio 2026 · demo. — Madrid, España</p>
   </div>
 </section>
 
-<!-- TÉRMINOS -->
-<section style="padding:64px 20px;background:var(--black)" id="terminos">
-  <div class="container" style="max-width:680px">
-    <span class="eyebrow reveal" style="display:block">Condiciones</span>
-    <h2 class="sec-title reveal d1" style="font-size:clamp(22px,4vw,30px);margin-bottom:24px">Términos de uso.</h2>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div style="background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">¿Qué es demo.?</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">Una plataforma para subir, organizar y compartir tu música antes de publicarla. El servicio está en fase beta y puede cambiar mientras lo seguimos construyendo.</p></div>
-      <div style="background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">Tu contenido sigue siendo tuyo</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">No reclamamos ningún derecho sobre la música que subes. Nosotros solo la almacenamos y la mostramos a quien tú decidas compartirla.</p></div>
-      <div style="background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">Uso aceptable</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">No subas contenido que no sea tuyo o sobre el que no tengas derechos. Nos reservamos el derecho de retirar contenido que incumpla esto.</p></div>
-      <div style="background:var(--dark);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">Disponibilidad</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">Al estar en beta, el servicio puede sufrir cambios, interrupciones o ajustes de funcionalidad sin previo aviso.</p></div>
-    </div>
-    <p style="font-size:11px;color:var(--gray-dim);margin-top:20px;font-family:var(--mono)">Dudas: <span style="color:var(--purple)">hola@demo.fm</span> · Última actualización: junio 2026</p>
-  </div>
-</section>
-
-<!-- COOKIES -->
-<section style="padding:64px 20px;background:var(--dark)" id="cookies">
-  <div class="container" style="max-width:680px">
-    <span class="eyebrow reveal" style="display:block">Cookies</span>
-    <h2 class="sec-title reveal d1" style="font-size:clamp(22px,4vw,30px);margin-bottom:24px">Política de cookies.</h2>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div style="background:var(--black);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">¿Qué usamos?</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">Solo lo estrictamente necesario para que la sesión funcione al iniciar sesión. Nada de cookies publicitarias ni de rastreo de terceros.</p></div>
-      <div style="background:var(--black);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-md);padding:18px 22px"><p style="font-size:13px;font-weight:500;margin-bottom:5px">¿Puedes desactivarlas?</p><p style="font-size:13px;color:var(--gray-mid);line-height:1.65">Si las bloqueas desde tu navegador, no podrás iniciar sesión ni usar la app correctamente.</p></div>
-    </div>
-    <p style="font-size:11px;color:var(--gray-dim);margin-top:20px;font-family:var(--mono)">Última actualización: junio 2026</p>
-  </div>
-</section>
-
-<footer style="border-top:1px solid rgba(255,255,255,.06);padding:28px 20px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between">
+<footer style="border-top:1px solid rgba(255,255,255,.06);padding:28px 20px;display:flex;flex-wrap:wrap;gap:16px 20px;align-items:center;justify-content:space-between">
   <div class="nav-logo">demo<span>.</span></div>
   <span style="font-size:12px;color:var(--gray-dim)">DROKO & YEB · Madrid, 2026</span>
-  <div style="display:flex;gap:16px;flex-wrap:wrap">
-    <a href="#privacidad" style="font-size:12px;color:var(--gray-dim);text-decoration:underline;text-underline-offset:3px">Privacidad</a>
-    <a href="#terminos" style="font-size:12px;color:var(--gray-dim);text-decoration:underline;text-underline-offset:3px">Términos de uso</a>
-    <a href="#cookies" style="font-size:12px;color:var(--gray-dim);text-decoration:underline;text-underline-offset:3px">Cookies</a>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="https://www.demospain.app/privacy" class="btn btn-ghost" style="padding:7px 14px;font-size:12px;border-radius:8px">Privacidad</a>
+    <a href="https://www.demospain.app/terms" class="btn btn-ghost" style="padding:7px 14px;font-size:12px;border-radius:8px">Términos de uso</a>
+    <a href="https://www.demospain.app/cookies" class="btn btn-ghost" style="padding:7px 14px;font-size:12px;border-radius:8px">Cookies</a>
   </div>
 </footer>
 
