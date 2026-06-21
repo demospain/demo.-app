@@ -943,6 +943,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                           const dy = Math.abs(e.changedTouches[0].clientY - startY)
                           // Solo si fue tap (movimiento < 8px), no scroll
                           if (dy < 8) {
+                            e.preventDefault() // evita el click sintético posterior, que duplicaría la llamada
                             playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })))
                           }
                         }}
