@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, DM_Mono } from 'next/font/google'
 import './globals.css'
 import ClientProviders from '@/components/ClientProviders'
@@ -20,6 +20,18 @@ const dmMono = DM_Mono({
 export const metadata: Metadata = {
   title: 'demo. — Tu música, antes de existir para el mundo',
   description: 'Sube, organiza y comparte tu música antes de publicarla.',
+  appleWebApp: {
+    capable: true,
+    title: 'demo.',
+    statusBarStyle: 'black-translucent',
+  },
+  icons: {
+    apple: '/icon-192.png',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#0f1117',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
