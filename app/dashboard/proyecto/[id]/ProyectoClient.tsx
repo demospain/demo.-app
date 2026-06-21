@@ -435,7 +435,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       {/* Modal de confirmación */}
       {confirmModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-[#181c27] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm">
+          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-[#F8F7F4] font-medium text-base mb-2">{confirmModal.title}</h3>
             <p className="text-[#9BA0AD] text-sm mb-6 leading-relaxed">{confirmModal.desc}</p>
             <div className="flex gap-2">
@@ -602,7 +602,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       {showSharePanel && (
         <div className="fixed inset-0 z-40" onClick={() => setShowSharePanel(false)}>
           <div
-            className="absolute right-6 top-16 w-80 bg-[#13141a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
+            className="absolute right-6 top-16 w-80 card-elevated rounded-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
@@ -728,7 +728,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={e => { if (e.target === e.currentTarget) setRenamingProject(false) }}
         >
-          <div className="bg-[#13141a] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm">
+          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
             <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Renombrar proyecto</p>
             <h3 className="font-medium text-[#F8F7F4] text-base mb-4">¿Nuevo nombre?</h3>
             <input
@@ -767,7 +767,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={e => { if (e.target === e.currentTarget) setShowAdminsModal(false) }}
         >
-          <div className="bg-[#13141a] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm max-h-[80vh] flex flex-col">
+          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between mb-1">
               <p className="font-mono text-xs text-[#555966] uppercase tracking-widest">Administradores</p>
               <button onClick={() => setShowAdminsModal(false)} className="text-[#555966] hover:text-[#9BA0AD] transition-colors">
@@ -906,7 +906,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             )}
 
             {tracks.length > 0 && (
-              <div className="bg-[#181c27] border border-white/[0.07] rounded-xl overflow-visible">
+              <div className="card-elevated rounded-xl overflow-visible">
                 <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
                   <span className="text-[#555966] text-sm font-mono uppercase tracking-wider">Tracklist</span>
                   <span className="text-[#555966] text-sm font-mono">
