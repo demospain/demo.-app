@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       .jpeg({ quality: 85 })
       .toBuffer()
 
-    return new NextResponse(normalized, {
+    return new NextResponse(new Uint8Array(normalized), {
       status: 200,
       headers: {
         'Content-Type':  'image/jpeg',
