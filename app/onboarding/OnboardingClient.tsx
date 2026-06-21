@@ -8,12 +8,11 @@ interface Props {
   suggestedUsername: string
 }
 
-type Role = 'artist' | 'producer' | 'engineer' | 'listener'
+type Role = 'artist' | 'producer' | 'listener'
 
 const ROLES: { id: Role; label: string; emoji: string; desc: string }[] = [
   { id: 'artist',   label: 'Artista',            emoji: '🎤', desc: 'Subo y comparto mi música' },
   { id: 'producer', label: 'Productor',           emoji: '🎛️', desc: 'Gestiono proyectos con artistas' },
-  { id: 'engineer', label: 'Ingeniero de sonido', emoji: '🎚️', desc: 'Mezcla, máster y entrega' },
   { id: 'listener', label: 'Oyente',              emoji: '🎧', desc: 'Escucho música compartida' },
 ]
 
@@ -76,7 +75,7 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
   const supabase = createClient()
 
   const isListener   = roles.length === 1 && roles[0] === 'listener'
-  const needsProPlan = roles.includes('producer') || roles.includes('engineer')
+  const needsProPlan = roles.includes('producer')
   const plansToShow  = needsProPlan ? PLANS_PRO : PLANS_ARTIST
 
   const toggleRole = (role: Role) => {
