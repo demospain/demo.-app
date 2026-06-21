@@ -59,16 +59,11 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
 
   const ProjectCard = ({ project, ownerName }: { project: Project; ownerName: string }) => (
     <button onClick={() => router.push(`/dashboard/proyecto/${project.id}`)} className="text-left group">
-      <div className="w-full aspect-square rounded-[14px] bg-[#181c27] border border-white/[0.07] group-hover:border-[#6E62F5]/30 transition-all duration-200 mb-3 flex items-center justify-center relative overflow-hidden">
+      <div className="w-full aspect-square rounded-[14px] bg-[#181c27] border border-white/[0.07] mb-3 flex items-center justify-center relative overflow-hidden">
         {project.cover_url
           ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
           : <div className="text-4xl opacity-25 group-hover:opacity-35 transition-opacity">💿</div>
         }
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
-          <div className="w-9 h-9 rounded-full bg-[#6E62F5] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 scale-90 group-hover:scale-100">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="white"><path d="M2 1.5l7 4-7 4V1.5z"/></svg>
-          </div>
-        </div>
       </div>
       <p className="text-base font-medium text-[#EAE9E6] truncate leading-tight group-hover:text-white transition-colors">{project.title}</p>
       <p className="text-xs font-mono text-[#555966] mt-0.5 truncate">{ownerName}</p>
