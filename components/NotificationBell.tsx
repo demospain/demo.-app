@@ -165,7 +165,7 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
       </button>
 
       {open && (
-        <div className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-11 sm:w-96 bg-[#181c27] border border-white/[0.07] rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-11 sm:w-96 card-elevated rounded-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
             <span className="text-sm font-medium text-[#EAE9E6]">Notificaciones</span>
             {unreadCount > 0 && (
