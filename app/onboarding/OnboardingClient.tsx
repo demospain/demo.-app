@@ -159,7 +159,7 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
 
         {/* ── PASO 1: NOMBRE DE USUARIO ── */}
         {step === 1 && (
-          <div className="bg-[#1E2028] border border-white/[0.08] rounded-2xl p-8">
+          <div className="card-elevated rounded-2xl p-8">
             <h1 className="text-2xl font-medium text-[#F8F7F4] mb-2">¿Cómo te llaman?</h1>
             <p className="text-[#9BA0AD] text-sm mb-7">
               Tu nombre de usuario público en demo. Puedes cambiarlo después.
@@ -197,7 +197,7 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
 
         {/* ── PASO 2: ROLES ── */}
         {step === 2 && (
-          <div className="bg-[#1E2028] border border-white/[0.08] rounded-2xl p-8">
+          <div className="card-elevated rounded-2xl p-8">
             <h1 className="text-2xl font-medium text-[#F8F7F4] mb-2">¿Cómo usarás demo.?</h1>
             <p className="text-[#9BA0AD] text-sm mb-7">
               Puedes seleccionar varios roles. Esto personaliza tu experiencia.
