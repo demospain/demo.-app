@@ -102,7 +102,7 @@ export default function UploadTrack({ projectId, onUploadComplete, onLimitReache
       onUploadComplete?.(track)
 
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
+      setError('No se ha podido subir el archivo. Inténtalo de nuevo.')
     } finally {
       setUploading(false)
     }
