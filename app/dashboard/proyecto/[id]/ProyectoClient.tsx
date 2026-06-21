@@ -133,6 +133,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const [savedUsers, setSavedUsers]         = useState<{ user_id: string; username: string }[]>([])
   const [adminIds, setAdminIds]             = useState<Set<string>>(new Set())
   const [loadingAdmins, setLoadingAdmins]   = useState(false)
+  const [adminError, setAdminError]         = useState('')
   const dragIdRef                           = useRef<string | null>(null)
   const coverInputRef                       = useRef<HTMLInputElement>(null)
   const replaceInputRef                     = useRef<HTMLInputElement>(null)
@@ -307,6 +308,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setShowDotsMenu(false)
     setShowAdminsModal(true)
     setLoadingAdmins(true)
+    setAdminError('')
     const [{ data: saved }, { data: members }] = await Promise.all([
       supabase.from('saved_projects').select('user_id, profiles(username)').eq('project_id', project.id),
       supabase.from('project_members').select('user_id').eq('project_id', project.id).eq('role', 'admin'),
@@ -319,6 +321,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   }
 
   const toggleAdmin = async (targetUserId: string) => {
+    setAdminError('')
     const isCurrentlyAdmin = adminIds.has(targetUserId)
     if (isCurrentlyAdmin) {
       const { error } = await supabase
@@ -326,12 +329,17 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         .delete()
         .eq('project_id', project.id)
         .eq('user_id', targetUserId)
-      if (!error) setAdminIds(prev => { const next = new Set(prev); next.delete(targetUserId); return next })
+      if (error) { console.error('Error al quitar administrador:', error); setAdminError('No se ha podido actualizar. Inténtalo de nuevo.'); return }
+      setAdminIds(prev => { const next = new Set(prev); next.delete(targetUserId); return next })
     } else {
+      // upsert en vez de insert: si ya existe una fila en project_members para este usuario
+      // (por ejemplo, creada al guardar el proyecto en su biblioteca), un insert normal
+      // choca con la clave única y falla en silencio — el botón no hacía nada.
       const { error } = await supabase
         .from('project_members')
-        .insert({ project_id: project.id, user_id: targetUserId, role: 'admin' })
-      if (!error) setAdminIds(prev => new Set(prev).add(targetUserId))
+        .upsert({ project_id: project.id, user_id: targetUserId, role: 'admin' }, { onConflict: 'project_id,user_id' })
+      if (error) { console.error('Error al añadir administrador:', error); setAdminError('No se ha podido actualizar. Inténtalo de nuevo.'); return }
+      setAdminIds(prev => new Set(prev).add(targetUserId))
     }
   }
 
@@ -777,6 +785,9 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </button>
             </div>
             <h3 className="font-medium text-[#F8F7F4] text-base mb-4">¿Quién puede editar este proyecto?</h3>
+            {adminError && (
+              <p className="text-[#E24B4A] text-xs font-mono mb-3">{adminError}</p>
+            )}
 
             {loadingAdmins ? (
               <div className="flex justify-center py-8">
