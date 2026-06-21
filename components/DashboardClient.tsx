@@ -32,7 +32,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
   const [createError, setCreateError]       = useState('')
   const router   = useRouter()
   const supabase = createClient()
-  const { setLibraryUserId, playTrack } = usePlayer()
+  const { setLibraryUserId, playTrack, currentTrack } = usePlayer()
   const [loadingPlayId, setLoadingPlayId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -99,7 +99,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
   )
 
   return (
-    <div>
+    <div className={currentTrack ? 'pb-24 md:pb-0' : ''}>
       {showNewProject && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
