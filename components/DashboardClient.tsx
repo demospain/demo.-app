@@ -78,7 +78,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
   }
 
   const ProjectCard = ({ project, ownerName }: { project: Project; ownerName: string }) => (
-    <div onClick={() => router.push(`/dashboard/proyecto/${project.id}`)} className="text-left group cursor-pointer">
+    <div onClick={() => router.push(`/dashboard/proyecto/${project.id}`)} className="text-left group cursor-pointer btn-spring">
       <div className="w-full aspect-square rounded-[14px] card-elevated mb-3 flex items-center justify-center relative overflow-hidden">
         {project.cover_url
           ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
