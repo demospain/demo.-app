@@ -651,7 +651,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         {/* MÓVIL */}
         <div
           ref={pillMobileRef}
-          className="md:hidden w-full max-w-lg bg-[#13141a]/96 backdrop-blur-xl border border-white/[0.07] rounded-2xl shadow-2xl overflow-hidden pointer-events-auto btn-spring active:scale-[0.97]"
+          className="md:hidden w-full max-w-lg bg-[#13141a]/96 backdrop-blur-xl border border-white/[0.07] rounded-2xl shadow-2xl overflow-hidden pointer-events-auto btn-spring"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
