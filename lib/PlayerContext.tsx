@@ -1,7 +1,9 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
+import NowPlayingModal from '@/components/NowPlayingModal'
 
 interface Track {
   id:            string
@@ -18,11 +20,22 @@ interface PlayerContextType {
   currentTrack:        Track | null
   isPlaying:           boolean
   shuffleMode:         ShuffleMode
+  repeatMode:          RepeatMode
+  currentTime:         number
+  duration:            number
+  queue:               Track[]
+  loading:             boolean
+  showNowPlaying:      boolean
   playTrack:           (track: Track, queue?: Track[]) => void
   closePlayer:         () => void
   shuffleProject:      () => void
   playShuffledLibrary: (tracks: Track[]) => void
   setLibraryUserId:    (userId: string) => void
+  playNext:            () => void
+  playPrev:            () => void
+  cycleRepeat:         () => void
+  seekTo:              (t: number) => void
+  setShowNowPlaying:   (v: boolean) => void
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null)
@@ -41,6 +54,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
   const [queue, setQueue]               = useState<Track[]>([])
   const [isPlaying, setIsPlaying]       = useState(false)
+  const [showNowPlaying, setShowNowPlaying] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
   const [currentTime, setCurrentTime]   = useState(0)
   const [duration, setDuration]         = useState(0)
   const [loading, setLoading]           = useState(false)
@@ -61,6 +77,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const pickNextShuffleRef = useRef<(() => void) | null>(null)
   const userIdRef          = useRef<string | null>(null)
   const loadTokenRef       = useRef(0)
+  const pendingPlayRef     = useRef(false) // iOS: play() bloqueado en background, reintenta al volver a primer plano
   const supabase           = createClient()
 
   useEffect(() => { currentTrackRef.current = currentTrack }, [currentTrack])
@@ -71,6 +88,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const audio = new Audio()
     audioRef.current = audio
+    if (typeof window !== 'undefined') (window as any).__demoAudio = audio
 
     const onTime  = () => setCurrentTime(audio.currentTime)
     const onMeta  = () => setDuration(audio.duration)
@@ -119,6 +137,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     audio.addEventListener('play',           onPlay)
     audio.addEventListener('pause',          onPause)
     audio.addEventListener('ended',          onEnd)
+
+    // iOS Safari: cuando el usuario salta canción desde la pantalla de bloqueo,
+    // el audio.play() queda pendiente hasta que se vuelve a primer plano.
+    // Detectamos esa situación y reintentamos el play al volver.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && pendingPlayRef.current) {
+        pendingPlayRef.current = false
+        audioRef.current?.play().catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     return () => {
       audio.pause()
       audio.removeEventListener('timeupdate',     onTime)
@@ -126,6 +156,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('play',           onPlay)
       audio.removeEventListener('pause',          onPause)
       audio.removeEventListener('ended',          onEnd)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [])
 
@@ -149,10 +180,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.src    = `https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev/${track.file_path}`
       audio.volume = volume
       audio.load()
-      // .catch() silencia el aborto cuando una llamada más reciente (p. ej. "siguiente" pulsado dos veces)
-      // interrumpe esta misma carga — sin esto, el error se quedaba sin gestionar y la pista podía
-      // quedar pausada hasta un segundo clic.
-      await audio.play().catch(() => {})
+      await audio.play().catch((err) => {
+        // 'NotAllowedError' o 'AbortError' en background (iOS pantalla de bloqueo)
+        // → marcamos para reintentar cuando la página vuelva a primer plano
+        if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') {
+          pendingPlayRef.current = true
+        }
+      })
       // Si mientras esperábamos ya se lanzó una carga más nueva, no seguimos pisando su estado.
       if (token !== loadTokenRef.current) return
       if ('mediaSession' in navigator) {
@@ -260,6 +294,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (audioRef.current) audioRef.current.currentTime = t
     setCurrentTime(t)
   }
+
+  const seekTo = useCallback((t: number) => {
+    if (audioRef.current) audioRef.current.currentTime = t
+    setCurrentTime(t)
+  }, [])
 
   const setLibraryUserId = useCallback((userId: string) => {
     userIdRef.current = userId
@@ -443,7 +482,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   if (!currentTrack) {
     return (
-      <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId }}>
+      <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo }}>
         {children}
       </PlayerContext.Provider>
     )
@@ -543,10 +582,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId }}>
+    <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo }}>
       {children}
 
-      {/* Cola de reproducción */}
+      {mounted && createPortal(
+        <>
+          <NowPlayingModal />
+
+          {/* Cola de reproducción */}
       {showQueue && (
         <div className="fixed bottom-[88px] left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
           <div className="w-full max-w-[700px] bg-[#13141a]/98 backdrop-blur-xl border border-white/[0.07] rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
@@ -605,9 +648,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           onTouchEnd={handleTouchEnd}
         >
           <div className="flex items-center gap-3 px-4 py-3">
-            <Cover size="w-11 h-11" rounded="rounded-xl"/>
+            <div onClick={() => setShowNowPlaying(true)} className="cursor-pointer">
+              <Cover size="w-11 h-11" rounded="rounded-xl"/>
+            </div>
             <div
-              className="flex-1 min-w-0 relative"
+              className="flex-1 min-w-0 relative cursor-pointer"
+              onClick={() => setShowNowPlaying(true)}
               style={{
                 overflow: 'hidden',
                 maskImage: swipeDx !== 0 ? 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)' : undefined,
@@ -793,6 +839,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           </div>
         </div>
       </div>
+        </>,
+        document.body
+      )}
     </PlayerContext.Provider>
   )
 }
