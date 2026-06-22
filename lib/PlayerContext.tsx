@@ -171,18 +171,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     try {
       const audio = audioRef.current
       if (!audio) return
-      audio.pause()
-      audio.src = ''
+      // IMPORTANTE (iOS): asignar src y llamar a play() de forma SÍNCRONA, encadenado
+      // directo al gesto del usuario (incluido el botón de la pantalla de bloqueo).
+      // Nada de `audio.src = ''` + load() antes, ni esperar a un fetch: eso rompe
+      // el "user gesture" y iOS bloquea el play() hasta desbloquear el móvil.
+      audio.src    = `https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev/${track.file_path}`
+      audio.volume = volume
+      const playPromise = audio.play()
+      // El fetch de analítica/URL va DESPUÉS y sin bloquear — no debe interferir con el play.
       fetch('/api/play-url', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath: track.file_path }),
       }).catch(() => {})
-      audio.src    = `https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev/${track.file_path}`
-      audio.volume = volume
-      audio.load()
-      await audio.play().catch((err) => {
-        // 'NotAllowedError' o 'AbortError' en background (iOS pantalla de bloqueo)
-        // → marcamos para reintentar cuando la página vuelva a primer plano
+      await playPromise.catch((err) => {
         if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') {
           pendingPlayRef.current = true
         }
@@ -460,7 +461,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (swipeStartX.current === null) return
     const dx = e.changedTouches[0].clientX - swipeStartX.current
+    const dy = swipeStartY.current !== null ? e.changedTouches[0].clientY - swipeStartY.current : 0
     swipeStartX.current = null; swipeStartY.current = null; swipeIsHoriz.current = null
+    // Tap limpio (sin desplazamiento) → abrir la visualización al instante, 1 solo toque
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
+      setSwipeDx(0); setSwipeAnim('none')
+      setShowNowPlaying(true)
+      return
+    }
     if (dx < -SWIPE_THRESHOLD && hasNext) {
       setSwipeAnim('snap-left')
       setTimeout(() => { playNext(); setSwipeDx(0); setSwipeAnim('none') }, 260)
@@ -643,17 +651,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         {/* MÓVIL */}
         <div
           ref={pillMobileRef}
-          className="md:hidden w-full max-w-lg bg-[#13141a]/96 backdrop-blur-xl border border-white/[0.07] rounded-2xl shadow-2xl overflow-hidden pointer-events-auto"
+          className="md:hidden w-full max-w-lg bg-[#13141a]/96 backdrop-blur-xl border border-white/[0.07] rounded-2xl shadow-2xl overflow-hidden pointer-events-auto btn-spring active:scale-[0.97]"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
           <div className="flex items-center gap-3 px-4 py-3">
-            <div onClick={() => setShowNowPlaying(true)} className="cursor-pointer">
+            <div>
               <Cover size="w-11 h-11" rounded="rounded-xl"/>
             </div>
             <div
-              className="flex-1 min-w-0 relative cursor-pointer"
-              onClick={() => setShowNowPlaying(true)}
+              className="flex-1 min-w-0 relative"
               style={{
                 overflow: 'hidden',
                 maskImage: swipeDx !== 0 ? 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)' : undefined,
