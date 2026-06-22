@@ -15,8 +15,6 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
-  console.log('[dashboard] user.id resuelto en el servidor:', user.id)
-
   const { data: profile } = await supabase
     .from('profiles')
     .select('onboarded, username, avatar_url')
@@ -25,13 +23,11 @@ export default async function DashboardPage() {
 
   if (!profile?.onboarded) redirect('/onboarding')
 
-  const { data: myProjectsRaw, error: projectsError } = await supabase
+  const { data: myProjectsRaw } = await supabase
     .from('projects')
     .select('id, title, cover_url, visibility, status, created_at, owner_id, share_slug')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
-
-  console.log('[dashboard] proyectos encontrados:', myProjectsRaw?.length ?? 0, '— error:', projectsError ?? 'ninguno')
 
   const { data: savedRaw } = await supabase
     .from('saved_projects')
@@ -100,7 +96,7 @@ export default async function DashboardPage() {
 
             <Link href="/profile">
               <div
-                className="h-10 w-10 rounded-xl overflow-hidden flex items-center justify-center text-sm font-bold hover:opacity-90 transition-opacity"
+                className="h-10 w-10 rounded-xl overflow-hidden flex items-center justify-center text-sm font-bold btn-spring"
                 style={{ backgroundColor: '#F8F7F4', color: '#0f1117', fontFamily: "var(--font-inter), 'Inter', sans-serif" }}
               >
                 {avatarUrl
