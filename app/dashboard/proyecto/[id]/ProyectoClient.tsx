@@ -917,10 +917,10 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             )}
 
             {tracks.length > 0 && (
-              <div className="card-elevated rounded-xl overflow-visible">
-                <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
-                  <span className="text-[#555966] text-sm font-mono uppercase tracking-wider">Tracklist</span>
-                  <span className="text-[#555966] text-sm font-mono">
+              <div className="card-elevated rounded-2xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                  <span className="text-[#EAE9E6] text-sm font-medium tracking-tight">Canciones</span>
+                  <span className="text-[#555966] text-xs font-mono bg-white/[0.04] px-2.5 py-1 rounded-full">
                     {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
                     {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
                   </span>
@@ -945,6 +945,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       onDragOver={e => handleDragOver(e, track.id)}
                       onDrop={e => handleDrop(e, track.id)}
                       onDragEnd={handleDragEnd}
+                      className="track-row-enter"
+                      style={{ animationDelay: `${i * 0.03}s` }}
                     >
                       <div
                         onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })))}
@@ -952,18 +954,21 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         onTouchEnd={e => {
                           const startY = (e.currentTarget as any)._touchY ?? 0
                           const dy = Math.abs(e.changedTouches[0].clientY - startY)
-                          // Solo si fue tap (movimiento < 8px), no scroll
                           if (dy < 8) {
-                            e.preventDefault() // evita el click sintético posterior, que duplicaría la llamada
+                            e.preventDefault()
                             playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })))
                           }
                         }}
-                        className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
-                          isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
-                          isActive   ? 'bg-[#7C6FFF]/5' :
-                          'hover:bg-white/[0.02]'
+                        className={`relative flex items-center gap-4 px-6 py-4 border-b border-white/[0.04] last:border-0 group transition-all duration-150 cursor-pointer select-none ${
+                          isDragOver ? 'bg-[#6E62F5]/10 border-t border-[#6E62F5]/30' :
+                          isActive   ? 'bg-[#6E62F5]/[0.07]' :
+                          'hover:bg-white/[0.025] active:bg-white/[0.04]'
                         }`}
                       >
+                        {/* Barra izquierda de canción activa */}
+                        {isActive && (
+                          <div className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-[#6E62F5]" />
+                        )}
                         {canEdit && (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-[#333] hover:text-[#555966] flex-shrink-0 -ml-1">
                             <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
@@ -978,41 +983,41 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         )}
 
                         {isPlaying ? (
-                          <div className="w-5 flex items-end justify-center gap-[2px] h-4 flex-shrink-0">
+                          <div className="w-5 flex items-end justify-center gap-[2.5px] h-4 flex-shrink-0">
                             {[0.6, 1, 0.75, 0.9].map((h, idx) => (
                               <div
                                 key={idx}
-                                className="w-[3px] rounded-sm bg-[#7C6FFF]"
+                                className="w-[3px] rounded-full bg-[#6E62F5]"
                                 style={{
                                   height: `${h * 100}%`,
                                   transformOrigin: 'bottom',
-                                  animation: `waveBar ${0.6 + idx * 0.1}s ease-in-out ${idx * 0.12}s infinite alternate`,
+                                  animation: `waveBar ${0.55 + idx * 0.1}s ease-in-out ${idx * 0.11}s infinite alternate`,
                                 }}
                               />
                             ))}
                           </div>
                         ) : isActive ? (
-                          <div className="w-5 flex items-end justify-center gap-[2px] h-4 flex-shrink-0">
+                          <div className="w-5 flex items-end justify-center gap-[2.5px] h-4 flex-shrink-0">
                             {[0.6, 1, 0.75, 0.9].map((h, idx) => (
-                              <div key={idx} className="w-[3px] rounded-sm bg-[#7C6FFF]/40" style={{ height: `${h * 100}%` }}/>
+                              <div key={idx} className="w-[3px] rounded-full bg-[#6E62F5]/30" style={{ height: `${h * 100}%` }}/>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-[#555966] font-mono text-sm w-5 text-right flex-shrink-0 group-hover:text-[#9BA0AD] transition-colors">
+                          <span className="text-[#555966] font-mono text-xs w-5 text-right flex-shrink-0 group-hover:text-[#9BA0AD] transition-colors tabular-nums">
                             {i + 1}
                           </span>
                         )}
 
                         <div className="flex-1 min-w-0">
-                          <p className={`text-base font-medium truncate transition-colors ${
-                            isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
+                          <p className={`text-sm font-medium truncate transition-colors leading-snug ${
+                            isActive ? 'text-[#6E62F5]' : 'text-[#EAE9E6] group-hover:text-white'
                           }`}>
                             {track.title}
                           </p>
-                          <p className="text-xs font-mono text-[#555966] mt-0.5">
+                          <p className="text-xs font-mono text-[#555966] mt-0.5 truncate">
                             {formatDate(track.created_at)}
                             {track.duration && track.duration > 0 && (
-                              <span> · {formatTrackDuration(track.duration)}</span>
+                              <span className="text-[#383C47]"> · {formatTrackDuration(track.duration)}</span>
                             )}
                           </p>
                         </div>
