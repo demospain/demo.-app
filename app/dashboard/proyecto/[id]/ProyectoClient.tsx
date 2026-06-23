@@ -159,7 +159,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   }, [showSearch])
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const handler = (e: MouseEvent | TouchEvent) => {
       if (dotsMenuRef.current && !dotsMenuRef.current.contains(e.target as Node)) {
         setShowDotsMenu(false)
       }
@@ -170,7 +170,11 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       if (!clickedInsideTrackMenu) setShowTrackMenu(null)
     }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler as EventListener, { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler as EventListener)
+    }
   }, [])
 
   const handleVisibilityChange = async (key: string) => {
@@ -1062,15 +1066,15 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                             </button>
                             {showTrackMenu === track.id && (
                               <>
-                                <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setShowTrackMenu(null) }}/>
                                 <div
                                   className={`absolute right-0 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[160px] ${
                                     i >= filteredTracks.length - 2 ? 'bottom-8' : 'top-8'
                                   }`}
                                   onClick={e => e.stopPropagation()}
+                                  onTouchStart={e => e.stopPropagation()}
                                 >
                                 <button
-                                  onClick={e => { e.stopPropagation(); setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
+                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1079,7 +1083,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Renombrar
                                 </button>
                                 <button
-                                  onClick={async e => { e.stopPropagation(); await handleCopyLink(); setShowTrackMenu(null) }}
+                                  onTouchStart={e => e.stopPropagation()} onClick={async e => { e.stopPropagation(); await handleCopyLink(); setShowTrackMenu(null) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1089,7 +1093,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Compartir
                                 </button>
                                 <button
-                                  onClick={e => { e.stopPropagation(); setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
+                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1099,7 +1103,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Reemplazar
                                 </button>
                                 <button
-                                  onClick={e => { e.stopPropagation(); handleDuplicateTrack(track) }}
+                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleDuplicateTrack(track) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1109,7 +1113,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Duplicar
                                 </button>
                                 <button
-                                  onClick={e => { e.stopPropagation(); handleExportTrack(track) }}
+                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleExportTrack(track) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1120,7 +1124,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                 </button>
                                 <div className="h-px bg-white/[0.06] my-1"/>
                                 <button
-                                  onClick={e => { e.stopPropagation(); confirmDeleteTrack(track.id, track.title) }}
+                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); confirmDeleteTrack(track.id, track.title) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
