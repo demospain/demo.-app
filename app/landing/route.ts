@@ -275,7 +275,7 @@ h1,h2,h3{font-family:var(--sans);font-weight:500;line-height:1.2;color:var(--tex
     <a href="#artista">Artistas</a>
     <a href="#productor">Productores</a>
   </div>
-  <a href="#waitlist" class="nav-cta">Gratis</a>
+  <a href="#instalar" class="nav-cta">Instalar</a>
 </nav>
 
 <!-- HERO -->
@@ -302,16 +302,47 @@ h1,h2,h3{font-family:var(--sans);font-weight:500;line-height:1.2;color:var(--tex
 
 <!-- INSTALAR -->
 <section id="instalar" style="padding:80px 0">
-  <div class="wrap" style="max-width:600px">
-    <div class="glow-card reveal" style="text-align:center">
-      <span class="label">Ya está disponible</span>
-      <h2 style="font-size:clamp(26px,6vw,40px);margin-bottom:14px">Tenla siempre<br>a un toque.</h2>
-      <p style="font-size:15px;color:var(--muted);max-width:380px;margin:0 auto 32px;line-height:1.65">Se instala como cualquier app desde el navegador. Sin tiendas, sin esperas, sin ocupar espacio.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center">
-        <a href="https://demospain.app/instalar" class="btn btn-primary">Instalar app ahora →</a>
-        <a href="https://www.demospain.app/profile" style="font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:underline;text-underline-offset:3px">o usar en el navegador</a>
+  <div class="wrap">
+    <div class="glow-card reveal" style="text-align:center;padding:60px 24px">
+      <span class="label">Ya disponible</span>
+      <h2 style="font-size:clamp(32px,8vw,56px);line-height:1.15;margin-bottom:16px">Tenla siempre<br>a un toque.</h2>
+      <p style="font-size:clamp(14px,3vw,17px);color:var(--muted);max-width:420px;margin:0 auto 40px;line-height:1.65">Se instala directo desde tu navegador.<br>Sin tiendas, sin esperas, sin ocupar espacio.</p>
+
+      <!-- Botones plataforma -->
+      <div style="display:flex;flex-direction:column;gap:14px;max-width:340px;margin:0 auto">
+
+        <!-- iOS -->
+        <a href="https://demospain.app/instalar" style="display:flex;align-items:center;gap:16px;background:var(--text);color:var(--bg);padding:16px 24px;border-radius:14px;text-decoration:none;transition:transform .2s cubic-bezier(.34,1.4,.64,1),box-shadow .2s;box-shadow:0 4px 20px rgba(234,233,230,.1)" onmouseenter="this.style.transform='scale(1.03)';this.style.boxShadow='0 8px 32px rgba(234,233,230,.18)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(234,233,230,.1)'">
+          <svg width="28" height="34" viewBox="0 0 28 34" fill="currentColor"><path d="M23.2 18.1c0-3.7 3-5.5 3.1-5.6-1.7-2.5-4.3-2.8-5.2-2.9-2.2-.2-4.3 1.3-5.5 1.3-1.1 0-2.9-1.3-4.7-1.2-2.4 0-4.6 1.4-5.8 3.5-2.5 4.3-.6 10.7 1.8 14.2 1.2 1.7 2.6 3.6 4.5 3.6 1.8-.1 2.5-1.2 4.6-1.2 2.1 0 2.7 1.2 4.6 1.1 1.9 0 3.2-1.7 4.4-3.5 1.4-2 1.9-3.9 2-4-.1-.1-3.8-1.5-3.8-5.3zm-3.6-9.7c1-1.2 1.6-2.9 1.4-4.6-1.4.1-3 .9-4 2.1-.9 1-1.7 2.7-1.4 4.3 1.5.1 3-.8 4-1.8z"/></svg>
+          <div style="text-align:left">
+            <div style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.6;margin-bottom:2px">iPhone · iPad</div>
+            <div style="font-size:16px;font-weight:500">Instalar en iOS</div>
+          </div>
+        </a>
+
+        <!-- Android -->
+        <a href="https://demospain.app/instalar" style="display:flex;align-items:center;gap:16px;background:var(--text);color:var(--bg);padding:16px 24px;border-radius:14px;text-decoration:none;transition:transform .2s cubic-bezier(.34,1.4,.64,1),box-shadow .2s;box-shadow:0 4px 20px rgba(234,233,230,.1)" onmouseenter="this.style.transform='scale(1.03)';this.style.boxShadow='0 8px 32px rgba(234,233,230,.18)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(234,233,230,.1)'">
+          <svg width="30" height="34" viewBox="0 0 30 34" fill="none"><path d="M1.5 12.2C1.5 11 2.5 10 3.7 10h22.6c1.2 0 2.2 1 2.2 2.2v13.6c0 1.2-1 2.2-2.2 2.2H3.7c-1.2 0-2.2-1-2.2-2.2V12.2z" fill="#34A853"/><path d="M15 10l-8-8M15 10l8-8" stroke="#34A853" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="18" r="1.5" fill="white"/><circle cx="20" cy="18" r="1.5" fill="white"/><path d="M10 24h10" stroke="white" stroke-width="1.5" stroke-linecap="round"/><path d="M1.5 16h27M1.5 22h27" stroke="white" stroke-width=".5" opacity=".3"/><path d="M0 14h1.5M28.5 14H30M0 20h1.5M28.5 20H30" stroke="#34A853" stroke-width="2" stroke-linecap="round"/></svg>
+          <div style="text-align:left">
+            <div style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.6;margin-bottom:2px">Android · Chrome</div>
+            <div style="font-size:16px;font-weight:500">Instalar en Android</div>
+          </div>
+        </a>
+
+        <!-- Desktop -->
+        <a href="https://demospain.app/instalar" style="display:flex;align-items:center;gap:16px;background:var(--elevated);border:1px solid var(--border);color:var(--muted);padding:14px 24px;border-radius:14px;text-decoration:none;transition:transform .2s cubic-bezier(.34,1.4,.64,1),border-color .2s,color .2s" onmouseenter="this.style.transform='scale(1.02)';this.style.borderColor='rgba(110,98,245,.35)';this.style.color='#EAE9E6'" onmouseleave="this.style.transform='';this.style.borderColor='';this.style.color=''">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="2" y="3" width="24" height="16" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 25h10M14 19v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <div style="text-align:left">
+            <div style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.6;margin-bottom:2px">Windows · Mac · Linux</div>
+            <div style="font-size:15px;font-weight:500">Instalar en escritorio</div>
+          </div>
+        </a>
       </div>
-      <p style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:18px;letter-spacing:.04em">Gratis · 10 segundos · Sin tarjeta</p>
+
+      <div style="margin-top:28px;display:flex;flex-direction:column;gap:8px;align-items:center">
+        <p style="font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.04em">Gratis · 10 segundos · Sin tarjeta</p>
+        <a href="https://www.demospain.app/profile" style="font-family:var(--mono);font-size:11px;color:var(--dim);text-decoration:underline;text-underline-offset:3px">o continuar en el navegador</a>
+      </div>
     </div>
   </div>
 </section>
@@ -437,40 +468,18 @@ h1,h2,h3{font-family:var(--sans);font-weight:500;line-height:1.2;color:var(--tex
       <p style="font-size:15px;color:var(--muted);max-width:380px;margin:0 auto 28px;line-height:1.65">Revisiones, versiones y aprobaciones sin perder el hilo. Tu cliente accede siempre gratis.</p>
       <div style="display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);background:rgba(110,98,245,.08);border:1px solid rgba(110,98,245,.2);padding:6px 18px;border-radius:6px;margin-bottom:14px">Próximamente</div>
       <p style="font-size:13px;color:var(--dim);max-width:340px;margin:0 auto 28px;line-height:1.65">Apúntate y te avisamos en cuanto esté lista.</p>
-      <a href="#waitlist" class="btn btn-primary">Avísame</a>
+      <a href="#instalar" class="btn btn-primary">Instalar gratis</a>
     </div>
   </div>
 </section>
 
-<!-- WAITLIST -->
-<section id="waitlist" style="padding:80px 0 100px">
-  <div class="wrap" style="max-width:520px">
-    <div class="glow-card reveal" style="text-align:center">
-      <div style="font-family:var(--mono);font-size:clamp(48px,12vw,80px);font-weight:500;letter-spacing:-.04em;line-height:1;margin-bottom:14px">demo<span style="color:var(--purple)">.</span></div>
-      <p style="font-size:16px;color:var(--muted);max-width:340px;margin:0 auto 32px;line-height:1.6">Sé de los primeros — gratis.</p>
-      <form style="display:flex;flex-direction:column;gap:10px;text-align:left" id="wlform" onsubmit="handleSubmit(event)">
-        <input class="wl-input" id="wname" type="text" required placeholder="Tu nombre o artista" autocomplete="name"/>
-        <input class="wl-input" id="wemail" type="email" required placeholder="tu@email.com" autocomplete="email"/>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <label style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">¿Cómo usarás demo.?</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <button type="button" class="role-opt" onclick="selRole(this,'Artista independiente')"><span style="font-size:18px;display:block;margin-bottom:4px">🎤</span><span style="font-size:13px;font-weight:500;display:block">Artista</span><span style="font-size:11px;color:var(--muted)">Subo y comparto</span></button>
-            <button type="button" class="role-opt" onclick="selRole(this,'Productor')"><span style="font-size:18px;display:block;margin-bottom:4px">🎛️</span><span style="font-size:13px;font-weight:500;display:block">Productor</span><span style="font-size:11px;color:var(--muted)">Gestiono clientes</span></button>
-            <button type="button" class="role-opt" onclick="selRole(this,'Ingeniero de sonido')"><span style="font-size:18px;display:block;margin-bottom:4px">🎚️</span><span style="font-size:13px;font-weight:500;display:block">Ingeniero</span><span style="font-size:11px;color:var(--muted)">Mezcla y máster</span></button>
-            <button type="button" class="role-opt" onclick="selRole(this,'Estudio')"><span style="font-size:18px;display:block;margin-bottom:4px">🏢</span><span style="font-size:13px;font-weight:500;display:block">Estudio</span><span style="font-size:11px;color:var(--muted)">Varios artistas</span></button>
-          </div>
-          <button type="button" class="role-opt" onclick="selRole(this,'Oyente')" style="display:flex;align-items:center;gap:12px">
-            <span style="font-size:20px">🎧</span>
-            <div><div style="font-size:13px;font-weight:500">Oyente</div><div style="font-size:11px;color:var(--muted)">Me comparten música</div></div>
-          </button>
-          <input type="hidden" id="wrole" value=""/>
-          <p id="role-err" style="font-family:var(--mono);font-size:11px;color:#EF4444;display:none">Elige cómo usarás demo. para continuar</p>
-        </div>
-        <button type="submit" id="wbtn" class="btn btn-primary btn-full" style="margin-top:4px">Apuntarme gratis</button>
-        <input type="text" name="website" id="hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true"/>
-      </form>
-      <div class="wl-msg" id="wmsg"></div>
-      <p style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:14px">Sin spam · <a href="https://www.demospain.app/privacy" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Privacidad</a></p>
+<!-- CTA FINAL -->
+<section style="padding:80px 0 100px">
+  <div class="wrap" style="max-width:560px;text-align:center">
+    <div class="reveal">
+      <div style="font-family:var(--mono);font-size:clamp(56px,14vw,96px);font-weight:500;letter-spacing:-.04em;line-height:1;margin-bottom:16px">demo<span style="color:var(--purple)">.</span></div>
+      <p style="font-size:16px;color:var(--muted);max-width:320px;margin:0 auto 32px;line-height:1.6">Tu música, antes de existir para el mundo.</p>
+      <a href="#instalar" class="btn btn-primary" style="font-size:16px;padding:16px 36px">Instalar gratis →</a>
     </div>
   </div>
 </section>
@@ -487,46 +496,6 @@ h1,h2,h3{font-family:var(--sans);font-weight:500;line-height:1.2;color:var(--tex
 </footer>
 
 <script>
-// ══ SUPABASE ══════════════════════════════════════════════════
-const SUPABASE_URL='https://lgurjsninpjeefmrykudu.supabase.co';
-const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxndXJqc25pbnBqZWVmbXJ5a3VkdSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ1MDA3NjkwLCJleHAiOjIwNjA1ODM2OTB9.xYrs0rSWFxNmFdlkuFEMBe9o9eDyKzp-nuvVyCgFLm4';
-
-function selRole(btn,role){
-  document.querySelectorAll('.role-opt').forEach(b=>b.classList.remove('selected'));
-  btn.classList.add('selected');
-  document.getElementById('wrole').value=role;
-  const err=document.getElementById('role-err');if(err)err.style.display='none';
-}
-
-async function handleSubmit(e){
-  e.preventDefault();
-  const name=document.getElementById('wname').value.trim();
-  const email=document.getElementById('wemail').value.trim();
-  const role=document.getElementById('wrole').value;
-  const msg=document.getElementById('wmsg');
-  const btn=document.getElementById('wbtn');
-  if(!role){const err=document.getElementById('role-err');if(err)err.style.display='block';return;}
-  if(document.getElementById('hp').value){return;}
-  btn.disabled=true;btn.textContent='Un momento...';
-  try{
-    const res=await fetch(\`\${SUPABASE_URL}/rest/v1/waitlist\`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':\`Bearer \${SUPABASE_ANON}\`},
-      body:JSON.stringify({name,email,role})
-    });
-    if(res.ok||res.status===201||res.status===409){
-      msg.className='wl-msg ok';msg.textContent='¡Apuntado! Te avisamos en cuanto esté lista.';
-      document.getElementById('wlform').style.display='none';
-    } else {
-      msg.className='wl-msg err';msg.textContent='Algo ha ido mal. Inténtalo de nuevo.';
-      btn.disabled=false;btn.textContent='Apuntarme gratis';
-    }
-  } catch {
-    msg.className='wl-msg err';msg.textContent='Sin conexión. Inténtalo de nuevo.';
-    btn.disabled=false;btn.textContent='Apuntarme gratis';
-  }
-}
-
 // ══ SCROLL PROGRESS ═══════════════════════════════════════════
 const sbar=document.getElementById('sprogress');
 window.addEventListener('scroll',()=>{
