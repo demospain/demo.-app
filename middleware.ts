@@ -31,7 +31,12 @@ export async function middleware(request: NextRequest) {
   // Rutas públicas
   const isPublic = path.startsWith('/login') ||
                    path.startsWith('/p/') ||
-                   path.startsWith('/auth/')
+                   path.startsWith('/auth/') ||
+                   path.startsWith('/landing') ||
+                   path.startsWith('/privacy') ||
+                   path.startsWith('/terms') ||
+                   path.startsWith('/cookies') ||
+                   path.startsWith('/instalar')
 
   // Sin sesión y ruta privada → login
   if (!user && !isPublic) {
