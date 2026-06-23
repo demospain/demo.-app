@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 
-// Landing page completa servida como HTML estático en /landing.
 const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -550,13 +549,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
       <h2 class="sec-title">Tu espacio antes de publicar.</h2>
       <p class="sec-sub">Todo lo que necesitas para guardar, organizar y compartir tu música. Gratis.</p>
       <div class="feat-grid" style="margin-top:40px">
-        <div class="feat-card"><div class="feat-icon">📁</div><div class="feat-title">50 canciones gratis</div><div class="feat-desc">Sube hasta 50 canciones sin que ocupen espacio en tu móvil. Tus archivos viven en la nube.</div></div>
-        <div class="feat-card"><div class="feat-icon">💿</div><div class="feat-title">Proyectos tipo álbum</div><div class="feat-desc">Crea proyectos con portada y tracklist. Previsualiza tu EP o álbum antes de subirlo a Spotify.</div><span class="feat-tag">diferencial</span></div>
-        <div class="feat-card"><div class="feat-icon">🔔</div><div class="feat-title">Notificaciones de escuchas</div><div class="feat-desc">Sabes quién escuchó tu música, qué canción y cuándo. No hay que adivinar.</div><span class="feat-tag">diferencial</span></div>
-        <div class="feat-card"><div class="feat-icon">👥</div><div class="feat-title">Proyectos grupales</div><div class="feat-desc">Varios artistas administran el mismo proyecto. Perfecto para grupos y colectivos.</div></div>
-        <div class="feat-card"><div class="feat-icon">📂</div><div class="feat-title">Compartido conmigo</div><div class="feat-desc">Lo que otros te comparten aparece en tu página principal, organizado y con notificaciones.</div></div>
-        <div class="feat-card"><div class="feat-icon">🔒</div><div class="feat-title">Control total del acceso</div><div class="feat-desc">Privado, solo con link o público. Cambia la visibilidad cuando quieras.</div></div>
-        <div class="feat-card wide"><div class="feat-icon">💬</div><div class="feat-title">Comentarios en el segundo exacto</div><div class="feat-desc">Tu colaborador comenta exactamente en el 1:32. Sin "en el minuto uno y algo". Feedback preciso, directo al punto.</div></div>
+        <div class="feat-card"><div class="feat-icon">☁️</div><div class="feat-title">Tu música en la nube</div><div class="feat-desc">Sube WAV, MP3, FLAC o AIFF. Los archivos viven en la nube, no en tu móvil ni en tu ordenador.</div></div>
+        <div class="feat-card"><div class="feat-icon">💿</div><div class="feat-title">Proyectos tipo álbum</div><div class="feat-desc">Organiza tus canciones con portada y tracklist. Previsualiza tu EP o álbum antes de publicarlo.</div><span class="feat-tag">diferencial</span></div>
+        <div class="feat-card"><div class="feat-icon">🔗</div><div class="feat-title">Comparte con un link</div><div class="feat-desc">Privado, solo con invitación o público. El receptor escucha directamente en el navegador, sin registrarse ni instalar nada.</div></div>
+        <div class="feat-card"><div class="feat-icon">🔔</div><div class="feat-title">Notificaciones de escuchas</div><div class="feat-desc">Sabes exactamente quién escuchó tu música, qué canción y cuándo. Sin adivinar.</div><span class="feat-tag">diferencial</span></div>
+        <div class="feat-card"><div class="feat-icon">🎵</div><div class="feat-title">Reproductor waveform</div><div class="feat-desc">Visualización de la onda de audio con shuffle, repetición y controles completos. También desde la pantalla de bloqueo del móvil.</div></div>
+        <div class="feat-card"><div class="feat-icon">👥</div><div class="feat-title">Proyectos grupales</div><div class="feat-desc">Varios artistas gestionan el mismo proyecto con sus propios permisos. Perfecto para grupos y colectivos.</div></div>
+        <div class="feat-card"><div class="feat-icon">📂</div><div class="feat-title">Guardado automático</div><div class="feat-desc">Los proyectos que te comparten aparecen directamente en tu biblioteca, organizados y con notificaciones.</div></div>
+        <div class="feat-card wide"><div class="feat-icon">🔒</div><div class="feat-title">Control total del acceso</div><div class="feat-desc">Cambia la visibilidad de cada proyecto cuando quieras: privado, solo con link, o público. Tú decides quién escucha qué y en qué momento.</div></div>
       </div>
     </div>
   </div>
