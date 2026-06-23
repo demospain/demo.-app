@@ -405,15 +405,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setShuffleLoading(true)
       shufflePendingRef.current = []
       const tracks = await fetchLibraryTracks()
-      if (tracks.length > 0) {
-        playShuffledLibrary(tracks)
-      }
       setShuffleLoading(false)
+      if (tracks.length === 0) return
+      // Mezcla la biblioteca pero mantiene la canción actual sonando —
+      // igual que shuffleProject: canción actual primero, el resto aleatorio.
+      const currentTrack = currentTrackRef.current
+      const rest = shuffleArray(tracks.filter(t => t.id !== currentTrack?.id))
+      const shuffled = currentTrack ? [currentTrack, ...rest] : rest
+      shufflePendingRef.current = shuffled.slice(1)
+      setQueue(shuffled); queueRef.current = shuffled
+      setShuffleMode('library'); shuffleModeRef.current = 'library'
     } else {
       setShuffleMode('none'); shuffleModeRef.current = 'none'
       shufflePendingRef.current = []
     }
-  }, [shuffleProject, fetchLibraryTracks, playShuffledLibrary])
+  }, [shuffleProject, fetchLibraryTracks])
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
 
@@ -701,7 +707,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             ><IconRepeat /></button>
             <button
               onTouchStart={e => e.stopPropagation()}
-              onClick={handleShuffleClick}
+              onClick={shuffleProject}
               disabled={shuffleLoading}
               className={`w-8 h-8 relative ${btnCls(shuffleMode !== 'none')} disabled:opacity-50`}
             >
