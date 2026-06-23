@@ -129,16 +129,42 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
 .role-opt:hover{border-color:rgba(124,111,255,.35);background:rgba(124,111,255,.05)}
 .role-opt.selected{border-color:var(--purple);background:rgba(124,111,255,.1)}
 
-/* REVEAL */
-.reveal{opacity:0;transform:translateY(28px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
-.reveal.visible{opacity:1;transform:translateY(0)}
-.reveal-l{opacity:0;transform:translateX(-28px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
-.reveal-l.visible{opacity:1;transform:translateX(0)}
-.reveal-r{opacity:0;transform:translateX(28px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
-.reveal-r.visible{opacity:1;transform:translateX(0)}
-.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}
 @keyframes sh{0%,100%{opacity:.3;transform:translateX(-50%) translateY(0)}50%{opacity:.7;transform:translateX(-50%) translateY(5px)}}
-@media(prefers-reduced-motion:reduce){.reveal,.reveal-l,.reveal-r{opacity:1!important;transform:none!important}}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}
+@media(prefers-reduced-motion:reduce){.reveal,.reveal-l,.reveal-r{opacity:1!important;transform:none!important;filter:none!important}}
+
+/* ══ CURSOR PERSONALIZADO ══ */
+*{cursor:none!important}
+#cursor{position:fixed;pointer-events:none;z-index:9999;mix-blend-mode:normal;transition:opacity .3s}
+#cursor-dot{position:fixed;width:8px;height:8px;background:var(--white);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:9999;transition:transform .08s ease,background .2s}
+#cursor-ring{position:fixed;width:36px;height:36px;border:1.5px solid rgba(110,98,245,.6);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:9998;transition:width .2s,height .2s,border-color .2s,transform .08s ease}
+#cursor-glow{position:fixed;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(110,98,245,.08) 0%,transparent 70%);transform:translate(-50%,-50%);pointer-events:none;z-index:1;transition:opacity .3s}
+body:hover #cursor-dot{opacity:1}
+.cursor-hover #cursor-ring{width:54px;height:54px;border-color:var(--purple)}
+.cursor-hover #cursor-dot{transform:translate(-50%,-50%) scale(1.5);background:var(--purple)}
+
+/* ══ SCROLL PROGRESS ══ */
+#scroll-bar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--purple),#a78bfa);z-index:999;transition:width .1s linear;width:0%}
+
+/* ══ HERO ORBS ══ */
+.hero-orb{position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none;animation:orbFloat 8s ease-in-out infinite}
+@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-24px) scale(1.04)}}
+
+/* ══ FEAT CARD TILT ══ */
+.feat-card{transform-style:preserve-3d;will-change:transform}
+.feat-card:hover{border-color:rgba(110,98,245,.4);box-shadow:0 12px 40px rgba(0,0,0,.3),0 0 0 1px rgba(110,98,245,.12)}
+
+/* ══ MAGNETIC BTN ══ */
+.btn-magnetic{transition:transform .3s cubic-bezier(.34,1.56,.64,1),background .15s,box-shadow .15s}
+
+/* ══ SECTION REVEAL ENHANCED ══ */
+.reveal{opacity:0;transform:translateY(32px) scale(.98);filter:blur(4px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1),filter .7s}
+.reveal.visible{opacity:1;transform:none;filter:none}
+.reveal-l{opacity:0;transform:translateX(-32px);filter:blur(4px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1),filter .5s}
+.reveal-l.visible{opacity:1;transform:none;filter:none}
+.reveal-r{opacity:0;transform:translateX(32px);filter:blur(4px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1),filter .5s}
+.reveal-r.visible{opacity:1;transform:none;filter:none}
+
 
 /* ══════════════════════════════════════════════
    MOCKUP MÓVIL — sistema proporcional
@@ -462,6 +488,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
 </style>
 </head>
 <body>
+<div id="scroll-bar"></div>
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+<div id="cursor-glow"></div>
 
 <!-- NAV -->
 <nav>
@@ -476,6 +506,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
 
 <!-- HERO -->
 <section style="height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px 40px;text-align:center;overflow:hidden;position:relative">
+  <div class="hero-orb" style="width:500px;height:500px;background:rgba(110,98,245,.07);top:-100px;left:-150px;animation-duration:9s"></div>
+  <div class="hero-orb" style="width:360px;height:360px;background:rgba(110,98,245,.05);bottom:-80px;right:-80px;animation-duration:11s;animation-delay:-4s"></div>
+  <div class="hero-orb" style="width:200px;height:200px;background:rgba(160,120,255,.08);top:30%;right:10%;animation-duration:7s;animation-delay:-2s"></div>
   <span class="eyebrow">Tu música, antes de publicarla</span>
   <h1 class="hero-logo">demo<span>.</span></h1>
   <p class="hero-tag">El espacio donde vive tu música<br><strong>antes de existir para el mundo.</strong></p>
@@ -496,7 +529,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
       <span class="eyebrow" style="display:block">Ya está disponible</span>
       <h2 class="sec-title" style="margin-bottom:14px">Tenla siempre a un toque.</h2>
       <p class="sec-sub" style="max-width:420px;margin:0 auto 32px">Se instala como cualquier app, directa desde tu navegador. Sin tiendas, sin esperas, sin ocupar de más.</p>
-      <a href="https://demospain.app/instalar" class="btn btn-lg btn-purple" style="padding:17px 36px;font-size:17px;box-shadow:0 8px 24px rgba(110,98,245,.35)">Instalar app ahora →</a>
+      <a href="https://demospain.app/instalar" class="btn btn-lg btn-purple btn-magnetic" style="padding:17px 36px;font-size:17px;box-shadow:0 8px 24px rgba(110,98,245,.35)">Instalar app ahora →</a>
       <p style="font-family:var(--mono);font-size:11px;color:var(--gray-dim);margin-top:16px;letter-spacing:.04em">Gratis · 10 segundos · Sin tarjeta</p>
       <a href="https://www.demospain.app/profile" style="display:inline-block;margin-top:22px;font-size:12px;color:var(--gray-dim);text-decoration:underline;text-underline-offset:3px">o usa la app en el navegador</a>
     </div>
@@ -519,7 +552,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
         <div style="background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:7px 16px;font-size:13px;color:var(--gray-mid);display:flex;align-items:center;gap:7px"><span style="color:var(--purple);font-weight:600">✓</span>Proyectos grupales</div>
       </div>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-        <a href="#waitlist" class="btn btn-lg btn-purple">Crear mi cuenta gratis</a>
+        <a href="#waitlist" class="btn btn-lg btn-purple btn-magnetic">Crear mi cuenta gratis</a>
         <a href="#artista" class="btn btn-lg btn-ghost">Ver funcionalidades</a>
       </div>
     </div>
@@ -572,7 +605,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
       <p class="sec-sub" style="max-width:420px;margin:0 auto 28px">Gestiona revisiones, versiones y aprobaciones sin perder el hilo. Tu cliente accede siempre gratis.</p>
       <div style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);margin-bottom:10px">Próximamente</div>
       <p style="font-size:13px;color:var(--gray-dim);max-width:360px;margin:0 auto 24px;line-height:1.6">Estamos terminando esta parte. Si gestionas clientes como productor o ingeniero, apúntate y te avisamos en cuanto esté lista.</p>
-      <a href="#waitlist" class="btn btn-lg btn-purple">Avísame</a>
+      <a href="#waitlist" class="btn btn-lg btn-purple btn-magnetic">Avísame</a>
     </div>
   </div>
 </section>
@@ -695,8 +728,88 @@ async function handleSubmit(e){
 // ═══ SCROLL REVEAL ═══════════════════════════════════════════
 (function(){
   if(!('IntersectionObserver' in window)){document.querySelectorAll('.reveal,.reveal-l,.reveal-r').forEach(el=>el.classList.add('visible'));return;}
-  const io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}});},{threshold:0.12});
+  const io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}});},{threshold:0.1});
   document.querySelectorAll('.reveal,.reveal-l,.reveal-r').forEach(el=>io.observe(el));
+})();
+
+// ═══ CURSOR PERSONALIZADO ═════════════════════════════════════
+(function(){
+  const dot=document.getElementById('cursor-dot');
+  const ring=document.getElementById('cursor-ring');
+  const glow=document.getElementById('cursor-glow');
+  if(!dot||!ring||!glow)return;
+  // Detección mobile — no mostrar cursor en touch
+  if(window.matchMedia('(pointer:coarse)').matches){
+    [dot,ring,glow].forEach(el=>el.style.display='none');
+    document.body.style.cursor='';
+    document.querySelectorAll('*').forEach(el=>el.style.cursor='');
+    return;
+  }
+  let mx=0,my=0,rx=0,ry=0,gx=0,gy=0;
+  document.addEventListener('mousemove',e=>{
+    mx=e.clientX; my=e.clientY;
+    dot.style.left=mx+'px'; dot.style.top=my+'px';
+    glow.style.left=mx+'px'; glow.style.top=my+'px';
+  });
+  // Suavizado del ring y glow
+  function tick(){
+    rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
+    ring.style.left=rx+'px'; ring.style.top=ry+'px';
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  // Hover en elementos interactivos
+  const hoverSel='a,button,.feat-card,.btn,.role-opt,.nav-cta';
+  document.addEventListener('mouseover',e=>{
+    if(e.target.closest(hoverSel)) document.body.classList.add('cursor-hover');
+  });
+  document.addEventListener('mouseout',e=>{
+    if(e.target.closest(hoverSel)) document.body.classList.remove('cursor-hover');
+  });
+  document.addEventListener('mouseleave',()=>{dot.style.opacity='0';ring.style.opacity='0'});
+  document.addEventListener('mouseenter',()=>{dot.style.opacity='1';ring.style.opacity='1'});
+})();
+
+// ═══ BARRA DE PROGRESO SCROLL ════════════════════════════════
+(function(){
+  const bar=document.getElementById('scroll-bar');
+  if(!bar)return;
+  window.addEventListener('scroll',()=>{
+    const pct=(window.scrollY/(document.documentElement.scrollHeight-window.innerHeight))*100;
+    bar.style.width=Math.min(100,pct)+'%';
+  },{passive:true});
+})();
+
+// ═══ TILT 3D EN FEAT CARDS ════════════════════════════════════
+(function(){
+  if(window.matchMedia('(pointer:coarse)').matches)return;
+  document.querySelectorAll('.feat-card').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width-.5;
+      const y=(e.clientY-r.top)/r.height-.5;
+      card.style.transform=\`perspective(600px) rotateY(\${x*10}deg) rotateX(\${-y*10}deg) scale(1.02)\`;
+      card.style.transition='transform .05s';
+    });
+    card.addEventListener('mouseleave',()=>{
+      card.style.transform='perspective(600px) rotateY(0deg) rotateX(0deg) scale(1)';
+      card.style.transition='transform .4s cubic-bezier(.34,1.56,.64,1)';
+    });
+  });
+})();
+
+// ═══ BOTONES MAGNÉTICOS ═══════════════════════════════════════
+(function(){
+  if(window.matchMedia('(pointer:coarse)').matches)return;
+  document.querySelectorAll('.btn-magnetic').forEach(btn=>{
+    btn.addEventListener('mousemove',e=>{
+      const r=btn.getBoundingClientRect();
+      const x=(e.clientX-r.left-r.width/2)*.3;
+      const y=(e.clientY-r.top-r.height/2)*.3;
+      btn.style.transform=\`translate(\${x}px,\${y}px)\`;
+    });
+    btn.addEventListener('mouseleave',()=>{btn.style.transform='translate(0,0)'});
+  });
 })();
 </script>
 </body>
