@@ -917,9 +917,29 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             )}
 
             {tracks.length > 0 && (
-              <div className="card-elevated rounded-2xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
-                  <span className="text-[#EAE9E6] text-sm font-medium tracking-tight">Canciones</span>
+              <div className="card-elevated rounded-2xl">
+                <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between sticky top-[72px] z-30 bg-[#181c27] rounded-t-2xl backdrop-blur-sm">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[#EAE9E6] text-sm font-medium tracking-tight">Canciones</span>
+                    {currentTrack && (
+                      <div className="flex items-center gap-[2.5px] h-3">
+                        {[0.6, 1, 0.75].map((h, idx) => (
+                          <div
+                            key={idx}
+                            className="w-[2.5px] rounded-full bg-[#6E62F5]"
+                            style={{
+                              height: `${h * 100}%`,
+                              transformOrigin: 'bottom',
+                              animation: playerIsPlaying
+                                ? `waveBar ${0.55 + idx * 0.1}s ease-in-out ${idx * 0.11}s infinite alternate`
+                                : 'none',
+                              opacity: playerIsPlaying ? 1 : 0.4,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <span className="text-[#555966] text-xs font-mono bg-white/[0.04] px-2.5 py-1 rounded-full">
                     {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
                     {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
@@ -1043,11 +1063,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                             {showTrackMenu === track.id && (
                               <>
                                 <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setShowTrackMenu(null) }}/>
-                                <div className={`absolute right-0 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[160px] ${
-                                  i >= filteredTracks.length - 2 ? 'bottom-8' : 'top-8'
-                                }`}>
+                                <div
+                                  className={`absolute right-0 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[160px] ${
+                                    i >= filteredTracks.length - 2 ? 'bottom-8' : 'top-8'
+                                  }`}
+                                  onClick={e => e.stopPropagation()}
+                                >
                                 <button
-                                  onClick={() => { setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
+                                  onClick={e => { e.stopPropagation(); setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1056,7 +1079,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Renombrar
                                 </button>
                                 <button
-                                  onClick={async () => { await handleCopyLink(); setShowTrackMenu(null) }}
+                                  onClick={async e => { e.stopPropagation(); await handleCopyLink(); setShowTrackMenu(null) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1066,7 +1089,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Compartir
                                 </button>
                                 <button
-                                  onClick={() => { setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
+                                  onClick={e => { e.stopPropagation(); setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1076,7 +1099,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Reemplazar
                                 </button>
                                 <button
-                                  onClick={() => handleDuplicateTrack(track)}
+                                  onClick={e => { e.stopPropagation(); handleDuplicateTrack(track) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1086,7 +1109,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Duplicar
                                 </button>
                                 <button
-                                  onClick={() => handleExportTrack(track)}
+                                  onClick={e => { e.stopPropagation(); handleExportTrack(track) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1097,7 +1120,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                 </button>
                                 <div className="h-px bg-white/[0.06] my-1"/>
                                 <button
-                                  onClick={() => confirmDeleteTrack(track.id, track.title)}
+                                  onClick={e => { e.stopPropagation(); confirmDeleteTrack(track.id, track.title) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
