@@ -36,7 +36,8 @@ export async function middleware(request: NextRequest) {
                    path.startsWith('/privacy') ||
                    path.startsWith('/terms') ||
                    path.startsWith('/cookies') ||
-                   path.startsWith('/instalar')
+                   path.startsWith('/instalar') ||
+                   path.startsWith('/s/')
 
   // Sin sesión y ruta privada → login
   if (!user && !isPublic) {
