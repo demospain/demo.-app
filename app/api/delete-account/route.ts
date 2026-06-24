@@ -14,8 +14,6 @@ const r2 = new S3Client({
 
 async function deleteFromR2(key: string | null | undefined) {
   if (!key) return
-  // cover_url/avatar_url normalmente son la key relativa, pero por si hay datos
-  // antiguos guardados como URL completa, nos quedamos solo con la key
   const cleanKey = key.startsWith('http') ? key.split('/').slice(3).join('/') : key
   if (!cleanKey) return
   try {
@@ -26,7 +24,6 @@ async function deleteFromR2(key: string | null | undefined) {
 }
 
 export async function POST() {
-  // Verificar quién hace la petición usando su propia sesión, nunca un id recibido del cliente
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -67,11 +64,15 @@ export async function POST() {
     deleteFromR2(profileRow?.avatar_url),
   ])
 
-  // 3. Borrar notificaciones de esos proyectos. notifications.project_id es ON DELETE NO ACTION,
-  //    así que si no se limpian antes, bloquearían el borrado en cascada del proyecto
-  if (projectIds.length) {
-    await admin.from('notifications').delete().in('project_id', projectIds)
-  }
+  // 3. Borrar todas las notificaciones vinculadas al usuario — tanto las de sus
+  //    proyectos (project_id) como aquellas donde actuó como actor (actor_id).
+  //    Ambas foreign keys son ON DELETE NO ACTION y bloquearían el borrado en cascada.
+  await Promise.all([
+    projectIds.length
+      ? admin.from('notifications').delete().in('project_id', projectIds)
+      : Promise.resolve(),
+    admin.from('notifications').delete().eq('actor_id', user.id),
+  ])
 
   // 4. Borrar el perfil. Esto dispara en cascada el borrado de projects -> tracks ->
   //    track_versions / comments / play_events, además de project_members y saved_projects
