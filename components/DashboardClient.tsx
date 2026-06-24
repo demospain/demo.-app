@@ -57,6 +57,17 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
 
 
   const isEmpty = projects.length === 0 && savedProjects.length === 0
+  const [unsavedIds, setUnsavedIds] = useState<Set<string>>(new Set())
+
+  const handleUnsave = async (projectId: string) => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('saved_projects')
+      .delete()
+      .eq('user_id', userId)
+      .eq('project_id', projectId)
+    if (!error) setUnsavedIds(prev => new Set(prev).add(projectId))
+  }
 
   const handlePlayProject = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation()
@@ -171,13 +182,23 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
             </div>
           )}
 
-          {savedProjects.length > 0 && (
+          {savedProjects.filter(p => !unsavedIds.has(p.id)).length > 0 && (
             <div>
               <p className="text-[#EAE9E6] text-lg font-medium mb-5">Guardado</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-start">
-                {savedProjects.map(project => (
-                  <ProjectCard key={project.id} project={project}
-                    ownerName={ownerNames[project.id] ?? 'Artista'}/>
+                {savedProjects.filter(p => !unsavedIds.has(p.id)).map(project => (
+                  <div key={project.id} className="relative group/saved">
+                    <ProjectCard project={project} ownerName={ownerNames[project.id] ?? 'Artista'}/>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleUnsave(project.id) }}
+                      title="Quitar de biblioteca"
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/saved:opacity-100 transition-opacity hover:bg-black/80 z-10"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 2l6 6M8 2L2 8" stroke="#9BA0AD" strokeWidth="1.4" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
