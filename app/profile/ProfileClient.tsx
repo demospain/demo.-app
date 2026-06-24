@@ -38,23 +38,23 @@ const PLAN_LABELS: Record<string, { label: string; price: string; color: string 
 type Tab = 'profile' | 'security' | 'plan'
 
 export default function ProfileClient({ userId, email, profile: initialProfile, trackCount }: Props) {
-  const [profile, setProfile]               = useState(initialProfile)
-  const [tab, setTab]                       = useState<Tab>('profile')
-  const [editing, setEditing]               = useState(false)
-  const [username, setUsername]             = useState(initialProfile.username)
-  const [roles, setRoles]                   = useState<string[]>(initialProfile.roles ?? [])
-  const [saving, setSaving]                 = useState(false)
-  const [saved, setSaved]                   = useState(false)
+  const [profile, setProfile]                 = useState(initialProfile)
+  const [tab, setTab]                         = useState<Tab>('profile')
+  const [editing, setEditing]                 = useState(false)
+  const [username, setUsername]               = useState(initialProfile.username)
+  const [roles, setRoles]                     = useState<string[]>(initialProfile.roles ?? [])
+  const [saving, setSaving]                   = useState(false)
+  const [saved, setSaved]                     = useState(false)
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
-  const [avatarError, setAvatarError]       = useState('')
-  const [showDotsMenu, setShowDotsMenu]     = useState(false)
-  const [confirmModal, setConfirmModal]     = useState<{ title: string; desc: string; onConfirm: () => Promise<void> } | null>(null)
-  const [deleting, setDeleting]             = useState(false)
-  const [deleteError, setDeleteError]       = useState('')
-  const dotsMenuRef                         = useRef<HTMLDivElement>(null)
-  const avatarInputRef                      = useRef<HTMLInputElement>(null)
-  const supabase                            = createClient()
+  const [avatarError, setAvatarError]         = useState('')
+  const [showDotsMenu, setShowDotsMenu]       = useState(false)
+  const [confirmModal, setConfirmModal]       = useState<{ title: string; desc: string; onConfirm: () => Promise<void> } | null>(null)
+  const [deleting, setDeleting]               = useState(false)
+  const [deleteError, setDeleteError]         = useState('')
+  const dotsMenuRef                           = useRef<HTMLDivElement>(null)
+  const avatarInputRef                        = useRef<HTMLInputElement>(null)
+  const supabase                              = createClient()
 
   const inicial = (profile.username || profile.full_name || 'U').charAt(0).toUpperCase()
   const plan    = PLAN_LABELS[profile.plan] ?? PLAN_LABELS.free
@@ -136,6 +136,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
             <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Foto de perfil</p>
             <h3 className="font-medium text-[#EAE9E6] text-base mb-6">Elige una nueva foto</h3>
 
+            {/* Preview */}
             <div className="flex justify-center mb-6">
               <div className="w-24 h-24 rounded-2xl bg-[#6E62F5] flex items-center justify-center text-3xl font-bold text-white overflow-hidden">
                 {avatarUrl
@@ -290,6 +291,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
         <div className="card-elevated rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-5">
 
+            {/* Avatar — click abre modal */}
             <div
               onClick={() => setShowAvatarModal(true)}
               className="relative w-20 h-20 rounded-2xl bg-[#6E62F5] flex items-center justify-center text-2xl font-bold text-white overflow-hidden flex-shrink-0 cursor-pointer group"
@@ -309,6 +311,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
               </div>
             </div>
 
+            {/* Info */}
             <div className="flex-1 min-w-0">
               <span className="text-2xl font-medium text-[#EAE9E6] font-mono block truncate">
                 @{profile.username || 'sin nombre'}
@@ -318,6 +321,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
               </span>
             </div>
 
+            {/* Botón editar */}
             {!editing ? (
               <button
                 onClick={() => setEditing(true)}
@@ -468,6 +472,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
               <span className="text-[#555966] text-sm font-mono">{plan.price}</span>
             </div>
 
+            {/* Contador de tracks */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-mono text-[#555966]">Canciones subidas</span>
