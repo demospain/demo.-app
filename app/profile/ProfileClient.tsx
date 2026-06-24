@@ -22,6 +22,12 @@ interface Props {
   trackCount: number
 }
 
+interface ConfirmModalState {
+  title:     string
+  desc:      string
+  onConfirm: () => void
+}
+
 const ROLE_LABELS: Record<string, { label: string; emoji: string }> = {
   artist:   { label: 'Artista',            emoji: '🎤' },
   producer: { label: 'Productor',           emoji: '🎛️' },
@@ -49,7 +55,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError]       = useState('')
   const [showDotsMenu, setShowDotsMenu]     = useState(false)
-  const [confirmModal, setConfirmModal]     = useState<{ title: string; desc: string; onConfirm: () => void } | null>(null)
+  const [confirmModal, setConfirmModal]     = useState<ConfirmModalState | null>(null)
   const [deleting, setDeleting]             = useState(false)
   const [deleteError, setDeleteError]       = useState('')
   const dotsMenuRef                         = useRef<HTMLDivElement>(null)
