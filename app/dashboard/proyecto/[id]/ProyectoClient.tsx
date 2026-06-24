@@ -30,7 +30,6 @@ interface Props {
   project:       Project
   initialTracks: Track[]
   isMine:        boolean
-  isAdmin:       boolean
   userId:        string
   nombre:        string
   inicial:       string
@@ -101,9 +100,8 @@ function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
   )
 }
 
-export default function ProyectoClient({ project: initialProject, initialTracks, isMine, isAdmin, userId, nombre, inicial }: Props) {
+export default function ProyectoClient({ project: initialProject, initialTracks, isMine, userId, nombre, inicial }: Props) {
   const [project, setProject]               = useState<Project>(initialProject)
-  const canEdit = isMine || isAdmin
   const [tracks, setTracks]                 = useState<Track[]>(initialTracks)
   const [showTrackMenu, setShowTrackMenu]   = useState<string | null>(null)
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
@@ -120,8 +118,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
   const [dragOverId, setDragOverId]         = useState<string | null>(null)
-  const [draggingId, setDraggingId]         = useState<string | null>(null)
-  const [dragOverPos, setDragOverPos]       = useState<'above'|'below'>('below')
   const [replacingTrackId, setReplacingTrackId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery]       = useState('')
   const [showSearch, setShowSearch]         = useState(false)
@@ -132,11 +128,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const [singleCopiedId, setSingleCopiedId] = useState<string | null>(null)
   const [renamingProject, setRenamingProject] = useState(false)
   const [renameTitleInput, setRenameTitleInput] = useState(initialProject.title)
-  const [showAdminsModal, setShowAdminsModal] = useState(false)
-  const [savedUsers, setSavedUsers]         = useState<{ user_id: string; username: string }[]>([])
-  const [adminIds, setAdminIds]             = useState<Set<string>>(new Set())
-  const [loadingAdmins, setLoadingAdmins]   = useState(false)
-  const [adminError, setAdminError]         = useState('')
   const dragIdRef                           = useRef<string | null>(null)
   const coverInputRef                       = useRef<HTMLInputElement>(null)
   const replaceInputRef                     = useRef<HTMLInputElement>(null)
@@ -162,7 +153,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   }, [showSearch])
 
   useEffect(() => {
-    const handler = (e: MouseEvent | TouchEvent) => {
+    const handler = (e: MouseEvent) => {
       if (dotsMenuRef.current && !dotsMenuRef.current.contains(e.target as Node)) {
         setShowDotsMenu(false)
       }
@@ -201,6 +192,31 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
+  }
+
+  const handleShareAsSingle = async (track: Track) => {
+    const slug = Math.random().toString(36).slice(2, 10)
+    const { error } = await supabase.from('singles').insert({
+      slug,
+      track_id:    track.id,
+      track_title: track.title,
+      file_path:   track.file_path,
+      project_id:  project.id,
+      cover_url:   project.cover_url ?? null,
+      artist_name: nombre ?? null,
+    })
+    if (error) { console.error(error); return }
+    const url = `${window.location.origin}/s/${slug}`
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      const el = document.createElement('input')
+      el.value = url; document.body.appendChild(el)
+      el.select(); document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+    setSingleCopiedId(track.id)
+    setTimeout(() => setSingleCopiedId(null), 2000)
   }
 
   const handleRenameProject = async () => {
@@ -251,31 +267,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       desc: `¿Seguro que quieres eliminar "${trackTitle}"? Esta acción no se puede deshacer.`,
       onConfirm: () => handleDeleteTrack(trackId),
     })
-  }
-
-  const handleShareAsSingle = async (track: Track) => {
-    const slug = Math.random().toString(36).slice(2, 10)
-    const { error } = await supabase.from('singles').insert({
-      slug,
-      track_id:    track.id,
-      track_title: track.title,
-      file_path:   track.file_path,
-      project_id:  project.id,
-      cover_url:   project.cover_url ?? null,
-      artist_name: nombre ?? null,
-    })
-    if (error) { console.error(error); return }
-    const url = `${window.location.origin}/s/${slug}`
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      const el = document.createElement('input')
-      el.value = url; document.body.appendChild(el)
-      el.select(); document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-    setSingleCopiedId(track.id)
-    setTimeout(() => setSingleCopiedId(null), 2000)
   }
 
   const handleDuplicateTrack = async (track: Track) => {
@@ -334,45 +325,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       desc: `¿Seguro que quieres eliminar "${project.title}" y todas sus canciones? Esta acción no se puede deshacer.`,
       onConfirm: handleDeleteProject,
     })
-  }
-
-  const openAdminsModal = async () => {
-    setShowDotsMenu(false)
-    setShowAdminsModal(true)
-    setLoadingAdmins(true)
-    setAdminError('')
-    const [{ data: saved }, { data: members }] = await Promise.all([
-      supabase.from('saved_projects').select('user_id, profiles(username)').eq('project_id', project.id),
-      supabase.from('project_members').select('user_id').eq('project_id', project.id).eq('role', 'admin'),
-    ])
-    setSavedUsers(
-      (saved ?? []).map((s: any) => ({ user_id: s.user_id, username: s.profiles?.username ?? 'usuario' }))
-    )
-    setAdminIds(new Set((members ?? []).map(m => m.user_id)))
-    setLoadingAdmins(false)
-  }
-
-  const toggleAdmin = async (targetUserId: string) => {
-    setAdminError('')
-    const isCurrentlyAdmin = adminIds.has(targetUserId)
-    if (isCurrentlyAdmin) {
-      const { error } = await supabase
-        .from('project_members')
-        .delete()
-        .eq('project_id', project.id)
-        .eq('user_id', targetUserId)
-      if (error) { console.error('Error al quitar administrador:', error); setAdminError('No se ha podido actualizar. Inténtalo de nuevo.'); return }
-      setAdminIds(prev => { const next = new Set(prev); next.delete(targetUserId); return next })
-    } else {
-      // upsert en vez de insert: si ya existe una fila en project_members para este usuario
-      // (por ejemplo, creada al guardar el proyecto en su biblioteca), un insert normal
-      // choca con la clave única y falla en silencio — el botón no hacía nada.
-      const { error } = await supabase
-        .from('project_members')
-        .upsert({ project_id: project.id, user_id: targetUserId, role: 'admin' }, { onConflict: 'project_id,user_id' })
-      if (error) { console.error('Error al añadir administrador:', error); setAdminError('No se ha podido actualizar. Inténtalo de nuevo.'); return }
-      setAdminIds(prev => new Set(prev).add(targetUserId))
-    }
   }
 
   const handleReplaceAudio = async (trackId: string, file: File) => {
@@ -437,40 +389,23 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setCoverUploading(false)
   }
 
-  const handleDragStart = (e: React.DragEvent, trackId: string) => {
-    dragIdRef.current = trackId
-    setDraggingId(trackId)
-    // Ghost image transparente — el navegador muestra un fantasma por defecto,
-    // lo reducimos a casi invisible para que la fila de origen con opacidad sea suficiente feedback
-    const ghost = document.createElement('div')
-    ghost.style.cssText = 'position:fixed;top:-999px;opacity:0;'
-    document.body.appendChild(ghost)
-    e.dataTransfer.setDragImage(ghost, 0, 0)
-    setTimeout(() => document.body.removeChild(ghost), 0)
-  }
+  const handleDragStart = (trackId: string) => { dragIdRef.current = trackId }
   const handleDragOver  = (e: React.DragEvent, trackId: string) => {
     e.preventDefault()
-    if (dragIdRef.current === trackId) return
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    const pos = e.clientY < rect.top + rect.height / 2 ? 'above' : 'below'
-    setDragOverId(trackId)
-    setDragOverPos(pos)
+    if (dragIdRef.current !== trackId) setDragOverId(trackId)
   }
   const handleDrop = async (e: React.DragEvent, targetId: string) => {
     e.preventDefault()
     setDragOverId(null)
-    setDraggingId(null)
     const sourceId = dragIdRef.current
     if (!sourceId || sourceId === targetId) return
     const oldTracks = [...tracks]
     const sourceIdx = tracks.findIndex(t => t.id === sourceId)
-    let targetIdx = tracks.findIndex(t => t.id === targetId)
+    const targetIdx = tracks.findIndex(t => t.id === targetId)
     if (sourceIdx === -1 || targetIdx === -1) return
     const reordered = [...tracks]
     const [moved] = reordered.splice(sourceIdx, 1)
-    // Insertar encima o debajo según dragOverPos
-    const insertAt = dragOverPos === 'above' ? targetIdx : targetIdx + (sourceIdx < targetIdx ? 0 : 1)
-    reordered.splice(Math.max(0, insertAt - (sourceIdx < targetIdx && dragOverPos === 'above' ? 1 : 0)), 0, moved)
+    reordered.splice(targetIdx, 0, moved)
     const withOrder = reordered.map((t, i) => ({ ...t, track_order: i }))
     setTracks(withOrder)
     const results = await Promise.all(withOrder.map(t =>
@@ -478,7 +413,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     ))
     if (results.some(r => r.error)) setTracks(oldTracks)
   }
-  const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null); setDraggingId(null) }
+  const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null) }
 
   return (
     <div className={`flex flex-col min-h-screen bg-[#0f1117] ${currentTrack ? 'pb-20' : ''}`}>
@@ -492,7 +427,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       {/* Modal de confirmación */}
       {confirmModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
+          <div className="bg-[#181c27] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-[#F8F7F4] font-medium text-base mb-2">{confirmModal.title}</h3>
             <p className="text-[#9BA0AD] text-sm mb-6 leading-relaxed">{confirmModal.desc}</p>
             <div className="flex gap-2">
@@ -572,7 +507,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             </button>
           )}
 
-          {(canEdit || project.visibility === 'public') && (
+          {(isMine || project.visibility === 'public') && (
             <button
               onClick={() => { setShowSharePanel(p => !p); setShowDotsMenu(false) }}
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
@@ -601,7 +536,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             </button>
             {showDotsMenu && (
               <div className="absolute right-0 top-11 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[170px]">
-                {canEdit && (
+                {isMine && (
                   <button
                     onClick={() => { setRenamingProject(true); setRenameTitleInput(project.title); setShowDotsMenu(false) }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
@@ -610,19 +545,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       <path d="M10 1l3 3-9 9H1V10L10 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     Renombrar
-                  </button>
-                )}
-                {isMine && (
-                  <button
-                    onClick={openAdminsModal}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <circle cx="5.5" cy="4.5" r="2" stroke="currentColor" strokeWidth="1.2"/>
-                      <path d="M1.5 12c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                      <path d="M9.5 5.5a1.8 1.8 0 100-3.6M11 12c0-1.8-1.1-3-2.5-3.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                    </svg>
-                    Administradores
                   </button>
                 )}
                 <button
@@ -659,7 +581,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       {showSharePanel && (
         <div className="fixed inset-0 z-40" onClick={() => setShowSharePanel(false)}>
           <div
-            className="absolute right-6 top-16 w-80 card-elevated rounded-2xl overflow-hidden"
+            className="absolute right-6 top-16 w-80 bg-[#13141a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
@@ -671,7 +593,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </button>
             </div>
 
-            {canEdit && (
+            {isMine && (
               <div className="p-3 border-b border-white/[0.06]">
                 <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Visibilidad</p>
                 <div className="flex flex-col gap-0.5">
@@ -703,7 +625,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </div>
             )}
 
-            {canEdit && (project.visibility === 'link' || project.visibility === 'public') && (
+            {isMine && (project.visibility === 'link' || project.visibility === 'public') && (
               <div className="p-3 border-b border-white/[0.06]">
                 <p className="text-[#555966] text-[10px] font-mono uppercase tracking-widest mb-2 px-1">Caducidad del link</p>
                 <div className="flex flex-col gap-0.5">
@@ -738,7 +660,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             )}
 
             <div className="p-3">
-              {canEdit && project.visibility === 'private' ? (
+              {isMine && project.visibility === 'private' ? (
                 <div className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm bg-white/[0.03] border border-white/[0.06] text-[#383C47]">
                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                     <path d="M6.5 1a3 3 0 013 3v1.5H3.5V4a3 3 0 013-3z" stroke="currentColor" strokeWidth="1.2"/>
@@ -785,7 +707,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={e => { if (e.target === e.currentTarget) setRenamingProject(false) }}
         >
-          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
+          <div className="bg-[#13141a] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm">
             <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Renombrar proyecto</p>
             <h3 className="font-medium text-[#F8F7F4] text-base mb-4">¿Nuevo nombre?</h3>
             <input
@@ -818,67 +740,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
         </div>
       )}
 
-      {/* Modal administradores */}
-      {showAdminsModal && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={e => { if (e.target === e.currentTarget) setShowAdminsModal(false) }}
-        >
-          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between mb-1">
-              <p className="font-mono text-xs text-[#555966] uppercase tracking-widest">Administradores</p>
-              <button onClick={() => setShowAdminsModal(false)} className="text-[#555966] hover:text-[#9BA0AD] transition-colors">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
-              </button>
-            </div>
-            <h3 className="font-medium text-[#F8F7F4] text-base mb-4">¿Quién puede editar este proyecto?</h3>
-            {adminError && (
-              <p className="text-[#E24B4A] text-xs font-mono mb-3">{adminError}</p>
-            )}
-
-            {loadingAdmins ? (
-              <div className="flex justify-center py-8">
-                <div className="w-5 h-5 border-2 border-white/20 border-t-[#7C6FFF] rounded-full animate-spin"/>
-              </div>
-            ) : savedUsers.length === 0 ? (
-              <p className="text-[#555966] text-sm font-mono py-4">
-                Todavía nadie ha guardado este proyecto en su biblioteca. Comparte el link primero — solo quienes lo guarden aparecerán aquí.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-1 overflow-y-auto">
-                {savedUsers.map(u => {
-                  const isAdminUser = adminIds.has(u.user_id)
-                  return (
-                    <button
-                      key={u.user_id}
-                      onClick={() => toggleAdmin(u.user_id)}
-                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
-                        isAdminUser
-                          ? 'bg-[#7C6FFF]/10 border-[#7C6FFF]/25 text-[#EAE9E6]'
-                          : 'border-white/[0.07] text-[#9BA0AD] hover:border-white/[0.14] hover:text-[#EAE9E6]'
-                      }`}
-                    >
-                      <span className="text-sm font-mono flex-1">@{u.username}</span>
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                        isAdminUser ? 'bg-[#7C6FFF] border-[#7C6FFF]' : 'border-white/20'
-                      }`}>
-                        {isAdminUser && (
-                          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                            <path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                          </svg>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Contenido */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
@@ -891,8 +752,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               style={{ opacity: coverOpacity, transition: 'opacity 0.05s linear' }}
             >
               <div
-                onClick={() => canEdit && coverInputRef.current?.click()}
-                className={`rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden relative flex-shrink-0 ${canEdit ? 'cursor-pointer' : ''}`}
+                onClick={() => isMine && coverInputRef.current?.click()}
+                className={`rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] flex items-center justify-center overflow-hidden relative flex-shrink-0 ${isMine ? 'cursor-pointer' : ''}`}
                 style={{ width: 'min(60vw, 240px)', height: 'min(60vw, 240px)' }}
               >
                 {project.cover_url
@@ -905,14 +766,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
 
             {/* Portada desktop — tamaño completo, sin fade */}
             <div
-              onClick={() => canEdit && coverInputRef.current?.click()}
-              className={`hidden lg:flex w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] items-center justify-center overflow-hidden relative group ${canEdit ? 'cursor-pointer' : ''}`}
+              onClick={() => isMine && coverInputRef.current?.click()}
+              className={`hidden lg:flex w-full aspect-square rounded-2xl bg-gradient-to-br from-[#252830] to-[#1a1a20] border border-white/[0.06] items-center justify-center overflow-hidden relative group ${isMine ? 'cursor-pointer' : ''}`}
             >
               {project.cover_url
                 ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
                 : <div className="text-6xl opacity-30">💿</div>
               }
-              {canEdit && (
+              {isMine && (
                 <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
                   {coverUploading
                     ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
@@ -958,7 +819,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
 
           {/* Columna derecha */}
           <div className="flex flex-col gap-4">
-            {canEdit && (
+            {isMine && (
               <UploadTrack
                 projectId={project.id}
                 onUploadComplete={(track) => setTracks(prev => [...prev, { ...track, track_order: prev.length }])}
@@ -966,30 +827,10 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             )}
 
             {tracks.length > 0 && (
-              <div className="card-elevated rounded-2xl">
-                <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between sticky top-[72px] z-30 bg-[#181c27] rounded-t-2xl backdrop-blur-sm">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[#EAE9E6] text-sm font-medium tracking-tight">Canciones</span>
-                    {currentTrack && (
-                      <div className="flex items-center gap-[2.5px] h-3">
-                        {[0.6, 1, 0.75].map((h, idx) => (
-                          <div
-                            key={idx}
-                            className="w-[2.5px] rounded-full bg-[#6E62F5]"
-                            style={{
-                              height: `${h * 100}%`,
-                              transformOrigin: 'bottom',
-                              animation: playerIsPlaying
-                                ? `waveBar ${0.55 + idx * 0.1}s ease-in-out ${idx * 0.11}s infinite alternate`
-                                : 'none',
-                              opacity: playerIsPlaying ? 1 : 0.4,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[#555966] text-xs font-mono bg-white/[0.04] px-2.5 py-1 rounded-full">
+              <div className="bg-[#181c27] border border-white/[0.07] rounded-xl overflow-visible">
+                <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
+                  <span className="text-[#555966] text-sm font-mono uppercase tracking-wider">Tracklist</span>
+                  <span className="text-[#555966] text-sm font-mono">
                     {tracks.length} {tracks.length === 1 ? 'canción' : 'canciones'}
                     {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
                   </span>
@@ -1005,51 +846,34 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                   const isActive    = currentTrack?.id === track.id
                   const isPlaying   = isActive && playerIsPlaying
                   const isDragOver  = dragOverId === track.id
-                  const isDragging  = draggingId === track.id
                   const isReplacing = replacingTrackId === track.id
                   return (
                     <div
                       key={track.id}
-                      draggable={canEdit}
-                      onDragStart={e => handleDragStart(e, track.id)}
+                      draggable={isMine}
+                      onDragStart={() => handleDragStart(track.id)}
                       onDragOver={e => handleDragOver(e, track.id)}
                       onDrop={e => handleDrop(e, track.id)}
                       onDragEnd={handleDragEnd}
-                      className="track-row-enter relative"
-                      style={{
-                        animationDelay: `${i * 0.03}s`,
-                        opacity: isDragging ? 0.35 : 1,
-                        transition: 'opacity 0.15s ease',
-                      }}
                     >
-                      {/* Línea indicadora de posición */}
-                      {isDragOver && dragOverPos === 'above' && (
-                        <div className="absolute top-0 left-4 right-4 h-0.5 rounded-full bg-[#6E62F5] z-10 shadow-[0_0_8px_rgba(110,98,245,.6)]" />
-                      )}
-                      {isDragOver && dragOverPos === 'below' && (
-                        <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-[#6E62F5] z-10 shadow-[0_0_8px_rgba(110,98,245,.6)]" />
-                      )}
                       <div
                         onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })))}
                         onTouchStart={e => { (e.currentTarget as any)._touchY = e.touches[0].clientY }}
                         onTouchEnd={e => {
                           const startY = (e.currentTarget as any)._touchY ?? 0
                           const dy = Math.abs(e.changedTouches[0].clientY - startY)
+                          // Solo si fue tap (movimiento < 8px), no scroll
                           if (dy < 8) {
-                            e.preventDefault()
                             playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })))
                           }
                         }}
-                        className={`relative flex items-center gap-4 px-6 py-4 border-b border-white/[0.04] last:border-0 group transition-all duration-150 cursor-pointer select-none ${
-                          isActive ? 'bg-[#6E62F5]/[0.07]' :
-                          'hover:bg-white/[0.025] active:bg-white/[0.04]'
+                        className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
+                          isDragOver ? 'bg-[#7C6FFF]/10 border-t border-[#7C6FFF]/30' :
+                          isActive   ? 'bg-[#7C6FFF]/5' :
+                          'hover:bg-white/[0.02]'
                         }`}
                       >
-                        {/* Barra izquierda de canción activa */}
-                        {isActive && (
-                          <div className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-[#6E62F5]" />
-                        )}
-                        {canEdit && (
+                        {isMine && (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-[#333] hover:text-[#555966] flex-shrink-0 -ml-1">
                             <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
                               <circle cx="3" cy="2.5"  r="1.2" fill="currentColor"/>
@@ -1063,46 +887,46 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                         )}
 
                         {isPlaying ? (
-                          <div className="w-5 flex items-end justify-center gap-[2.5px] h-4 flex-shrink-0">
+                          <div className="w-5 flex items-end justify-center gap-[2px] h-4 flex-shrink-0">
                             {[0.6, 1, 0.75, 0.9].map((h, idx) => (
                               <div
                                 key={idx}
-                                className="w-[3px] rounded-full bg-[#6E62F5]"
+                                className="w-[3px] rounded-sm bg-[#7C6FFF]"
                                 style={{
                                   height: `${h * 100}%`,
                                   transformOrigin: 'bottom',
-                                  animation: `waveBar ${0.55 + idx * 0.1}s ease-in-out ${idx * 0.11}s infinite alternate`,
+                                  animation: `waveBar ${0.6 + idx * 0.1}s ease-in-out ${idx * 0.12}s infinite alternate`,
                                 }}
                               />
                             ))}
                           </div>
                         ) : isActive ? (
-                          <div className="w-5 flex items-end justify-center gap-[2.5px] h-4 flex-shrink-0">
+                          <div className="w-5 flex items-end justify-center gap-[2px] h-4 flex-shrink-0">
                             {[0.6, 1, 0.75, 0.9].map((h, idx) => (
-                              <div key={idx} className="w-[3px] rounded-full bg-[#6E62F5]/30" style={{ height: `${h * 100}%` }}/>
+                              <div key={idx} className="w-[3px] rounded-sm bg-[#7C6FFF]/40" style={{ height: `${h * 100}%` }}/>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-[#555966] font-mono text-xs w-5 text-right flex-shrink-0 group-hover:text-[#9BA0AD] transition-colors tabular-nums">
+                          <span className="text-[#555966] font-mono text-sm w-5 text-right flex-shrink-0 group-hover:text-[#9BA0AD] transition-colors">
                             {i + 1}
                           </span>
                         )}
 
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate transition-colors leading-snug ${
-                            isActive ? 'text-[#6E62F5]' : 'text-[#EAE9E6] group-hover:text-white'
+                          <p className={`text-base font-medium truncate transition-colors ${
+                            isPlaying ? 'text-[#7C6FFF]' : 'text-[#F8F7F4]'
                           }`}>
                             {track.title}
                           </p>
-                          <p className="text-xs font-mono text-[#555966] mt-0.5 truncate">
+                          <p className="text-xs font-mono text-[#555966] mt-0.5">
                             {formatDate(track.created_at)}
                             {track.duration && track.duration > 0 && (
-                              <span className="text-[#383C47]"> · {formatTrackDuration(track.duration)}</span>
+                              <span> · {formatTrackDuration(track.duration)}</span>
                             )}
                           </p>
                         </div>
 
-                        {canEdit && (
+                        {isMine && (
                           <div
                             className="relative"
                             ref={el => {
@@ -1130,7 +954,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   onTouchStart={e => e.stopPropagation()}
                                 >
                                 <button
-                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
+                                  onTouchStart={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); setEditingTrackId(track.id); setEditingTrackName(track.title); setShowTrackMenu(null) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1163,7 +988,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   )}
                                 </button>
                                 <button
-                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
+                                  onTouchStart={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1173,7 +999,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Reemplazar
                                 </button>
                                 <button
-                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleDuplicateTrack(track) }}
+                                  onTouchStart={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); handleDuplicateTrack(track) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1183,7 +1010,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Duplicar
                                 </button>
                                 <button
-                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleExportTrack(track) }}
+                                  onTouchStart={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); handleExportTrack(track) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1194,7 +1022,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                 </button>
                                 <div className="h-px bg-white/[0.06] my-1"/>
                                 <button
-                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); confirmDeleteTrack(track.id, track.title) }}
+                                  onTouchStart={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); confirmDeleteTrack(track.id, track.title) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
                                 >
                                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -1231,7 +1060,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
               </div>
             )}
 
-            {tracks.length === 0 && !canEdit && (
+            {tracks.length === 0 && !isMine && (
               <div className="border border-dashed border-white/[0.06] rounded-xl p-10 text-center">
                 <p className="text-[#555966] text-sm font-mono">Sin canciones todavía.</p>
               </div>
