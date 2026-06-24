@@ -129,6 +129,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const [showDotsMenu, setShowDotsMenu]     = useState(false)
   const [confirmModal, setConfirmModal]     = useState<{ title: string; desc: string; onConfirm: () => void } | null>(null)
   const [copied, setCopied]                 = useState(false)
+  const [singleCopiedId, setSingleCopiedId] = useState<string | null>(null)
   const [renamingProject, setRenamingProject] = useState(false)
   const [renameTitleInput, setRenameTitleInput] = useState(initialProject.title)
   const [showAdminsModal, setShowAdminsModal] = useState(false)
@@ -253,7 +254,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   }
 
   const handleShareAsSingle = async (track: Track) => {
-    // Genera un slug único
     const slug = Math.random().toString(36).slice(2, 10)
     const { error } = await supabase.from('singles').insert({
       slug,
@@ -268,14 +268,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     const url = `${window.location.origin}/s/${slug}`
     try {
       await navigator.clipboard.writeText(url)
-      setCopied(true); setTimeout(() => setCopied(false), 2000)
     } catch {
       const el = document.createElement('input')
       el.value = url; document.body.appendChild(el)
       el.select(); document.execCommand('copy')
       document.body.removeChild(el)
-      setCopied(true); setTimeout(() => setCopied(false), 2000)
     }
+    setSingleCopiedId(track.id)
+    setTimeout(() => setSingleCopiedId(null), 2000)
   }
 
   const handleDuplicateTrack = async (track: Track) => {
@@ -1139,14 +1139,28 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                   Renombrar
                                 </button>
                                 <button
-                                  onTouchStart={e => e.stopPropagation()} onClick={async e => { e.stopPropagation(); await handleCopyLink(); setShowTrackMenu(null) }}
+                                  onTouchStart={e => e.stopPropagation()}
+                                  onClick={async e => { e.stopPropagation(); await handleShareAsSingle(track); setShowTrackMenu(null) }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
                                 >
-                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                                    <path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                                    <path d="M8 1h4v4M12 1L6 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                  Compartir
+                                  {singleCopiedId === track.id ? (
+                                    <>
+                                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                        <path d="M2 6.5l3 3 6-6" stroke="#1D9E75" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                      <span className="text-[#1D9E75]">Link copiado</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                        <circle cx="10.5" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                                        <circle cx="10.5" cy="10.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                                        <circle cx="2.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                                        <path d="M4 6l5-3M4 7l5 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                      </svg>
+                                      Compartir canción
+                                    </>
+                                  )}
                                 </button>
                                 <button
                                   onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setReplacingTrackId(track.id); setShowTrackMenu(null); replaceInputRef.current?.click() }}
@@ -1157,18 +1171,6 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                     <path d="M1 2v4.5h4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                   Reemplazar
-                                </button>
-                                <button
-                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleShareAsSingle(track); setShowTrackMenu(null) }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
-                                >
-                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                                    <circle cx="10.5" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                                    <circle cx="10.5" cy="10.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                                    <circle cx="2.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                                    <path d="M4 6l5-3M4 7l5 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                                  </svg>
-                                  Compartir como single
                                 </button>
                                 <button
                                   onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleDuplicateTrack(track) }}
