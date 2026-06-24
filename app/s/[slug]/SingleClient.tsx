@@ -113,10 +113,18 @@ export default function SingleClient({ single, userId }: { single: Single; userI
   return (
     <main className="min-h-screen bg-[#0f1117] text-[#EAE9E6] flex flex-col items-center justify-center px-4 py-12">
 
-      {/* Logo */}
-      <Link href="/" className="font-mono text-xl font-medium tracking-tight mb-12 opacity-60 hover:opacity-100 transition-opacity">
-        demo<span className="text-[#6E62F5]">.</span>
-      </Link>
+      {/* Logo + botón volver */}
+      <div className="flex items-center justify-between w-full max-w-sm mb-10">
+        <Link href={userId ? '/dashboard' : '/landing'} className="flex items-center gap-2 text-[#555966] hover:text-[#EAE9E6] transition-colors">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="text-sm">{userId ? 'Mi biblioteca' : 'Volver'}</span>
+        </Link>
+        <Link href="/landing" className="font-mono text-lg font-medium tracking-tight opacity-50 hover:opacity-100 transition-opacity">
+          demo<span className="text-[#6E62F5]">.</span>
+        </Link>
+      </div>
 
       {/* Card */}
       <div className="w-full max-w-sm">
