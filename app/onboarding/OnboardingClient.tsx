@@ -72,6 +72,7 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
   const [roles, setRoles]                 = useState<Role[]>([])
   const [selectedPlan, setSelectedPlan]   = useState('free')
   const [saving, setSaving]               = useState(false)
+  const [saveError, setSaveError]         = useState('')
   const supabase = createClient()
 
   const isListener   = roles.length === 1 && roles[0] === 'listener'
@@ -116,10 +117,16 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
 
   const handleFinish = async () => {
     setSaving(true)
-    await supabase
+    setSaveError('')
+    const { error } = await supabase
       .from('profiles')
       .update({ username, roles, plan: selectedPlan, onboarded: true })
       .eq('id', userId)
+    if (error) {
+      setSaveError('Algo ha ido mal. Inténtalo de nuevo.')
+      setSaving(false)
+      return
+    }
     window.location.href = '/dashboard'
   }
 
@@ -245,12 +252,15 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
               </button>
               <button
                 onClick={() => isListener ? handleFinish() : setStep(3)}
-                disabled={roles.length === 0}
+                disabled={roles.length === 0 || saving}
                 className="flex-1 bg-[#7C6FFF] hover:bg-[#4A3FCC] text-white font-medium py-3 rounded-xl text-base transition-colors disabled:opacity-40"
               >
-                {isListener ? 'Empezar' : 'Ver planes'}
+                {isListener && saving ? 'Guardando...' : isListener ? 'Empezar' : 'Ver planes'}
               </button>
             </div>
+            {saveError && (
+              <p className="text-red-400 text-sm font-mono text-center mt-3">{saveError}</p>
+            )}
           </div>
         )}
 
@@ -321,7 +331,8 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
             <div className="flex gap-3">
               <button
                 onClick={() => setStep(2)}
-                className="flex-1 border border-white/[0.08] text-[#9BA0AD] py-3 rounded-xl text-base hover:border-white/20 hover:text-[#F8F7F4] transition-colors"
+                disabled={saving}
+                className="flex-1 border border-white/[0.08] text-[#9BA0AD] py-3 rounded-xl text-base hover:border-white/20 hover:text-[#F8F7F4] transition-colors disabled:opacity-40"
               >
                 Atrás
               </button>
@@ -333,6 +344,9 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
                 {saving ? 'Guardando...' : 'Empezar en demo.'}
               </button>
             </div>
+            {saveError && (
+              <p className="text-red-400 text-sm font-mono text-center mt-3">{saveError}</p>
+            )}
           </div>
         )}
       </div>
