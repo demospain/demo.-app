@@ -97,38 +97,19 @@ export default function SingleClient({ single, userId }: { single: Single; userI
       return
     }
     setSaving(true)
-    const { data: project, error: pe } = await supabase
-      .from('projects')
-      .insert({
-        title:      single.track_title,
-        owner_id:   userId,
-        visibility: 'private',
-        cover_url:  single.cover_url,
-      })
-      .select('id')
-      .single()
 
-    if (pe || !project) {
-      console.error('Error al crear proyecto single:', pe)
+    // Guardamos referencia al proyecto ORIGINAL del single, no una copia.
+    // Así el nombre, portada y cambios del dueño se reflejan automáticamente
+    // en la biblioteca del usuario que lo guardó.
+    const { error } = await supabase
+      .from('saved_projects')
+      .insert({ project_id: single.project_id, user_id: userId })
+
+    if (error) {
+      console.error('Error al guardar single:', error)
       setSaving(false)
       return
     }
-
-    const { error: te } = await supabase.from('tracks').insert({
-      project_id:  project.id,
-      title:       single.track_title,
-      file_path:   single.file_path,
-      track_order: 0,
-      uploaded_by: userId,
-      duration:    duration > 0 ? Math.round(duration) : null,
-    })
-    if (te) console.error('Error al crear track del single:', te)
-
-    const { error: se } = await supabase.from('saved_projects').insert({
-      project_id: project.id,
-      user_id:    userId,
-    })
-    if (se) console.error('Error al guardar en biblioteca:', se)
 
     setSaved(true)
     setSaving(false)
