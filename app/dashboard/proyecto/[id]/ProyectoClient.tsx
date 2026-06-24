@@ -30,6 +30,7 @@ interface Props {
   project:       Project
   initialTracks: Track[]
   isMine:        boolean
+  isAdmin:       boolean
   userId:        string
   nombre:        string
   inicial:       string
@@ -100,7 +101,7 @@ function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
   )
 }
 
-export default function ProyectoClient({ project: initialProject, initialTracks, isMine, userId, nombre, inicial }: Props) {
+export default function ProyectoClient({ project: initialProject, initialTracks, isMine, isAdmin, userId, nombre, inicial }: Props) {
   const [project, setProject]               = useState<Project>(initialProject)
   const [tracks, setTracks]                 = useState<Track[]>(initialTracks)
   const [showTrackMenu, setShowTrackMenu]   = useState<string | null>(null)
