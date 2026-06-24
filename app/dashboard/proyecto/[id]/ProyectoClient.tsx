@@ -262,7 +262,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       file_path:   track.file_path,
       project_id:  project.id,
       cover_url:   project.cover_url ?? null,
-      artist_name: project.owner_name ?? null,
+      artist_name: nombre ?? null,
     })
     if (error) { console.error(error); return }
     const url = `${window.location.origin}/s/${slug}`
