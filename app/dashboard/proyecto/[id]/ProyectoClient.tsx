@@ -120,6 +120,8 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
   const [dragOverId, setDragOverId]         = useState<string | null>(null)
+  const [draggingId, setDraggingId]         = useState<string | null>(null)
+  const [dragOverPos, setDragOverPos]       = useState<'above'|'below'>('below')
   const [replacingTrackId, setReplacingTrackId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery]       = useState('')
   const [showSearch, setShowSearch]         = useState(false)
@@ -248,6 +250,32 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       desc: `¿Seguro que quieres eliminar "${trackTitle}"? Esta acción no se puede deshacer.`,
       onConfirm: () => handleDeleteTrack(trackId),
     })
+  }
+
+  const handleShareAsSingle = async (track: Track) => {
+    // Genera un slug único
+    const slug = Math.random().toString(36).slice(2, 10)
+    const { error } = await supabase.from('singles').insert({
+      slug,
+      track_id:    track.id,
+      track_title: track.title,
+      file_path:   track.file_path,
+      project_id:  project.id,
+      cover_url:   project.cover_url ?? null,
+      artist_name: project.owner_name ?? null,
+    })
+    if (error) { console.error(error); return }
+    const url = `${window.location.origin}/s/${slug}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
+    } catch {
+      const el = document.createElement('input')
+      el.value = url; document.body.appendChild(el)
+      el.select(); document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const handleDuplicateTrack = async (track: Track) => {
@@ -409,23 +437,40 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setCoverUploading(false)
   }
 
-  const handleDragStart = (trackId: string) => { dragIdRef.current = trackId }
+  const handleDragStart = (e: React.DragEvent, trackId: string) => {
+    dragIdRef.current = trackId
+    setDraggingId(trackId)
+    // Ghost image transparente — el navegador muestra un fantasma por defecto,
+    // lo reducimos a casi invisible para que la fila de origen con opacidad sea suficiente feedback
+    const ghost = document.createElement('div')
+    ghost.style.cssText = 'position:fixed;top:-999px;opacity:0;'
+    document.body.appendChild(ghost)
+    e.dataTransfer.setDragImage(ghost, 0, 0)
+    setTimeout(() => document.body.removeChild(ghost), 0)
+  }
   const handleDragOver  = (e: React.DragEvent, trackId: string) => {
     e.preventDefault()
-    if (dragIdRef.current !== trackId) setDragOverId(trackId)
+    if (dragIdRef.current === trackId) return
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const pos = e.clientY < rect.top + rect.height / 2 ? 'above' : 'below'
+    setDragOverId(trackId)
+    setDragOverPos(pos)
   }
   const handleDrop = async (e: React.DragEvent, targetId: string) => {
     e.preventDefault()
     setDragOverId(null)
+    setDraggingId(null)
     const sourceId = dragIdRef.current
     if (!sourceId || sourceId === targetId) return
     const oldTracks = [...tracks]
     const sourceIdx = tracks.findIndex(t => t.id === sourceId)
-    const targetIdx = tracks.findIndex(t => t.id === targetId)
+    let targetIdx = tracks.findIndex(t => t.id === targetId)
     if (sourceIdx === -1 || targetIdx === -1) return
     const reordered = [...tracks]
     const [moved] = reordered.splice(sourceIdx, 1)
-    reordered.splice(targetIdx, 0, moved)
+    // Insertar encima o debajo según dragOverPos
+    const insertAt = dragOverPos === 'above' ? targetIdx : targetIdx + (sourceIdx < targetIdx ? 0 : 1)
+    reordered.splice(Math.max(0, insertAt - (sourceIdx < targetIdx && dragOverPos === 'above' ? 1 : 0)), 0, moved)
     const withOrder = reordered.map((t, i) => ({ ...t, track_order: i }))
     setTracks(withOrder)
     const results = await Promise.all(withOrder.map(t =>
@@ -433,7 +478,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     ))
     if (results.some(r => r.error)) setTracks(oldTracks)
   }
-  const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null) }
+  const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null); setDraggingId(null) }
 
   return (
     <div className={`flex flex-col min-h-screen bg-[#0f1117] ${currentTrack ? 'pb-20' : ''}`}>
@@ -960,18 +1005,30 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                   const isActive    = currentTrack?.id === track.id
                   const isPlaying   = isActive && playerIsPlaying
                   const isDragOver  = dragOverId === track.id
+                  const isDragging  = draggingId === track.id
                   const isReplacing = replacingTrackId === track.id
                   return (
                     <div
                       key={track.id}
                       draggable={canEdit}
-                      onDragStart={() => handleDragStart(track.id)}
+                      onDragStart={e => handleDragStart(e, track.id)}
                       onDragOver={e => handleDragOver(e, track.id)}
                       onDrop={e => handleDrop(e, track.id)}
                       onDragEnd={handleDragEnd}
-                      className="track-row-enter"
-                      style={{ animationDelay: `${i * 0.03}s` }}
+                      className="track-row-enter relative"
+                      style={{
+                        animationDelay: `${i * 0.03}s`,
+                        opacity: isDragging ? 0.35 : 1,
+                        transition: 'opacity 0.15s ease',
+                      }}
                     >
+                      {/* Línea indicadora de posición */}
+                      {isDragOver && dragOverPos === 'above' && (
+                        <div className="absolute top-0 left-4 right-4 h-0.5 rounded-full bg-[#6E62F5] z-10 shadow-[0_0_8px_rgba(110,98,245,.6)]" />
+                      )}
+                      {isDragOver && dragOverPos === 'below' && (
+                        <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-[#6E62F5] z-10 shadow-[0_0_8px_rgba(110,98,245,.6)]" />
+                      )}
                       <div
                         onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })))}
                         onTouchStart={e => { (e.currentTarget as any)._touchY = e.touches[0].clientY }}
@@ -984,8 +1041,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                           }
                         }}
                         className={`relative flex items-center gap-4 px-6 py-4 border-b border-white/[0.04] last:border-0 group transition-all duration-150 cursor-pointer select-none ${
-                          isDragOver ? 'bg-[#6E62F5]/10 border-t border-[#6E62F5]/30' :
-                          isActive   ? 'bg-[#6E62F5]/[0.07]' :
+                          isActive ? 'bg-[#6E62F5]/[0.07]' :
                           'hover:bg-white/[0.025] active:bg-white/[0.04]'
                         }`}
                       >
@@ -1101,6 +1157,18 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                                     <path d="M1 2v4.5h4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
                                   Reemplazar
+                                </button>
+                                <button
+                                  onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleShareAsSingle(track); setShowTrackMenu(null) }}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <circle cx="10.5" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                                    <circle cx="10.5" cy="10.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                                    <circle cx="2.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                                    <path d="M4 6l5-3M4 7l5 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                  </svg>
+                                  Compartir como single
                                 </button>
                                 <button
                                   onTouchStart={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); handleDuplicateTrack(track) }}
