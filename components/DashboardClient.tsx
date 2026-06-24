@@ -150,7 +150,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
             <div>
               <p className="text-[#EAE9E6] text-lg font-medium mb-5">Mis proyectos</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-start">
-                {projects.map(project => <ProjectCard key={project.id} project={project} ownerName={userName}/>)}
+                {projects.map(project => <ProjectCard key={project.id} project={project} ownerName={ownerNames[project.id] ?? userName}/>)}
                 <button onClick={() => setShowNewProject(true)} className="text-left group">
                   {/* Móvil: botón compacto, no tarjeta cuadrada */}
                   <div className="sm:hidden w-full h-16 rounded-[14px] border-2 border-dashed border-white/[0.07] group-hover:border-[#6E62F5]/30 transition-colors mb-3 flex items-center justify-center gap-2">
@@ -177,7 +177,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-start">
                 {savedProjects.map(project => (
                   <ProjectCard key={project.id} project={project}
-                    ownerName={project.owner_id ? (ownerNames[project.owner_id] ?? 'Artista') : 'Artista'}/>
+                    ownerName={ownerNames[project.id] ?? 'Artista'}/>
                 ))}
               </div>
             </div>
