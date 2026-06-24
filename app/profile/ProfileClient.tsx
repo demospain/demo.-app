@@ -38,23 +38,23 @@ const PLAN_LABELS: Record<string, { label: string; price: string; color: string 
 type Tab = 'profile' | 'security' | 'plan'
 
 export default function ProfileClient({ userId, email, profile: initialProfile, trackCount }: Props) {
-  const [profile, setProfile]                 = useState(initialProfile)
-  const [tab, setTab]                         = useState<Tab>('profile')
-  const [editing, setEditing]                 = useState(false)
-  const [username, setUsername]               = useState(initialProfile.username)
-  const [roles, setRoles]                     = useState<string[]>(initialProfile.roles ?? [])
-  const [saving, setSaving]                   = useState(false)
-  const [saved, setSaved]                     = useState(false)
+  const [profile, setProfile]               = useState(initialProfile)
+  const [tab, setTab]                       = useState<Tab>('profile')
+  const [editing, setEditing]               = useState(false)
+  const [username, setUsername]             = useState(initialProfile.username)
+  const [roles, setRoles]                   = useState<string[]>(initialProfile.roles ?? [])
+  const [saving, setSaving]                 = useState(false)
+  const [saved, setSaved]                   = useState(false)
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
-  const [avatarError, setAvatarError]         = useState('')
-  const [showDotsMenu, setShowDotsMenu]       = useState(false)
-  const [confirmModal, setConfirmModal]       = useState<{ title: string; desc: string; onConfirm: () => Promise<void> } | null>(null)
-  const [deleting, setDeleting]               = useState(false)
-  const [deleteError, setDeleteError]         = useState('')
-  const dotsMenuRef                           = useRef<HTMLDivElement>(null)
-  const avatarInputRef                        = useRef<HTMLInputElement>(null)
-  const supabase                              = createClient()
+  const [avatarError, setAvatarError]       = useState('')
+  const [showDotsMenu, setShowDotsMenu]     = useState(false)
+  const [confirmModal, setConfirmModal]     = useState<{ title: string; desc: string; onConfirm: () => void } | null>(null)
+  const [deleting, setDeleting]             = useState(false)
+  const [deleteError, setDeleteError]       = useState('')
+  const dotsMenuRef                         = useRef<HTMLDivElement>(null)
+  const avatarInputRef                      = useRef<HTMLInputElement>(null)
+  const supabase                            = createClient()
 
   const inicial = (profile.username || profile.full_name || 'U').charAt(0).toUpperCase()
   const plan    = PLAN_LABELS[profile.plan] ?? PLAN_LABELS.free
@@ -196,6 +196,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
                   setDeleteError('')
                   await confirmModal.onConfirm()
                   setDeleting(false)
+                  setConfirmModal(null)
                 }}
                 disabled={deleting}
                 className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
