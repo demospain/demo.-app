@@ -18,8 +18,55 @@ const dmMono = DM_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'demo. — Tu música, antes de existir para el mundo',
-  description: 'Sube, organiza y comparte tu música antes de publicarla.',
+  title: {
+    default: 'demo. — Comparte tu música antes de publicarla',
+    template: '%s — demo.',
+  },
+  description: 'La app para músicos independientes. Sube, organiza y comparte tus demos antes de lanzarlas al mundo. Gratis, sin instalación de tienda.',
+  keywords: [
+    'demo musical', 'compartir demos', 'app músicos independientes',
+    'demos antes de publicar', 'organizar música', 'compartir música privada',
+    'reproductor demos', 'app artistas', 'maquetas musicales', 'demo app',
+  ],
+  authors: [{ name: 'demo.', url: 'https://www.demospain.app' }],
+  creator: 'demo.',
+  publisher: 'demo.',
+  metadataBase: new URL('https://www.demospain.app'),
+  alternates: {
+    canonical: 'https://www.demospain.app/landing',
+  },
+  openGraph: {
+    title: 'demo. — Tu música, antes de existir para el mundo',
+    description: 'Sube, organiza y comparte tus demos antes de publicarlas. La app para músicos independientes.',
+    url: 'https://www.demospain.app',
+    siteName: 'demo.',
+    locale: 'es_ES',
+    type: 'website',
+    images: [
+      {
+        url: '/icon-512.png',
+        width: 512,
+        height: 512,
+        alt: 'demo. — app para músicos independientes',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'demo. — Tu música, antes de existir para el mundo',
+    description: 'Sube, organiza y comparte tus demos antes de publicarlas.',
+    images: ['/icon-512.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-snippet': -1,
+      'max-image-preview': 'large',
+    },
+  },
   appleWebApp: {
     capable: true,
     title: 'demo.',
@@ -27,6 +74,7 @@ export const metadata: Metadata = {
   },
   icons: {
     apple: '/icon-192.png',
+    icon: '/icon-192.png',
   },
   other: {
     'mobile-web-app-capable': 'yes',
