@@ -61,15 +61,60 @@ export default async function DashboardPage() {
       owner_id?: string; share_slug?: string
     }[]
 
-  const ownerIds = Array.from(new Set(savedProjects.map((p: any) => p.owner_id).filter(Boolean))) as string[]
-  let ownerNames: Record<string, string> = {}
+  // Todos los proyectos que necesitan resolución de nombres
+  const allProjects = [...myProjects, ...savedProjects]
+  const allProjectIds = allProjects.map((p: any) => p.id)
+
+  // Owner names (para proyectos guardados)
+  const ownerIds = Array.from(new Set(allProjects.map((p: any) => p.owner_id).filter(Boolean))) as string[]
+  const profilesMap: Record<string, string> = {}
   if (ownerIds.length > 0) {
     const { data: owners } = await supabase
       .from('profiles')
       .select('id, username')
       .in('id', ownerIds)
-    owners?.forEach(o => { ownerNames[o.id] = o.username })
+    owners?.forEach(o => { profilesMap[o.id] = o.username })
   }
+  // Incluir el propio usuario
+  if (profile?.username) profilesMap[user.id] = profile.username
+
+  // Admins por proyecto
+  const adminsByProject: Record<string, string[]> = {}
+  if (allProjectIds.length > 0) {
+    const { data: members } = await supabase
+      .from('project_members')
+      .select('project_id, user_id')
+      .in('project_id', allProjectIds)
+      .eq('role', 'admin')
+    // Resolver usernames de admins que no están ya en profilesMap
+    const adminUserIds = Array.from(new Set((members ?? []).map(m => m.user_id)))
+    const unknownIds = adminUserIds.filter(id => !profilesMap[id])
+    if (unknownIds.length > 0) {
+      const { data: adminProfiles } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', unknownIds)
+      adminProfiles?.forEach(p => { profilesMap[p.id] = p.username })
+    }
+    ;(members ?? []).forEach(m => {
+      if (!adminsByProject[m.project_id]) adminsByProject[m.project_id] = []
+      adminsByProject[m.project_id].push(m.user_id)
+    })
+  }
+
+  // Construir el string de autores por proyecto: owner[, admin1, admin2...]
+  const ownerNames: Record<string, string> = {}
+  allProjects.forEach((p: any) => {
+    const ownerUsername = profilesMap[p.owner_id] ?? p.owner_id ?? ''
+    const adminIds = adminsByProject[p.id] ?? []
+    const adminUsernames = adminIds
+      .filter(id => id !== p.owner_id)
+      .map(id => profilesMap[id] ?? id)
+      .filter(Boolean)
+    ownerNames[p.id] = adminUsernames.length > 0
+      ? [ownerUsername, ...adminUsernames].join(', ')
+      : ownerUsername
+  })
 
   const avatarUrl = profile?.avatar_url
     ? profile.avatar_url.startsWith('http')
