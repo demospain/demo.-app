@@ -34,7 +34,14 @@ export default async function ProyectoPage({ params }: Props) {
 
   const isMine  = project.owner_id === user.id
   const isAdmin = !!membership
-  const nombre = user.user_metadata?.full_name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'artista'
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single()
+
+  const nombre  = profile?.username ?? user.email?.split('@')[0] ?? 'artista'
   const inicial = nombre.charAt(0).toUpperCase()
 
   const projectWithCover = {
