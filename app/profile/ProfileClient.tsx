@@ -22,12 +22,6 @@ interface Props {
   trackCount: number
 }
 
-interface ConfirmModalState {
-  title:     string
-  desc:      string
-  onConfirm: () => void
-}
-
 const ROLE_LABELS: Record<string, { label: string; emoji: string }> = {
   artist:   { label: 'Artista',            emoji: '🎤' },
   producer: { label: 'Productor',           emoji: '🎛️' },
@@ -55,9 +49,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError]       = useState('')
   const [showDotsMenu, setShowDotsMenu]     = useState(false)
-  const [confirmModal, setConfirmModal]     = useState<ConfirmModalState | null>(null)
-  const [deleting, setDeleting]             = useState(false)
-  const [deleteError, setDeleteError]       = useState('')
+  const [confirmModal, setConfirmModal]     = useState<{ title: string; desc: string; onConfirm: () => void } | null>(null)
   const dotsMenuRef                         = useRef<HTMLDivElement>(null)
   const avatarInputRef                      = useRef<HTMLInputElement>(null)
   const supabase                            = createClient()
@@ -185,29 +177,18 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
           <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-[#F8F7F4] font-medium text-base mb-2">{confirmModal.title}</h3>
             <p className="text-[#9BA0AD] text-sm mb-6 leading-relaxed">{confirmModal.desc}</p>
-            {deleteError && (
-              <p className="text-red-400 text-xs font-mono mb-4">{deleteError}</p>
-            )}
             <div className="flex gap-2">
               <button
-                onClick={() => { setConfirmModal(null); setDeleteError('') }}
-                disabled={deleting}
-                className="flex-1 border border-white/[0.08] text-[#9BA0AD] hover:text-[#F8F7F4] py-2.5 rounded-xl text-sm transition-colors disabled:opacity-40"
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 border border-white/[0.08] text-[#9BA0AD] hover:text-[#F8F7F4] py-2.5 rounded-xl text-sm transition-colors"
               >
                 Cancelar
               </button>
               <button
-                onClick={async () => {
-                  setDeleting(true)
-                  setDeleteError('')
-                  await confirmModal.onConfirm()
-                  setDeleting(false)
-                  setConfirmModal(null)
-                }}
-                disabled={deleting}
-                className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+                onClick={() => { confirmModal.onConfirm(); setConfirmModal(null) }}
+                className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 py-2.5 rounded-xl text-sm font-medium transition-colors"
               >
-                {deleting ? 'Eliminando...' : 'Confirmar'}
+                Confirmar
               </button>
             </div>
           </div>
@@ -262,7 +243,6 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
                 <button
                   onClick={() => {
                     setShowDotsMenu(false)
-                    setDeleteError('')
                     setConfirmModal({
                       title: 'Eliminar cuenta',
                       desc: 'Se eliminarán todos tus proyectos, canciones y datos. Esta acción no se puede deshacer.',
@@ -272,9 +252,6 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
                           const supabase = createClient()
                           await supabase.auth.signOut()
                           window.location.href = '/login'
-                        } else {
-                          const data = await res.json()
-                          setDeleteError(data.error ?? 'Error al eliminar la cuenta. Inténtalo de nuevo.')
                         }
                       }
                     })
@@ -511,7 +488,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
             { label: 'Términos de Uso',        href: '/terms' },
             { label: 'Política de Cookies',    href: '/cookies' },
           ].map(({ label, href }) => (
-            
+            <a
               key={href}
               href={href}
               target="_blank"
