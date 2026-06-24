@@ -32,8 +32,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
   const [createError, setCreateError]       = useState('')
   const router   = useRouter()
   const supabase = createClient()
-  const { setLibraryUserId, playTrack, currentTrack } = usePlayer()
-  const [loadingPlayId, setLoadingPlayId] = useState<string | null>(null)
+  const { setLibraryUserId } = usePlayer()
 
   useEffect(() => {
     setLibraryUserId(userId)
@@ -50,13 +49,14 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
       .from('projects')
       .insert({ title: newTitle.trim(), owner_id: userId, visibility: 'private', status: 'draft' })
       .select().single()
-    if (error) { setCreateError('No se ha podido crear el proyecto. Inténtalo de nuevo.'); setCreating(false); return }
+    if (error) { setCreateError(`Error: ${error.message}`); setCreating(false); return }
     if (data) { setNewTitle(''); setShowNewProject(false); router.push(`/dashboard/proyecto/${data.id}`) }
     setCreating(false)
   }
 
 
   const isEmpty = projects.length === 0 && savedProjects.length === 0
+
   const [unsavedIds, setUnsavedIds] = useState<Set<string>>(new Set())
 
   const handleUnsave = async (projectId: string) => {
@@ -69,56 +69,32 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
     if (!error) setUnsavedIds(prev => new Set(prev).add(projectId))
   }
 
-  const handlePlayProject = async (e: React.MouseEvent, project: Project) => {
-    e.stopPropagation()
-    if (loadingPlayId) return
-    setLoadingPlayId(project.id)
-    const { data: tracks } = await supabase
-      .from('tracks')
-      .select('id, title, file_path')
-      .eq('project_id', project.id)
-      .order('track_order', { ascending: true })
-    setLoadingPlayId(null)
-    if (tracks && tracks.length > 0) {
-      const queue = tracks.map(t => ({
-        id: t.id, title: t.title, file_path: t.file_path,
-        projectTitle: project.title, coverUrl: project.cover_url ?? undefined,
-      }))
-      playTrack(queue[0], queue)
-    }
-  }
-
   const ProjectCard = ({ project, ownerName }: { project: Project; ownerName: string }) => (
-    <div onClick={() => router.push(`/dashboard/proyecto/${project.id}`)} className="text-left group cursor-pointer btn-spring">
-      <div className="w-full aspect-square rounded-[14px] card-elevated mb-3 flex items-center justify-center relative overflow-hidden">
+    <button onClick={() => router.push(`/dashboard/proyecto/${project.id}`)} className="text-left group">
+      <div className="w-full aspect-square rounded-[14px] bg-[#181c27] border border-white/[0.07] group-hover:border-[#6E62F5]/30 transition-all duration-200 mb-3 flex items-center justify-center relative overflow-hidden">
         {project.cover_url
           ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
           : <div className="text-4xl opacity-25 group-hover:opacity-35 transition-opacity">💿</div>
         }
-        <button
-          onClick={e => handlePlayProject(e, project)}
-          aria-label="Reproducir"
-          className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-md flex items-center justify-center transition-all duration-150 hover:scale-105 shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
-        >
-          {loadingPlayId === project.id
-            ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-            : <svg width="13" height="13" viewBox="0 0 13 13" fill="white"><path d="M2 1.3l9.5 5.2L2 11.7V1.3z"/></svg>
-          }
-        </button>
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-[#6E62F5] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 scale-90 group-hover:scale-100">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="white"><path d="M2 1.5l7 4-7 4V1.5z"/></svg>
+          </div>
+        </div>
       </div>
       <p className="text-base font-medium text-[#EAE9E6] truncate leading-tight group-hover:text-white transition-colors">{project.title}</p>
       <p className="text-xs font-mono text-[#555966] mt-0.5 truncate">{ownerName}</p>
-    </div>
+    </button>
   )
 
   return (
-    <div className={currentTrack ? 'pb-24 md:pb-0' : ''}>
+    <div>
       {showNewProject && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={e => { if (e.target === e.currentTarget) { setShowNewProject(false); setCreateError('') } }}
         >
-          <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
+          <div className="bg-[#181c27] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm">
             <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Nuevo proyecto</p>
             <h3 className="font-medium text-[#EAE9E6] text-base mb-4">¿Cómo se llama?</h3>
             <form onSubmit={handleCreateProject} className="flex flex-col gap-3">
@@ -192,7 +168,7 @@ export default function DashboardClient({ userId, userName, initialProjects, sav
                     <button
                       onClick={e => { e.stopPropagation(); handleUnsave(project.id) }}
                       title="Quitar de biblioteca"
-                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/saved:opacity-100 transition-opacity hover:bg-black/80 z-10"
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-100 md:opacity-0 md:group-hover/saved:opacity-100 transition-opacity hover:bg-black/80 z-10"
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                         <path d="M2 2l6 6M8 2L2 8" stroke="#9BA0AD" strokeWidth="1.4" strokeLinecap="round"/>
