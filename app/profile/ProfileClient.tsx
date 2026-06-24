@@ -49,7 +49,9 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError]       = useState('')
   const [showDotsMenu, setShowDotsMenu]     = useState(false)
-  const [confirmModal, setConfirmModal]     = useState<{ title: string; desc: string; onConfirm: () => void } | null>(null)
+  const [confirmModal, setConfirmModal]     = useState<{ title: string; desc: string; onConfirm: () => Promise<void> } | null>(null)
+  const [deleting, setDeleting]             = useState(false)
+  const [deleteError, setDeleteError]       = useState('')
   const dotsMenuRef                         = useRef<HTMLDivElement>(null)
   const avatarInputRef                      = useRef<HTMLInputElement>(null)
   const supabase                            = createClient()
@@ -134,7 +136,6 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
             <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Foto de perfil</p>
             <h3 className="font-medium text-[#EAE9E6] text-base mb-6">Elige una nueva foto</h3>
 
-            {/* Preview */}
             <div className="flex justify-center mb-6">
               <div className="w-24 h-24 rounded-2xl bg-[#6E62F5] flex items-center justify-center text-3xl font-bold text-white overflow-hidden">
                 {avatarUrl
@@ -177,18 +178,28 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
           <div className="card-elevated rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-[#F8F7F4] font-medium text-base mb-2">{confirmModal.title}</h3>
             <p className="text-[#9BA0AD] text-sm mb-6 leading-relaxed">{confirmModal.desc}</p>
+            {deleteError && (
+              <p className="text-red-400 text-xs font-mono mb-4">{deleteError}</p>
+            )}
             <div className="flex gap-2">
               <button
-                onClick={() => setConfirmModal(null)}
-                className="flex-1 border border-white/[0.08] text-[#9BA0AD] hover:text-[#F8F7F4] py-2.5 rounded-xl text-sm transition-colors"
+                onClick={() => { setConfirmModal(null); setDeleteError('') }}
+                disabled={deleting}
+                className="flex-1 border border-white/[0.08] text-[#9BA0AD] hover:text-[#F8F7F4] py-2.5 rounded-xl text-sm transition-colors disabled:opacity-40"
               >
                 Cancelar
               </button>
               <button
-                onClick={() => { confirmModal.onConfirm(); setConfirmModal(null) }}
-                className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                onClick={async () => {
+                  setDeleting(true)
+                  setDeleteError('')
+                  await confirmModal.onConfirm()
+                  setDeleting(false)
+                }}
+                disabled={deleting}
+                className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
               >
-                Confirmar
+                {deleting ? 'Eliminando...' : 'Confirmar'}
               </button>
             </div>
           </div>
@@ -243,6 +254,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
                 <button
                   onClick={() => {
                     setShowDotsMenu(false)
+                    setDeleteError('')
                     setConfirmModal({
                       title: 'Eliminar cuenta',
                       desc: 'Se eliminarán todos tus proyectos, canciones y datos. Esta acción no se puede deshacer.',
@@ -252,6 +264,9 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
                           const supabase = createClient()
                           await supabase.auth.signOut()
                           window.location.href = '/login'
+                        } else {
+                          const data = await res.json()
+                          setDeleteError(data.error ?? 'Error al eliminar la cuenta. Inténtalo de nuevo.')
                         }
                       }
                     })
@@ -275,7 +290,6 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
         <div className="card-elevated rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-5">
 
-            {/* Avatar — click abre modal */}
             <div
               onClick={() => setShowAvatarModal(true)}
               className="relative w-20 h-20 rounded-2xl bg-[#6E62F5] flex items-center justify-center text-2xl font-bold text-white overflow-hidden flex-shrink-0 cursor-pointer group"
@@ -295,7 +309,6 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
               </div>
             </div>
 
-            {/* Info */}
             <div className="flex-1 min-w-0">
               <span className="text-2xl font-medium text-[#EAE9E6] font-mono block truncate">
                 @{profile.username || 'sin nombre'}
@@ -305,7 +318,6 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
               </span>
             </div>
 
-            {/* Botón editar */}
             {!editing ? (
               <button
                 onClick={() => setEditing(true)}
@@ -456,7 +468,6 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
               <span className="text-[#555966] text-sm font-mono">{plan.price}</span>
             </div>
 
-            {/* Contador de tracks */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-mono text-[#555966]">Canciones subidas</span>
@@ -488,7 +499,7 @@ export default function ProfileClient({ userId, email, profile: initialProfile, 
             { label: 'Términos de Uso',        href: '/terms' },
             { label: 'Política de Cookies',    href: '/cookies' },
           ].map(({ label, href }) => (
-            <a
+            
               key={href}
               href={href}
               target="_blank"
