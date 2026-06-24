@@ -104,15 +104,17 @@ export default function SingleClient({ single, userId }: { single: Single; userI
         owner_id:   userId,
         visibility: 'private',
         cover_url:  single.cover_url,
-        status:     'single',
-        share_slug: null,
       })
       .select('id')
       .single()
 
-    if (pe || !project) { setSaving(false); return }
+    if (pe || !project) {
+      console.error('Error al crear proyecto single:', pe)
+      setSaving(false)
+      return
+    }
 
-    await supabase.from('tracks').insert({
+    const { error: te } = await supabase.from('tracks').insert({
       project_id:  project.id,
       title:       single.track_title,
       file_path:   single.file_path,
@@ -120,11 +122,13 @@ export default function SingleClient({ single, userId }: { single: Single; userI
       uploaded_by: userId,
       duration:    duration > 0 ? Math.round(duration) : null,
     })
+    if (te) console.error('Error al crear track del single:', te)
 
-    await supabase.from('saved_projects').insert({
+    const { error: se } = await supabase.from('saved_projects').insert({
       project_id: project.id,
       user_id:    userId,
     })
+    if (se) console.error('Error al guardar en biblioteca:', se)
 
     setSaved(true)
     setSaving(false)
