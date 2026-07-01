@@ -31,6 +31,19 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // Comprobar si el usuario ya completó el onboarding. Si no, lo mandamos
+      // ahí primero y le pasamos el destino original para volver al terminar.
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarded')
+          .eq('id', user.id)
+          .single()
+        if (!profile?.onboarded) {
+          return NextResponse.redirect(`${BASE_URL}/onboarding?next=${encodeURIComponent(next)}`)
+        }
+      }
       return NextResponse.redirect(`${BASE_URL}${next}`)
     }
   }
