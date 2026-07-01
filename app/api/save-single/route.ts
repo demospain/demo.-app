@@ -41,29 +41,37 @@ export async function POST(request: Request) {
   if (existingMirror) {
     mirrorProjectId = existingMirror.id
   } else {
-    // Averiguar el dueño original a través del proyecto de origen del single
+    // Averiguar el dueño original a través del proyecto de origen del single,
+    // solo para mostrar la atribución — el proyecto espejo pertenece a quien lo guarda
     const { data: originalProject } = await admin
       .from('projects')
       .select('owner_id')
       .eq('id', single.project_id)
       .maybeSingle()
 
-    const originalOwnerId = originalProject?.owner_id
-    if (!originalOwnerId) {
-      return NextResponse.json({ error: 'No se pudo determinar el propietario original' }, { status: 500 })
+    let attributedArtist: string | null = null
+    if (originalProject?.owner_id) {
+      const { data: originalOwnerProfile } = await admin
+        .from('profiles')
+        .select('username')
+        .eq('id', originalProject.owner_id)
+        .maybeSingle()
+      attributedArtist = originalOwnerProfile?.username ?? null
     }
 
-    // Crear el proyecto espejo — privado, propiedad del artista original,
-    // para que aparezca correctamente atribuido en cualquier biblioteca
+    // Crear el proyecto espejo — privado, propiedad de QUIEN LO GUARDA,
+    // para que aparezca en su sección "Guardado" y nunca contamine
+    // "Mis proyectos" del artista original
     const { data: newProject, error: projectError } = await admin
       .from('projects')
       .insert({
-        title:            single.track_title,
-        owner_id:         originalOwnerId,
-        visibility:       'private',
-        status:           'draft',
-        cover_url:        single.cover_url,
-        source_single_id: single.id,
+        title:              single.track_title,
+        owner_id:           user.id,
+        visibility:         'private',
+        status:             'draft',
+        cover_url:          single.cover_url,
+        source_single_id:   single.id,
+        attributed_artist:  attributedArtist,
       })
       .select()
       .single()
@@ -81,7 +89,7 @@ export async function POST(request: Request) {
         title:       single.track_title,
         file_path:   single.file_path,
         track_order: 0,
-        uploaded_by: originalOwnerId,
+        uploaded_by: user.id,
         waveform,
       })
 
