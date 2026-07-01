@@ -528,7 +528,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   if (!currentTrack) {
     return (
-      <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo }}>
+      <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo, shareTrack }}>
         {children}
       </PlayerContext.Provider>
     )
@@ -628,7 +628,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo }}>
+    <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo, shareTrack }}>
       {children}
 
       {mounted && createPortal(
