@@ -53,6 +53,14 @@ const EXPIRY_OPTIONS = [
   { label: 'Permanente', value: 'permanent', hours: null },
 ]
 
+const FALLBACK_HEIGHTS = [0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3,
+  0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6, 0.4, 0.9,
+  0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.5, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6,
+  0.4, 0.9, 0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4,
+  0.9, 0.5, 0.7, 1, 0.6, 0.3, 0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8,
+  0.5, 0.7, 1, 0.6, 0.4, 0.9, 0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.3, 0.5, 0.8,
+  0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3, 0.8, 0.5]
+
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
@@ -143,7 +151,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const searchInputRef                      = useRef<HTMLInputElement>(null)
   const dotsMenuRef                         = useRef<HTMLDivElement>(null)
   const trackMenuRefs                       = useRef<Map<string, HTMLDivElement>>(new Map())
-  const { currentTrack, playTrack, closePlayer, isPlaying: playerIsPlaying, setLibraryUserId } = usePlayer()
+  const { currentTrack, playTrack, closePlayer, isPlaying: playerIsPlaying, setLibraryUserId, currentTime, duration } = usePlayer()
 
   useEffect(() => {
     if (userId) setLibraryUserId(userId)
