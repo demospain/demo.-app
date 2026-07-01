@@ -501,6 +501,328 @@ const handleRenameTrack = async (trackId: string, newName: string) => {
   }
   const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null) }
 
+  // Proyecto de una sola canción — se muestra con la experiencia inmersiva de escucha,
+  // igual que un single. Con 2+ canciones sigue el diseño de tracklist habitual.
+  if (tracks.length === 1) {
+    const soloTrack = tracks[0]
+    const isActive  = currentTrack?.id === soloTrack.id
+    const isPlaying = isActive && playerIsPlaying
+    const waveform  = soloTrack.waveform && soloTrack.waveform.length > 0 ? soloTrack.waveform : FALLBACK_HEIGHTS
+    const shownTime = isActive ? currentTime : 0
+    const pct       = isActive && duration > 0 ? (shownTime / duration) * 100 : 0
+
+    const handleTogglePlay = () => {
+      if (isActive) {
+        const audio = (window as any).__demoAudio
+        if (audio) audio.paused ? audio.play().catch(() => {}) : audio.pause()
+      } else {
+        playTrack(
+          { id: soloTrack.id, title: soloTrack.title, file_path: soloTrack.file_path, projectTitle: project.title, projectId: project.id, coverUrl: project.cover_url ?? undefined, waveform: soloTrack.waveform, artistName: nombre },
+          [{ id: soloTrack.id, title: soloTrack.title, file_path: soloTrack.file_path, projectTitle: project.title, projectId: project.id, coverUrl: project.cover_url ?? undefined, waveform: soloTrack.waveform, artistName: nombre }]
+        )
+      }
+    }
+
+    return (
+      <div className={`min-h-screen relative overflow-hidden bg-[#0f1117] ${currentTrack ? 'pb-20' : ''}`}>
+        {/* Modal de recorte de portada */}
+        {cropFile && (
+          <ImageCropModal file={cropFile} onConfirm={handleCoverUpload} onCancel={() => setCropFile(null)}/>
+        )}
+
+        {/* Modal de confirmación */}
+        {confirmModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+            <div className="bg-[#181c27] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm">
+              <h3 className="text-[#F8F7F4] font-medium text-base mb-2">{confirmModal.title}</h3>
+              <p className="text-[#9BA0AD] text-sm mb-6 leading-relaxed">{confirmModal.desc}</p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmModal(null)} className="flex-1 border border-white/[0.08] text-[#9BA0AD] hover:text-[#F8F7F4] py-2.5 rounded-xl text-sm transition-colors">Cancelar</button>
+                <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null) }} className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 py-2.5 rounded-xl text-sm font-medium transition-colors">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <input
+          ref={replaceInputRef}
+          type="file"
+          accept="audio/mp3,audio/mpeg,audio/wav,audio/flac,audio/aiff,audio/x-aiff"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0]
+            if (file && replacingTrackId) handleReplaceAudio(replacingTrackId, file)
+            e.target.value = ''
+          }}
+        />
+        <input ref={coverInputRef} type="file" accept="image/png,image/jpeg" onChange={handleCoverSelect} className="hidden"/>
+
+        {/* Fondo inmersivo con blur de la portada */}
+        {project.cover_url && (
+          <div
+            className="fixed inset-0"
+            style={{
+              backgroundImage: `url(${project.cover_url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(60px) saturate(1.5) brightness(0.55)',
+              transform: 'scale(1.15)',
+            }}
+          />
+        )}
+        <div className="fixed inset-0 bg-gradient-to-b from-black/10 via-[#0f1117]/50 to-[#0f1117]"/>
+
+        {/* Cabecera */}
+        <div className="relative z-10 flex items-center justify-between px-6 py-6 max-w-5xl mx-auto w-full">
+          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-sm">Volver</span>
+          </button>
+          <div className="flex items-center gap-2">
+            {isMine && (
+              <button
+                onClick={() => { setShowDotsMenu(p => !p); setShowSharePanel(false) }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+                style={{ background: showDotsMenu ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="3"  r="1.3" fill="white"/>
+                  <circle cx="8" cy="8"  r="1.3" fill="white"/>
+                  <circle cx="8" cy="13" r="1.3" fill="white"/>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isMine && showDotsMenu && (
+          <div className="fixed inset-0 z-40" onClick={() => setShowDotsMenu(false)}>
+            <div className="absolute right-6 top-16 bg-[#1E2028] border border-white/[0.08] rounded-xl shadow-xl z-50 py-1.5 min-w-[170px]" onClick={e => e.stopPropagation()}>
+              <button
+                onClick={() => { setRenamingProject(true); setRenameTitleInput(project.title); setShowDotsMenu(false) }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M10 1l3 3-9 9H1V10L10 1z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Renombrar
+              </button>
+              <button
+                onClick={async () => { setShowDotsMenu(false); await handleShareAsSingle(soloTrack) }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <circle cx="10.5" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <circle cx="10.5" cy="10.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <circle cx="2.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M4 6l5-3M4 7l5 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+                Compartir canción
+              </button>
+              <button
+                onClick={() => { setReplacingTrackId(soloTrack.id); setShowDotsMenu(false); replaceInputRef.current?.click() }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M1 6.5a5.5 5.5 0 1 0 5.5-5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                  <path d="M1 2v4.5h4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Reemplazar audio
+              </button>
+              <div className="h-px bg-white/[0.06] my-1"/>
+              <button
+                onClick={confirmDeleteProject}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors text-left"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 4h10M5 4V2.5h4V4M6 6.5v4M8 6.5v4M3 4l.5 8.5h7L11 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal renombrar */}
+        {renamingProject && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={e => { if (e.target === e.currentTarget) setRenamingProject(false) }}>
+            <div className="bg-[#13141a] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm">
+              <p className="font-mono text-xs text-[#555966] uppercase tracking-widest mb-1">Renombrar</p>
+              <h3 className="font-medium text-[#F8F7F4] text-base mb-4">¿Nuevo nombre?</h3>
+              <input
+                autoFocus type="text" value={renameTitleInput} onChange={e => setRenameTitleInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(); if (e.key === 'Escape') setRenamingProject(false) }}
+                className="bg-[#0d0d0f] border border-white/[0.06] focus:border-[#7C6FFF]/40 text-[#F8F7F4] placeholder:text-[#2E3140] rounded-xl px-4 py-3 text-sm outline-none transition-colors w-full font-mono mb-3"
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setRenamingProject(false)} className="flex-1 border border-white/[0.06] text-[#555966] hover:text-[#9BA0AD] py-2.5 rounded-xl text-sm transition-colors">Cancelar</button>
+                <button onClick={handleRenameProject} disabled={!renameTitleInput.trim()} className="flex-1 bg-[#7C6FFF] hover:bg-[#6B5FE8] disabled:opacity-30 text-white py-2.5 rounded-xl text-sm font-medium transition-colors">Guardar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MÓVIL: pantalla inmersiva centrada ── */}
+        <div className="md:hidden relative z-10 flex flex-col items-center justify-center px-4 pb-12" style={{ minHeight: 'calc(100vh - 88px)' }}>
+          <div className="w-full max-w-sm">
+            <div
+              onClick={() => isMine && coverInputRef.current?.click()}
+              className={`w-full aspect-square rounded-2xl overflow-hidden mb-6 relative group ${isMine ? 'cursor-pointer' : ''}`}
+              style={{ boxShadow: '0 24px 48px rgba(0,0,0,.6)' }}
+            >
+              {project.cover_url
+                ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
+                : <div className="w-full h-full bg-[#181c27] flex items-center justify-center text-6xl opacity-20">💿</div>
+              }
+              {isMine && (
+                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                  {coverUploading
+                    ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                    : <span className="text-white text-sm font-mono">Cambiar portada</span>
+                  }
+                </div>
+              )}
+            </div>
+
+            <div className="mb-5">
+              <p className="text-xl font-medium text-white truncate">{soloTrack.title}</p>
+              {project.ownerUsername && (
+                <p className="text-sm font-mono text-white/50 mt-1">
+                  {project.ownerUsername}
+                  {project.adminUsernames && project.adminUsernames.length > 0 && <> ft. {project.adminUsernames.join(', ')}</>}
+                </p>
+              )}
+            </div>
+
+            <div className="mb-5">
+              <div className="relative flex items-center gap-[2px] h-10">
+                {waveform.map((h, i) => {
+                  const barPct = (i / waveform.length) * 100
+                  const isPast = barPct <= pct
+                  return (
+                    <div key={i} className="flex-1 rounded-full" style={{ height: `${Math.max(h * 100, 8)}%`, background: isPast ? '#6E62F5' : 'rgba(255,255,255,0.14)' }}/>
+                  )
+                })}
+              </div>
+              <div className="flex justify-between mt-2">
+                <span className="font-mono text-xs text-white/40">{isActive ? formatTrackDuration(Math.floor(shownTime)) : '0:00'}</span>
+                <span className="font-mono text-xs text-white/40">{soloTrack.duration ? formatTrackDuration(soloTrack.duration) : '--:--'}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-center mb-3">
+              <button
+                onClick={handleTogglePlay}
+                className="w-16 h-16 rounded-full flex items-center justify-center transition-transform active:scale-95"
+                style={{ background: '#6E62F5', boxShadow: '0 8px 24px rgba(110,98,245,0.45)' }}
+              >
+                {isPlaying ? (
+                  <svg width="22" height="22" viewBox="0 0 20 20" fill="white"><rect x="3" y="2" width="5" height="16" rx="1.5"/><rect x="12" y="2" width="5" height="16" rx="1.5"/></svg>
+                ) : (
+                  <svg width="22" height="22" viewBox="0 0 20 20" fill="white"><path d="M4 2l14 8-14 8V2z"/></svg>
+                )}
+              </button>
+            </div>
+
+            {!isMine && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-[#7C6FFF]/10 border border-[#7C6FFF]/20 rounded-xl justify-center">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M2 6.5l3 3 6-6" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-[#7C6FFF] text-sm font-mono">Guardado en tu biblioteca</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── ESCRITORIO: layout tipo Spotify Now Playing sobre fondo blur ── */}
+        <div className="hidden md:flex relative z-10 items-center justify-center px-8 pb-12" style={{ minHeight: 'calc(100vh - 88px)' }}>
+          <div
+            className="w-full max-w-3xl rounded-3xl p-10"
+            style={{
+              background: 'rgba(24,28,39,0.55)',
+              backdropFilter: 'blur(24px) saturate(1.6)',
+              WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div className="flex gap-8 items-center">
+              <div
+                onClick={() => isMine && coverInputRef.current?.click()}
+                className={`w-64 h-64 rounded-2xl overflow-hidden flex-shrink-0 relative group ${isMine ? 'cursor-pointer' : ''}`}
+                style={{ boxShadow: '0 24px 48px rgba(0,0,0,.5)' }}
+              >
+                {project.cover_url
+                  ? <img src={project.cover_url} alt="" className="w-full h-full object-cover"/>
+                  : <div className="w-full h-full bg-[#181c27] flex items-center justify-center text-6xl opacity-20">💿</div>
+                }
+                {isMine && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    {coverUploading
+                      ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                      : <span className="text-white text-sm font-mono">Cambiar portada</span>
+                    }
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-3xl font-medium text-white truncate mb-1">{soloTrack.title}</p>
+                {project.ownerUsername && (
+                  <p className="text-base font-mono text-white/50 mb-6">
+                    {project.ownerUsername}
+                    {project.adminUsernames && project.adminUsernames.length > 0 && <> ft. {project.adminUsernames.join(', ')}</>}
+                  </p>
+                )}
+
+                <div className="mb-6">
+                  <div className="relative flex items-center gap-[2px] h-10">
+                    {waveform.map((h, i) => {
+                      const barPct = (i / waveform.length) * 100
+                      const isPast = barPct <= pct
+                      return (
+                        <div key={i} className="flex-1 rounded-full" style={{ height: `${Math.max(h * 100, 8)}%`, background: isPast ? '#6E62F5' : 'rgba(255,255,255,0.14)' }}/>
+                      )
+                    })}
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="font-mono text-xs text-white/40">{isActive ? formatTrackDuration(Math.floor(shownTime)) : '0:00'}</span>
+                    <span className="font-mono text-xs text-white/40">{soloTrack.duration ? formatTrackDuration(soloTrack.duration) : '--:--'}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handleTogglePlay}
+                    className="w-16 h-16 rounded-full flex items-center justify-center transition-transform active:scale-95 flex-shrink-0"
+                    style={{ background: '#6E62F5', boxShadow: '0 8px 24px rgba(110,98,245,0.45)' }}
+                  >
+                    {isPlaying ? (
+                      <svg width="22" height="22" viewBox="0 0 20 20" fill="white"><rect x="3" y="2" width="5" height="16" rx="1.5"/><rect x="12" y="2" width="5" height="16" rx="1.5"/></svg>
+                    ) : (
+                      <svg width="22" height="22" viewBox="0 0 20 20" fill="white"><path d="M4 2l14 8-14 8V2z"/></svg>
+                    )}
+                  </button>
+                  {!isMine && (
+                    <div className="flex items-center gap-2 px-4 py-3 bg-[#7C6FFF]/10 border border-[#7C6FFF]/20 rounded-xl flex-1 justify-center">
+                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                        <path d="M2 6.5l3 3 6-6" stroke="#7C6FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-[#7C6FFF] text-sm font-mono">Guardado en tu biblioteca</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`flex flex-col min-h-screen bg-[#0f1117] ${currentTrack ? 'pb-20' : ''}`}>
       <style>{`
