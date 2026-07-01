@@ -35,13 +35,15 @@ export default function LoginPage() {
     setError('')
 
     if (mode === 'signup') {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: `https://www.demospain.app/auth/callback` },
       })
       if (error) {
         setError(translateAuthError(error.message))
+      } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setError('Ya existe una cuenta con este email. Prueba a iniciar sesión, o con Google si te registraste así.')
       } else {
         setSent(true)
       }
