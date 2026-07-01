@@ -20,7 +20,7 @@ export default async function ProyectoPage({ params }: Props) {
 
   const { data: tracks } = await supabase
     .from('tracks')
-    .select('id, title, file_path, track_order, duration, created_at')
+    .select('id, title, file_path, track_order, duration, created_at, waveform')
     .eq('project_id', params.id)
     .order('track_order', { ascending: true })
 
