@@ -46,6 +46,7 @@ export default function SingleClient({ single, userId }: { single: Single; userI
   const [loading, setLoading]   = useState(false)
   const [saved, setSaved]       = useState(false)
   const [saving, setSaving]     = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [dragging, setDragging] = useState(false)
   const [dragTime, setDragTime] = useState(0)
 
@@ -71,17 +72,19 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     return () => { audio.pause(); audio.src = '' }
   }, [single.file_path])
 
-  // Comprobar si ya está guardado
+  // Comprobar si ya se guardó este single (proyecto espejo creado a partir de él)
   useEffect(() => {
     if (!userId) return
     supabase
-      .from('saved_projects')
-      .select('project_id')
-      .eq('user_id', userId)
+      .from('projects')
+      .select('id')
+      .eq('owner_id', userId)
+      .eq('source_single_id', single.id)
+      .maybeSingle()
       .then(({ data }) => {
-        if (data?.some(r => r.project_id === single.project_id)) setSaved(true)
+        if (data) setSaved(true)
       })
-  }, [userId, single.project_id])
+  }, [userId, single.id])
 
   const toggle = async () => {
     const audio = audioRef.current
@@ -140,19 +143,66 @@ export default function SingleClient({ single, userId }: { single: Single; userI
       return
     }
     setSaving(true)
+    setSaveError('')
 
-    // Guardamos referencia al proyecto ORIGINAL del single, no una copia.
-    // Así el nombre, portada y cambios del dueño se reflejan automáticamente
-    // en la biblioteca del usuario que lo guardó.
-    const { error } = await supabase
-      .from('saved_projects')
-      .insert({ project_id: single.project_id, user_id: userId })
+    // Doble comprobación por si se guardó en otra pestaña/dispositivo mientras tanto
+    const { data: existing } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('owner_id', userId)
+      .eq('source_single_id', single.id)
+      .maybeSingle()
 
-    if (error) {
-      console.error('Error al guardar single:', error)
+    if (existing) {
+      setSaved(true)
       setSaving(false)
       return
     }
+
+    // 1. Crear el proyecto espejo — privado, propiedad del usuario que guarda
+    const { data: newProject, error: projectError } = await supabase
+      .from('projects')
+      .insert({
+        title:            single.track_title,
+        owner_id:         userId,
+        visibility:       'private',
+        status:           'draft',
+        cover_url:        single.cover_url,
+        source_single_id: single.id,
+      })
+      .select()
+      .single()
+
+    if (projectError || !newProject) {
+      setSaveError('No se ha podido guardar. Inténtalo de nuevo.')
+      setSaving(false)
+      return
+    }
+
+    // 2. Copiar el track dentro del nuevo proyecto (mismo file_path, sin duplicar audio en R2)
+    const { error: trackError } = await supabase
+      .from('tracks')
+      .insert({
+        project_id:  newProject.id,
+        title:       single.track_title,
+        file_path:   single.file_path,
+        track_order: 0,
+        uploaded_by: userId,
+        waveform:    single.tracks?.waveform ?? null,
+      })
+
+    if (trackError) {
+      // Revertir el proyecto huérfano si falla la copia del track
+      await supabase.from('projects').delete().eq('id', newProject.id)
+      setSaveError('No se ha podido guardar. Inténtalo de nuevo.')
+      setSaving(false)
+      return
+    }
+
+    // 3. Registrar en saved_projects para que aparezca en "Guardado" del dashboard
+    await supabase
+      .from('saved_projects')
+      .insert({ project_id: newProject.id, user_id: userId })
 
     setSaved(true)
     setSaving(false)
@@ -302,6 +352,10 @@ export default function SingleClient({ single, userId }: { single: Single; userI
             </>
           )}
         </button>
+
+        {saveError && (
+          <p className="text-red-400 text-xs font-mono text-center mt-3">{saveError}</p>
+        )}
 
         <p className="text-center text-xs font-mono text-[#383C47] mt-4">
           Compartido con demo<span className="text-[#6E62F5]">.</span>
