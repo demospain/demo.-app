@@ -222,7 +222,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
     setError('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/p/${project.slug}` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/p/${project.slug}`)}` },
     })
     if (error) { setError(translateAuthError(error.message)); setLoading(false) }
   }
@@ -234,7 +234,7 @@ export default function PublicProjectClient({ project, tracks, isLoggedIn, userI
     if (authMode === 'signup') {
       const { error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: `${window.location.origin}/p/${project.slug}` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/p/${project.slug}`)}` },
       })
       if (error) { setError(translateAuthError(error.message)); setLoading(false) }
       else setSent(true)
