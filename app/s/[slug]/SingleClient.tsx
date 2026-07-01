@@ -14,6 +14,7 @@ interface Single {
   cover_url:   string | null
   artist_name: string | null
   created_at:  string
+  tracks?:     { waveform: number[] | null } | null
 }
 
 const R2 = 'https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev'
@@ -24,11 +25,20 @@ function fmt(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+// Patrón de respaldo — igual que en NowPlayingModal, para singles sin waveform guardada
+const FALLBACK_HEIGHTS = [0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3,
+  0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6, 0.4, 0.9,
+  0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.5, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6,
+  0.4, 0.9, 0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4,
+  0.9, 0.5, 0.7, 1, 0.6, 0.3, 0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8,
+  0.5, 0.7, 1, 0.6, 0.4, 0.9, 0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.3, 0.5, 0.8,
+  0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3, 0.8, 0.5]
+
 type AuthMode = 'signup' | 'login'
 
 export default function SingleClient({ single, userId }: { single: Single; userId: string | null }) {
   const audioRef    = useRef<HTMLAudioElement | null>(null)
-  const progressRef = useRef<HTMLDivElement>(null)
+  const waveformRef = useRef<HTMLDivElement>(null)
 
   const [playing, setPlaying]   = useState(false)
   const [current, setCurrent]   = useState(0)
@@ -36,6 +46,8 @@ export default function SingleClient({ single, userId }: { single: Single; userI
   const [loading, setLoading]   = useState(false)
   const [saved, setSaved]       = useState(false)
   const [saving, setSaving]     = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [dragTime, setDragTime] = useState(0)
 
   // Auth modal
   const [showAuth, setShowAuth] = useState(false)
@@ -83,11 +95,42 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     }
   }
 
-  const handleSeek = (e: React.MouseEvent) => {
-    if (!progressRef.current || !duration) return
-    const rect = progressRef.current.getBoundingClientRect()
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    if (audioRef.current) audioRef.current.currentTime = pct * duration
+  const waveform = single.tracks?.waveform && single.tracks.waveform.length > 0
+    ? single.tracks.waveform
+    : FALLBACK_HEIGHTS
+
+  const shownTime = dragging ? dragTime : current
+  const pct = duration > 0 ? (shownTime / duration) * 100 : 0
+
+  const timeFromClientX = (clientX: number) => {
+    if (!waveformRef.current || !duration) return 0
+    const rect = waveformRef.current.getBoundingClientRect()
+    const p = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    return p * duration
+  }
+
+  const onThumbDown = (clientX: number) => {
+    setDragging(true)
+    setDragTime(timeFromClientX(clientX))
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      const x = 'touches' in e ? e.touches[0].clientX : e.clientX
+      setDragTime(timeFromClientX(x))
+    }
+    const onUp = (e: MouseEvent | TouchEvent) => {
+      const x = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as MouseEvent).clientX
+      const t = timeFromClientX(x)
+      if (audioRef.current) audioRef.current.currentTime = t
+      setCurrent(t)
+      setDragging(false)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onUp)
   }
 
   const handleSave = async () => {
@@ -144,8 +187,6 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     }
   }
 
-  const pct = duration > 0 ? (current / duration) * 100 : 0
-
   return (
     <main className="min-h-screen bg-[#0f1117] text-[#EAE9E6] flex flex-col items-center justify-center px-4 py-12">
 
@@ -173,21 +214,50 @@ export default function SingleClient({ single, userId }: { single: Single; userI
         </div>
 
         {/* Info */}
-        <div className="mb-6">
+        <div className="mb-5">
           <p className="text-xl font-medium truncate">{single.track_title}</p>
           {single.artist_name && (
             <p className="text-sm font-mono text-[#555966] mt-1">@{single.artist_name}</p>
           )}
         </div>
 
-        {/* Progreso */}
+        {/* Waveform interactiva — mismo estilo que NowPlayingModal */}
         <div className="mb-5">
-          <div ref={progressRef} onClick={handleSeek} className="h-1 rounded-full bg-white/10 cursor-pointer relative mb-2">
-            <div className="absolute left-0 top-0 h-full rounded-full bg-[#6E62F5]" style={{ width: `${pct}%` }}/>
-            <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow" style={{ left: `calc(${pct}% - 6px)` }}/>
+          <div
+            ref={waveformRef}
+            className="relative flex items-center gap-[2px] h-10 cursor-pointer touch-none"
+            onMouseDown={e => onThumbDown(e.clientX)}
+            onTouchStart={e => onThumbDown(e.touches[0].clientX)}
+          >
+            {waveform.map((h, i) => {
+              const barPct = (i / waveform.length) * 100
+              const isPast = barPct <= pct
+              return (
+                <div
+                  key={i}
+                  className="flex-1 rounded-full"
+                  style={{
+                    height: `${Math.max(h * 100, 8)}%`,
+                    background: isPast ? '#6E62F5' : 'rgba(255,255,255,0.14)',
+                    transition: dragging ? 'none' : 'background 0.1s ease',
+                  }}
+                />
+              )
+            })}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 rounded-full bg-[#6E62F5] pointer-events-none"
+              style={{
+                width: dragging ? '4px' : '3px',
+                height: dragging ? '130%' : '120%',
+                left: `${pct}%`,
+                transform: 'translate(-50%, -50%)',
+                boxShadow: '0 0 8px rgba(110,98,245,0.6)',
+                transition: dragging ? 'none' : 'left 0.1s linear',
+              }}
+            />
           </div>
-          <div className="flex justify-between">
-            <span className="font-mono text-xs text-[#555966]">{fmt(current)}</span>
+          <div className="flex justify-between mt-2">
+            <span className="font-mono text-xs text-[#555966]">{fmt(shownTime)}</span>
             <span className="font-mono text-xs text-[#555966]">{duration > 0 ? fmt(duration) : '--:--'}</span>
           </div>
         </div>
@@ -228,7 +298,7 @@ export default function SingleClient({ single, userId }: { single: Single; userI
           ) : (
             <>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
-              {userId ? 'Guardar en mi biblioteca' : 'Guardar en mi biblioteca'}
+              Guardar en mi biblioteca
             </>
           )}
         </button>
