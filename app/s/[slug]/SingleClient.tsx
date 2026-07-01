@@ -36,6 +36,14 @@ const FALLBACK_HEIGHTS = [0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6
 
 type AuthMode = 'signup' | 'login'
 
+// Estilo liquid glass reutilizable — panel translúcido con blur
+const GLASS: React.CSSProperties = {
+  background: 'rgba(24,28,39,0.55)',
+  backdropFilter: 'blur(24px) saturate(1.6)',
+  WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+  border: '1px solid rgba(255,255,255,0.1)',
+}
+
 export default function SingleClient({ single, userId }: { single: Single; userId: string | null }) {
   const audioRef    = useRef<HTMLAudioElement | null>(null)
   const waveformRef = useRef<HTMLDivElement>(null)
@@ -72,7 +80,7 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     return () => { audio.pause(); audio.src = '' }
   }, [single.file_path])
 
-// Comprobar si ya se guardó este single (proyecto espejo creado a partir de él)
+  // Comprobar si ya se guardó este single (proyecto espejo creado a partir de él)
   useEffect(() => {
     if (!userId) return
     supabase
@@ -136,7 +144,7 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     window.addEventListener('touchend', onUp)
   }
 
- const handleSave = async () => {
+  const handleSave = async () => {
     if (!userId) {
       setAuthMode('signup')
       setShowAuth(true)
@@ -164,7 +172,7 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     setSaving(false)
   }
 
-  // Auth handlers — idénticos a PublicProjectClient, redirigen de vuelta al single
+  // Auth handlers
   const handleGoogle = async () => {
     setAuthLoading(true)
     setAuthError('')
@@ -200,132 +208,212 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     }
   }
 
+  const coverUrl = single.cover_url
+
+  const Waveform = ({ barCount = 100 }: { barCount?: number }) => (
+    <div>
+      <div
+        ref={waveformRef}
+        className="relative flex items-center gap-[2px] h-10 cursor-pointer touch-none"
+        onMouseDown={e => onThumbDown(e.clientX)}
+        onTouchStart={e => onThumbDown(e.touches[0].clientX)}
+      >
+        {waveform.map((h, i) => {
+          const barPct = (i / waveform.length) * 100
+          const isPast = barPct <= pct
+          return (
+            <div
+              key={i}
+              className="flex-1 rounded-full"
+              style={{
+                height: `${Math.max(h * 100, 8)}%`,
+                background: isPast ? '#6E62F5' : 'rgba(255,255,255,0.14)',
+                transition: dragging ? 'none' : 'background 0.1s ease',
+              }}
+            />
+          )
+        })}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 rounded-full bg-[#6E62F5] pointer-events-none"
+          style={{
+            width: dragging ? '4px' : '3px',
+            height: dragging ? '130%' : '120%',
+            left: `${pct}%`,
+            transform: 'translate(-50%, -50%)',
+            boxShadow: '0 0 8px rgba(110,98,245,0.6)',
+            transition: dragging ? 'none' : 'left 0.1s linear',
+          }}
+        />
+      </div>
+      <div className="flex justify-between mt-2">
+        <span className="font-mono text-xs text-white/40">{fmt(shownTime)}</span>
+        <span className="font-mono text-xs text-white/40">{duration > 0 ? fmt(duration) : '--:--'}</span>
+      </div>
+    </div>
+  )
+
+  const SaveButton = ({ full = true }: { full?: boolean }) => (
+    <button
+      onClick={handleSave}
+      disabled={saved || saving}
+      className={`h-12 rounded-xl border flex items-center justify-center gap-2 text-sm font-medium transition-all ${full ? 'w-full' : ''} ${
+        saved
+          ? 'border-[#1D9E75]/30 bg-[#1D9E75]/10 text-[#1D9E75]'
+          : 'border-white/15 text-white/80 hover:border-white/25 hover:text-white'
+      }`}
+      style={!saved ? { background: 'rgba(255,255,255,0.06)' } : undefined}
+    >
+      {saving ? (
+        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"/>
+      ) : saved ? (
+        <>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Guardado en tu biblioteca
+        </>
+      ) : (
+        <>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+          Guardar en mi biblioteca
+        </>
+      )}
+    </button>
+  )
+
+  const PlayButton = ({ size = 56 }: { size?: number }) => (
+    <button
+      onClick={toggle}
+      disabled={loading}
+      className="rounded-full flex items-center justify-center transition-transform active:scale-95 disabled:opacity-60 flex-shrink-0"
+      style={{
+        width: size, height: size,
+        background: '#6E62F5',
+        boxShadow: '0 8px 24px rgba(110,98,245,0.45)',
+      }}
+    >
+      {loading ? (
+        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+      ) : playing ? (
+        <svg width={size * 0.32} height={size * 0.32} viewBox="0 0 20 20" fill="white"><rect x="3" y="2" width="5" height="16" rx="1.5"/><rect x="12" y="2" width="5" height="16" rx="1.5"/></svg>
+      ) : (
+        <svg width={size * 0.32} height={size * 0.32} viewBox="0 0 20 20" fill="white"><path d="M4 2l14 8-14 8V2z"/></svg>
+      )}
+    </button>
+  )
+
   return (
-    <main className="min-h-screen bg-[#0f1117] text-[#EAE9E6] flex flex-col items-center justify-center px-4 py-12">
+    <main className="min-h-screen relative overflow-hidden bg-[#0f1117]">
+      {/* Fondo inmersivo con blur de la portada */}
+      {coverUrl && (
+        <div
+          className="fixed inset-0"
+          style={{
+            backgroundImage: `url(${coverUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(60px) saturate(1.5) brightness(0.55)',
+            transform: 'scale(1.15)',
+          }}
+        />
+      )}
+      <div className="fixed inset-0 bg-gradient-to-b from-black/10 via-[#0f1117]/50 to-[#0f1117]"/>
 
       {/* Cabecera */}
-      <div className="flex items-center justify-between w-full max-w-sm mb-10">
-        <Link href={userId ? '/dashboard' : '/landing'} className="flex items-center gap-2 text-[#555966] hover:text-[#EAE9E6] transition-colors">
+      <div className="relative z-10 flex items-center justify-between px-6 py-6 max-w-5xl mx-auto w-full">
+        <Link href={userId ? '/dashboard' : '/landing'} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="text-sm">{userId ? 'Mi biblioteca' : 'Volver'}</span>
         </Link>
-        <Link href="/landing" className="font-mono text-lg font-medium tracking-tight opacity-50 hover:opacity-100 transition-opacity">
+        <Link href="/landing" className="font-mono text-lg font-medium tracking-tight text-white/50 hover:text-white/90 transition-opacity">
           demo<span className="text-[#6E62F5]">.</span>
         </Link>
       </div>
 
-      {/* Card */}
-      <div className="w-full max-w-sm">
-        {/* Portada */}
-        <div className="w-full aspect-square rounded-2xl overflow-hidden mb-6" style={{ boxShadow: '0 24px 48px rgba(0,0,0,.6)' }}>
-          {single.cover_url
-            ? <img src={single.cover_url} alt="" className="w-full h-full object-cover"/>
-            : <div className="w-full h-full bg-[#181c27] flex items-center justify-center text-6xl opacity-20">💿</div>
-          }
-        </div>
-
-        {/* Info */}
-        <div className="mb-5">
-          <p className="text-xl font-medium truncate">{single.track_title}</p>
-          {single.artist_name && (
-            <p className="text-sm font-mono text-[#555966] mt-1">@{single.artist_name}</p>
-          )}
-        </div>
-
-        {/* Waveform interactiva — mismo estilo que NowPlayingModal */}
-        <div className="mb-5">
-          <div
-            ref={waveformRef}
-            className="relative flex items-center gap-[2px] h-10 cursor-pointer touch-none"
-            onMouseDown={e => onThumbDown(e.clientX)}
-            onTouchStart={e => onThumbDown(e.touches[0].clientX)}
-          >
-            {waveform.map((h, i) => {
-              const barPct = (i / waveform.length) * 100
-              const isPast = barPct <= pct
-              return (
-                <div
-                  key={i}
-                  className="flex-1 rounded-full"
-                  style={{
-                    height: `${Math.max(h * 100, 8)}%`,
-                    background: isPast ? '#6E62F5' : 'rgba(255,255,255,0.14)',
-                    transition: dragging ? 'none' : 'background 0.1s ease',
-                  }}
-                />
-              )
-            })}
-            <div
-              className="absolute top-1/2 -translate-y-1/2 rounded-full bg-[#6E62F5] pointer-events-none"
-              style={{
-                width: dragging ? '4px' : '3px',
-                height: dragging ? '130%' : '120%',
-                left: `${pct}%`,
-                transform: 'translate(-50%, -50%)',
-                boxShadow: '0 0 8px rgba(110,98,245,0.6)',
-                transition: dragging ? 'none' : 'left 0.1s linear',
-              }}
-            />
+      {/* ── MÓVIL: pantalla inmersiva centrada ── */}
+      <div className="md:hidden relative z-10 flex flex-col items-center justify-center px-4 pb-12" style={{ minHeight: 'calc(100vh - 88px)' }}>
+        <div className="w-full max-w-sm">
+          <div className="w-full aspect-square rounded-2xl overflow-hidden mb-6" style={{ boxShadow: '0 24px 48px rgba(0,0,0,.6)' }}>
+            {coverUrl
+              ? <img src={coverUrl} alt="" className="w-full h-full object-cover"/>
+              : <div className="w-full h-full bg-[#181c27] flex items-center justify-center text-6xl opacity-20">💿</div>
+            }
           </div>
-          <div className="flex justify-between mt-2">
-            <span className="font-mono text-xs text-[#555966]">{fmt(shownTime)}</span>
-            <span className="font-mono text-xs text-[#555966]">{duration > 0 ? fmt(duration) : '--:--'}</span>
+
+          <div className="mb-5">
+            <p className="text-xl font-medium text-white truncate">{single.track_title}</p>
+            {single.artist_name && (
+              <p className="text-sm font-mono text-white/50 mt-1">@{single.artist_name}</p>
+            )}
           </div>
+
+          <div className="mb-5">
+            <Waveform/>
+          </div>
+
+          <div className="flex justify-center mb-3">
+            <PlayButton size={64}/>
+          </div>
+
+          <SaveButton/>
+
+          {saveError && (
+            <p className="text-red-400 text-xs font-mono text-center mt-3">{saveError}</p>
+          )}
+
+          <p className="text-center text-xs font-mono text-white/25 mt-4">
+            Compartido con demo<span className="text-[#6E62F5]">.</span>
+          </p>
         </div>
-
-        {/* Play */}
-        <button
-          onClick={toggle}
-          disabled={loading}
-          className="w-full h-14 rounded-xl bg-[#6E62F5] hover:bg-[#5A4FD4] flex items-center justify-center mb-3 transition-colors disabled:opacity-60"
-          style={{ boxShadow: '0 6px 20px rgba(110,98,245,.4)' }}
-        >
-          {loading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-          ) : playing ? (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="white"><rect x="3" y="2" width="5" height="16" rx="1.5"/><rect x="12" y="2" width="5" height="16" rx="1.5"/></svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="white"><path d="M4 2l14 8-14 8V2z"/></svg>
-          )}
-        </button>
-
-        {/* Guardar */}
-        <button
-          onClick={handleSave}
-          disabled={saved || saving}
-          className={`w-full h-12 rounded-xl border flex items-center justify-center gap-2 text-sm font-medium transition-all ${
-            saved
-              ? 'border-[#1D9E75]/30 bg-[#1D9E75]/10 text-[#1D9E75]'
-              : 'border-white/10 bg-white/[0.03] text-[#9BA0AD] hover:border-white/20 hover:text-[#EAE9E6]'
-          }`}
-        >
-          {saving ? (
-            <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"/>
-          ) : saved ? (
-            <>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Guardado en tu biblioteca
-            </>
-          ) : (
-            <>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
-              Guardar en mi biblioteca
-            </>
-          )}
-        </button>
-
-        {saveError && (
-          <p className="text-red-400 text-xs font-mono text-center mt-3">{saveError}</p>
-        )}
-
-        <p className="text-center text-xs font-mono text-[#383C47] mt-4">
-          Compartido con demo<span className="text-[#6E62F5]">.</span>
-        </p>
       </div>
 
-      {/* Auth modal */}
+      {/* ── ESCRITORIO: layout tipo Spotify Now Playing, sobre el fondo blur ── */}
+      <div className="hidden md:flex relative z-10 items-center justify-center px-8 pb-12" style={{ minHeight: 'calc(100vh - 88px)' }}>
+        <div
+          className="w-full max-w-3xl rounded-3xl p-10"
+          style={{ ...GLASS, boxShadow: '0 32px 80px rgba(0,0,0,0.5)' }}
+        >
+          <div className="flex gap-8 items-center">
+            <div
+              className="w-64 h-64 rounded-2xl overflow-hidden flex-shrink-0"
+              style={{ boxShadow: '0 24px 48px rgba(0,0,0,.5)' }}
+            >
+              {coverUrl
+                ? <img src={coverUrl} alt="" className="w-full h-full object-cover"/>
+                : <div className="w-full h-full bg-[#181c27] flex items-center justify-center text-6xl opacity-20">💿</div>
+              }
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-3xl font-medium text-white truncate mb-1">{single.track_title}</p>
+              {single.artist_name && (
+                <p className="text-base font-mono text-white/50 mb-6">@{single.artist_name}</p>
+              )}
+
+              <div className="mb-6">
+                <Waveform/>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <PlayButton size={60}/>
+                <div className="flex-1">
+                  <SaveButton/>
+                </div>
+              </div>
+
+              {saveError && (
+                <p className="text-red-400 text-xs font-mono mt-3">{saveError}</p>
+              )}
+            </div>
+          </div>
+
+          <p className="text-center text-xs font-mono text-white/25 mt-8">
+            Compartido con demo<span className="text-[#6E62F5]">.</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Auth modal — mismo en ambos tamaños */}
       {showAuth && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#13141a] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm relative">
