@@ -255,13 +255,20 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     setRenamingProject(false)
   }
 
-  const handleRenameTrack = async (trackId: string, newName: string) => {
+const handleRenameTrack = async (trackId: string, newName: string) => {
     if (!newName.trim()) { setEditingTrackId(null); return }
     const { error } = await supabase
       .from('tracks')
       .update({ title: newName.trim() })
       .eq('id', trackId)
-    if (!error) setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
+    if (!error) {
+      setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
+      // Mantener sincronizado el título en cualquier single compartido de este track
+      await supabase
+        .from('singles')
+        .update({ track_title: newName.trim() })
+        .eq('track_id', trackId)
+    }
     setEditingTrackId(null)
   }
 
