@@ -13,6 +13,8 @@ interface Notification {
   actor_id:   string | null
   read:       boolean
   created_at: string
+  title?:     string | null
+  body?:      string | null
   project?:   { title: string; cover_url: string | null } | null
   actor?:     { username: string | null; full_name: string | null; avatar_url: string | null } | null
   track?:     { title: string } | null
@@ -35,6 +37,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function notifMessage(n: Notification): string {
+  if (n.type === 'app_announcement') return n.body ?? n.title ?? 'Novedad en demo.'
   const name    = n.actor?.username ?? n.actor?.full_name ?? null
   const actor   = name ? `@${name}` : 'Alguien'
   const project = n.project?.title ?? 'un proyecto'
@@ -84,7 +87,7 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
 
     const { data: notifsRaw } = await supabase
       .from('notifications')
-      .select('id, type, project_id, track_id, actor_id, read, created_at')
+      .select('id, type, project_id, track_id, actor_id, read, created_at, title, body')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(20)
@@ -139,7 +142,9 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
       setUnread(prev => Math.max(0, prev - 1))
       setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
     }
-    if (n.project_id) window.location.href = `/dashboard/proyecto/${n.project_id}`
+    if (n.type !== 'app_announcement' && n.project_id) {
+      window.location.href = `/dashboard/proyecto/${n.project_id}`
+    }
   }
 
   return (
@@ -193,26 +198,39 @@ export default function NotificationBell({ unreadCount: initialCount, userId }: 
                     !n.read ? 'bg-[#6E62F5]/5' : ''
                   }`}
                 >
-                  <ActorAvatar actor={n.actor ?? null}/>
+                  {n.type === 'app_announcement' ? (
+                    <div className="w-9 h-9 rounded-full bg-[#6E62F5]/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-base">✨</span>
+                    </div>
+                  ) : (
+                    <ActorAvatar actor={n.actor ?? null}/>
+                  )}
 
                   <div className="flex-1 min-w-0">
+                    {n.type === 'app_announcement' && n.title && (
+                      <p className={`text-sm font-medium leading-snug ${n.read ? 'text-[#9BA0AD]' : 'text-[#EAE9E6]'}`}>
+                        {n.title}
+                      </p>
+                    )}
                     <p className={`text-sm leading-snug ${n.read ? 'text-[#9BA0AD]' : 'text-[#EAE9E6]'}`}>
                       {notifMessage(n)}
                     </p>
                     <p className="text-xs font-mono text-[#555966] mt-1">{timeAgo(n.created_at)}</p>
                   </div>
 
-                  <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-[#1f2335] flex items-center justify-center">
-                    {n.project?.cover_url ? (
-                      <img
-                        src={n.project.cover_url.startsWith('http') ? n.project.cover_url : `${R2_PUBLIC}/${n.project.cover_url}`}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg opacity-30">💿</span>
-                    )}
-                  </div>
+                  {n.type !== 'app_announcement' && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-[#1f2335] flex items-center justify-center">
+                      {n.project?.cover_url ? (
+                        <img
+                          src={n.project.cover_url.startsWith('http') ? n.project.cover_url : `${R2_PUBLIC}/${n.project.cover_url}`}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg opacity-30">💿</span>
+                      )}
+                    </div>
+                  )}
 
                   {!n.read && (
                     <div className="w-2 h-2 rounded-full bg-[#6E62F5] flex-shrink-0 mt-1.5"/>
