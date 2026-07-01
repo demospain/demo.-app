@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase'
 
 interface UploadTrackProps {
   projectId:        string
-  onUploadComplete?: (track: { id: string; title: string; file_path: string; duration: number | null; created_at: string }) => void
+  onUploadComplete?: (track: { id: string; title: string; file_path: string; duration: number | null; created_at: string; waveform: number[] | null }) => void
   onLimitReached?:  () => void
 }
 
