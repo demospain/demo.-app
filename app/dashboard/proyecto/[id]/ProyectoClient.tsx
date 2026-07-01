@@ -257,17 +257,26 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
 
 const handleRenameTrack = async (trackId: string, newName: string) => {
     if (!newName.trim()) { setEditingTrackId(null); return }
+    const trimmed = newName.trim()
     const { error } = await supabase
       .from('tracks')
-      .update({ title: newName.trim() })
+      .update({ title: trimmed })
       .eq('id', trackId)
     if (!error) {
-      setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: newName.trim() } : t))
-      // Mantener sincronizado el título en cualquier single compartido de este track
-      await supabase
+      setTracks(prev => prev.map(t => t.id === trackId ? { ...t, title: trimmed } : t))
+
+      // Mantener sincronizado el título en cualquier single compartido de este track,
+      // y en el proyecto espejo (biblioteca de quien lo guardó) que se creó a partir de él
+      const { data: singlesForTrack } = await supabase
         .from('singles')
-        .update({ track_title: newName.trim() })
+        .select('id')
         .eq('track_id', trackId)
+
+      if (singlesForTrack && singlesForTrack.length > 0) {
+        const singleIds = singlesForTrack.map(s => s.id)
+        await supabase.from('singles').update({ track_title: trimmed }).eq('track_id', trackId)
+        await supabase.from('projects').update({ title: trimmed }).in('source_single_id', singleIds)
+      }
     }
     setEditingTrackId(null)
   }
