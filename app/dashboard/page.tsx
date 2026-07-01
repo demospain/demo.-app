@@ -69,7 +69,10 @@ export default async function DashboardPage() {
 
   const myProjects = realMyProjects.map(prefixCover)
 
-  const savedProjects = [...(savedProjectsRaw ?? []), ...mirrorProjectsOfMine]
+  const combinedSaved = [...(savedProjectsRaw ?? []), ...mirrorProjectsOfMine]
+  const dedupedSaved  = Array.from(new Map(combinedSaved.map((p: any) => [p.id, p])).values())
+
+  const savedProjects = dedupedSaved
     .filter((p: any) => p.owner_id !== user.id || p.source_single_id)
     .map(prefixCover) as {
       id: string; title: string; cover_url: string | null;
