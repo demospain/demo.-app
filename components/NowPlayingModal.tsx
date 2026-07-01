@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { usePlayer } from '@/lib/PlayerContext'
 import ImmersivePlayerView, { ImmersiveTrackMenuAction } from '@/components/ImmersivePlayerView'
 import { createClient } from '@/lib/supabase'
@@ -9,7 +9,8 @@ export default function NowPlayingModal() {
   const {
     currentTrack, isPlaying, repeatMode, shuffleMode, currentTime, duration, queue, loading,
     showNowPlaying, setShowNowPlaying,
-    playNext, playPrev, cycleRepeat, seekTo, shuffleProject, shareTrack, closePlayer,
+    playNext, playPrev, cycleRepeat, seekTo, shareTrack, closePlayer,
+    handleShuffleClick, shuffleLoading,
   } = usePlayer()
 
   const [sharing, setSharing] = useState(false)
@@ -116,8 +117,9 @@ export default function NowPlayingModal() {
       )}
 
       <div className="md:hidden">
-        <ImmersivePlayerView
-          variant="mobile"
+        <MobileDismissWrapper onClose={() => setShowNowPlaying(false)}>
+          <ImmersivePlayerView
+            variant="mobile"
           title={currentTrack.title}
           subtitle={subtitle}
           coverUrl={currentTrack.coverUrl ?? null}
@@ -133,7 +135,8 @@ export default function NowPlayingModal() {
           hasPrev={hasPrev}
           hasNext={hasNext}
           shuffleActive={shuffleMode !== 'none'}
-          onToggleShuffle={shuffleProject}
+          onToggleShuffle={handleShuffleClick}
+          shuffleLoading={shuffleLoading}
           repeatLabel={repeatLabel}
           onCycleRepeat={cycleRepeat}
           onShare={handleShare}
@@ -141,7 +144,8 @@ export default function NowPlayingModal() {
           sharing={sharing}
           onClose={() => setShowNowPlaying(false)}
           menuActions={menuActions}
-        />
+          />
+        </MobileDismissWrapper>
       </div>
 
       <div className="hidden md:block">
@@ -162,7 +166,8 @@ export default function NowPlayingModal() {
           hasPrev={hasPrev}
           hasNext={hasNext}
           shuffleActive={shuffleMode !== 'none'}
-          onToggleShuffle={shuffleProject}
+          onToggleShuffle={handleShuffleClick}
+          shuffleLoading={shuffleLoading}
           repeatLabel={repeatLabel}
           onCycleRepeat={cycleRepeat}
           onShare={handleShare}
@@ -173,5 +178,47 @@ export default function NowPlayingModal() {
         />
       </div>
     </>
+  )
+}
+
+function MobileDismissWrapper({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  const [dy, setDy] = useState(0)
+  const [closing, setClosing] = useState(false)
+  const startY = useRef<number | null>(null)
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    // No iniciar el gesto si el toque empieza sobre la waveform (zona de seek)
+    if ((e.target as HTMLElement).closest('[data-progress]')) return
+    startY.current = e.touches[0].clientY
+  }
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startY.current === null) return
+    const delta = e.touches[0].clientY - startY.current
+    if (delta > 0) setDy(delta)
+  }
+  const onTouchEnd = () => {
+    if (startY.current === null) return
+    startY.current = null
+    if (dy > 120) {
+      setClosing(true)
+      setTimeout(() => { onClose(); setClosing(false); setDy(0) }, 220)
+    } else {
+      setDy(0)
+    }
+  }
+
+  return (
+    <div
+      style={{
+        transform: closing ? 'translateY(100%)' : `translateY(${dy}px)`,
+        opacity: closing ? 0 : 1 - Math.min(dy / 500, 0.6),
+        transition: closing ? 'transform 0.22s ease-in, opacity 0.22s ease-in' : startY.current !== null ? 'none' : 'transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s cubic-bezier(0.4,0,0.2,1)',
+      }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {children}
+    </div>
   )
 }
