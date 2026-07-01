@@ -9,6 +9,16 @@ function fmt(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+// Patrón de respaldo — se usa solo si el track no tiene waveform real guardada
+// (canciones subidas antes de este cambio, o si el análisis falló al subir)
+const FALLBACK_HEIGHTS = [0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3,
+  0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6, 0.4, 0.9,
+  0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.5, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6,
+  0.4, 0.9, 0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4,
+  0.9, 0.5, 0.7, 1, 0.6, 0.3, 0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8,
+  0.5, 0.7, 1, 0.6, 0.4, 0.9, 0.5, 0.8, 0.6, 1, 0.4, 0.7, 0.3, 0.5, 0.8,
+  0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3, 0.8, 0.5]
+
 export default function NowPlayingModal() {
   const {
     currentTrack, isPlaying, repeatMode, shuffleMode, currentTime, duration,
@@ -16,7 +26,7 @@ export default function NowPlayingModal() {
     playNext, playPrev, cycleRepeat, seekTo, shuffleProject,
   } = usePlayer()
 
-  const progressRef = useRef<HTMLDivElement>(null)
+  const waveformRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState(false)
   const [dragTime, setDragTime] = useState(0)
 
@@ -29,9 +39,13 @@ export default function NowPlayingModal() {
   const shownTime = dragging ? dragTime : currentTime
   const pct = duration > 0 ? (shownTime / duration) * 100 : 0
 
+  const waveform = currentTrack.waveform && currentTrack.waveform.length > 0
+    ? currentTrack.waveform
+    : FALLBACK_HEIGHTS
+
   const timeFromClientX = (clientX: number) => {
-    if (!progressRef.current || !duration) return 0
-    const rect = progressRef.current.getBoundingClientRect()
+    if (!waveformRef.current || !duration) return 0
+    const rect = waveformRef.current.getBoundingClientRect()
     const p = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
     return p * duration
   }
@@ -79,11 +93,6 @@ export default function NowPlayingModal() {
   }
 
   const repeatLabel = repeatMode === 'one' ? '1' : repeatMode === 'all' ? '∞' : null
-
-  // Waveform estática (alturas fijas simuladas) — la parte reproducida se pinta en violeta, el resto en gris
-  const WAVEFORM_HEIGHTS = [0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3,
-                            0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6, 0.4, 0.9,
-                            0.5, 0.8, 0.6, 1, 0.4, 0.7]
 
   return (
     <div
@@ -152,50 +161,39 @@ export default function NowPlayingModal() {
           </div>
         </div>
 
-        <div className="flex items-end justify-center gap-[3px] h-8 mb-5">
-          {WAVEFORM_HEIGHTS.map((h, i) => {
-            const barPct = (i / WAVEFORM_HEIGHTS.length) * 100
-            const isPast = barPct <= pct
-            return (
-              <div
-                key={i}
-                className="rounded-full"
-                style={{
-                  width: '3px',
-                  height: `${h * 100}%`,
-                  background: isPast ? '#6E62F5' : 'rgba(255,255,255,0.12)',
-                  transformOrigin: 'bottom',
-                  transition: 'background 0.15s ease',
-                }}
-              />
-            )
-          })}
-        </div>
-
-        <div className="mb-5">
-          <p className="text-[#EAE9E6] font-medium text-xl truncate">{currentTrack.title}</p>
-          <p className="text-[#555966] font-mono text-sm mt-0.5 truncate">{currentTrack.projectTitle ?? 'demo.'}</p>
-        </div>
-
-        <div className="mb-4" data-progress>
+        {/* Waveform interactiva — real si existe, si no patrón de respaldo */}
+        <div className="mb-2" data-progress>
           <div
-            ref={progressRef}
-            className="h-1.5 rounded-full bg-white/10 cursor-pointer relative"
+            ref={waveformRef}
+            className="relative flex items-center gap-[2px] h-10 cursor-pointer touch-none"
             onMouseDown={e => onThumbDown(e.clientX)}
             onTouchStart={e => { e.stopPropagation(); onThumbDown(e.touches[0].clientX) }}
           >
+            {waveform.map((h, i) => {
+              const barPct = (i / waveform.length) * 100
+              const isPast = barPct <= pct
+              return (
+                <div
+                  key={i}
+                  className="flex-1 rounded-full"
+                  style={{
+                    height: `${Math.max(h * 100, 8)}%`,
+                    background: isPast ? '#6E62F5' : 'rgba(255,255,255,0.14)',
+                    transition: dragging ? 'none' : 'background 0.1s ease',
+                  }}
+                />
+              )
+            })}
+            {/* Cursor de posición */}
             <div
-              className="absolute left-0 top-0 h-full rounded-full bg-[#6E62F5]"
-              style={{ width: `${pct}%`, transition: dragging ? 'none' : 'width 0.1s linear' }}
-            />
-            <div
-              className="absolute top-1/2 rounded-full bg-white shadow-md"
+              className="absolute top-1/2 -translate-y-1/2 rounded-full bg-[#6E62F5] pointer-events-none"
               style={{
-                width: dragging ? '18px' : '14px',
-                height: dragging ? '18px' : '14px',
-                left: `calc(${pct}% - ${dragging ? 9 : 7}px)`,
-                transform: 'translateY(-50%)',
-                transition: dragging ? 'width 0.1s, height 0.1s' : 'width 0.1s, height 0.1s, left 0.1s linear',
+                width: dragging ? '4px' : '3px',
+                height: dragging ? '130%' : '120%',
+                left: `${pct}%`,
+                transform: 'translate(-50%, -50%)',
+                boxShadow: '0 0 8px rgba(110,98,245,0.6)',
+                transition: dragging ? 'none' : 'left 0.1s linear',
               }}
             />
           </div>
@@ -203,6 +201,11 @@ export default function NowPlayingModal() {
             <span className="font-mono text-xs text-[#555966]">{fmt(shownTime)}</span>
             <span className="font-mono text-xs text-[#555966]">{duration > 0 ? fmt(duration) : '--:--'}</span>
           </div>
+        </div>
+
+        <div className="mb-5">
+          <p className="text-[#EAE9E6] font-medium text-xl truncate">{currentTrack.title}</p>
+          <p className="text-[#555966] font-mono text-sm mt-0.5 truncate">{currentTrack.projectTitle ?? 'demo.'}</p>
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mt-2">
