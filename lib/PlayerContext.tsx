@@ -314,6 +314,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         track_id:    track.id,
         track_title: track.title,
         file_path:   track.file_path,
+        project_id:  track.projectId ?? null,
         cover_url:   track.coverUrl ?? null,
         artist_name: track.artistName ?? null,
       })
