@@ -11,6 +11,7 @@ interface Track {
   file_path:     string
   projectTitle?: string
   coverUrl?:     string
+  waveform?:     number[] | null
 }
 
 type RepeatMode  = 'none' | 'one' | 'all'
