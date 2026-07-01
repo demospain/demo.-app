@@ -16,6 +16,8 @@ interface Project {
   share_slug?:      string
   owner_id:         string
   link_expires_at?: string | null
+  ownerUsername?:   string | null
+  adminUsernames?:  string[]
 }
 
 interface Track {
@@ -956,6 +958,14 @@ const handleRenameTrack = async (trackId: string, newName: string) => {
 
             <div>
               <h2 className="text-xl font-medium text-[#F8F7F4] mb-1.5">{project.title}</h2>
+              {project.ownerUsername && (
+                <p className="text-sm font-mono text-[#555966] mb-2">
+                  {project.ownerUsername}
+                  {project.adminUsernames && project.adminUsernames.length > 0 && (
+                    <> ft. {project.adminUsernames.join(', ')}</>
+                  )}
+                </p>
+              )}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-sm font-mono ${vis.color}`}>{vis.icon}</span>
                 <span className="text-[#252830]">·</span>
