@@ -913,7 +913,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
             <div>
               <h2 className="text-xl font-medium text-[#F8F7F4] mb-1.5">{project.title}</h2>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-sm font-mono ${vis.color}`}>{vis.icon} {vis.label}</span>
+                <span className={`text-sm font-mono ${vis.color}`}>{vis.icon}</span>
                 <span className="text-[#252830]">·</span>
                 <span className="text-sm font-mono text-[#555966]">
                   {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
