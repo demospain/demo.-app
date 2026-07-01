@@ -180,12 +180,19 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     setAuthLoading(true)
     setAuthError('')
     if (authMode === 'signup') {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email, password,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/s/${single.slug}`)}` },
       })
-      if (error) { setAuthError(error.message); setAuthLoading(false) }
-      else setSent(true)
+      if (error) {
+        setAuthError(error.message)
+        setAuthLoading(false)
+      } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setAuthError('Ya existe una cuenta con este email. Prueba a iniciar sesión, o con Google si te registraste así.')
+        setAuthLoading(false)
+      } else {
+        setSent(true)
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setAuthError('Email o contraseña incorrectos.'); setAuthLoading(false) }
