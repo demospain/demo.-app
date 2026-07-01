@@ -809,7 +809,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         <div className="hidden md:flex w-full max-w-[700px] bg-[#13141a]/96 backdrop-blur-xl border border-white/[0.07] rounded-2xl shadow-2xl items-center gap-3 px-4 pointer-events-auto" style={{ height: '64px' }}>
 
           {/* Izq: portada + info */}
-          <div className="flex items-center gap-3 flex-shrink-0" style={{ width: '190px' }}>
+          <div
+            className="flex items-center gap-3 flex-shrink-0 cursor-pointer"
+            style={{ width: '190px' }}
+            onClick={() => setShowNowPlaying(true)}
+          >
             <Cover size="w-10 h-10" rounded="rounded-lg"/>
             <div className="min-w-0">
               <p className="text-[13px] font-medium text-[#EAE9E6] truncate leading-tight">{currentTrack.title}</p>
