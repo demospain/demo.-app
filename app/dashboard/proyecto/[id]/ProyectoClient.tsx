@@ -151,7 +151,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const searchInputRef                      = useRef<HTMLInputElement>(null)
   const dotsMenuRef                         = useRef<HTMLDivElement>(null)
   const trackMenuRefs                       = useRef<Map<string, HTMLDivElement>>(new Map())
-  const { currentTrack, playTrack, closePlayer, isPlaying: playerIsPlaying, setLibraryUserId, currentTime, duration } = usePlayer()
+  const { currentTrack, playTrack, closePlayer, isPlaying: playerIsPlaying, setLibraryUserId, currentTime, duration, setShowNowPlaying } = usePlayer()
 
   useEffect(() => {
     if (userId) setLibraryUserId(userId)
@@ -529,6 +529,7 @@ const handleRenameTrack = async (trackId: string, newName: string) => {
           [{ id: soloTrack.id, title: soloTrack.title, file_path: soloTrack.file_path, projectTitle: project.title, projectId: project.id, coverUrl: project.cover_url ?? undefined, waveform: soloTrack.waveform, artistName: nombre }]
         )
       }
+      setShowNowPlaying(true)
     }
 
     return (
