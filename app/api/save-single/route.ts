@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   // 1. Cargar el single
   const { data: single, error: singleError } = await admin
     .from('singles')
-    .select('id, track_title, file_path, project_id, cover_url, tracks(waveform)')
+    .select('id, track_title, file_path, project_id, cover_url')
     .eq('id', singleId)
     .single()
 
@@ -41,61 +41,44 @@ export async function POST(request: Request) {
   if (existingMirror) {
     mirrorProjectId = existingMirror.id
   } else {
-    // Averiguar el dueño original a través del proyecto de origen del single,
-    // solo para mostrar la atribución — el proyecto espejo pertenece a quien lo guarda
+    // Averiguar el dueño original a través del proyecto de origen del single
     const { data: originalProject } = await admin
       .from('projects')
       .select('owner_id')
       .eq('id', single.project_id)
       .maybeSingle()
 
-    let attributedArtist: string | null = null
-    if (originalProject?.owner_id) {
-      const { data: originalOwnerProfile } = await admin
-        .from('profiles')
-        .select('username')
-        .eq('id', originalProject.owner_id)
-        .maybeSingle()
-      attributedArtist = originalOwnerProfile?.username ?? null
+    const originalOwnerId = originalProject?.owner_id
+    if (!originalOwnerId) {
+      return NextResponse.json({ error: 'No se pudo determinar el propietario original' }, { status: 500 })
     }
 
-    // Crear el proyecto espejo — privado, propiedad de QUIEN LO GUARDA,
-    // para que aparezca en su sección "Guardado" y nunca contamine
-    // "Mis proyectos" del artista original
+    const { data: originalOwnerProfile } = await admin
+      .from('profiles')
+      .select('username')
+      .eq('id', originalOwnerId)
+      .maybeSingle()
+
+    // Crear el proyecto espejo — privado, propiedad del artista original.
+    // No tiene tracks propios: su tracklist se resuelve en vivo desde el
+    // track_id del single, así que renombrar o reemplazar el audio original
+    // se refleja automáticamente para todos los que lo guardaron.
     const { data: newProject, error: projectError } = await admin
       .from('projects')
       .insert({
-        title:              single.track_title,
-        owner_id:           user.id,
-        visibility:         'private',
-        status:             'draft',
-        cover_url:          single.cover_url,
-        source_single_id:   single.id,
-        attributed_artist:  attributedArtist,
+        title:             single.track_title,
+        owner_id:          originalOwnerId,
+        visibility:        'private',
+        status:            'draft',
+        cover_url:         single.cover_url,
+        source_single_id:  single.id,
+        attributed_artist: originalOwnerProfile?.username ?? null,
       })
       .select()
       .single()
 
     if (projectError || !newProject) {
       return NextResponse.json({ error: 'No se ha podido crear el proyecto' }, { status: 500 })
-    }
-
-    const waveform = (single as any).tracks?.waveform ?? null
-
-    const { error: trackError } = await admin
-      .from('tracks')
-      .insert({
-        project_id:  newProject.id,
-        title:       single.track_title,
-        file_path:   single.file_path,
-        track_order: 0,
-        uploaded_by: user.id,
-        waveform,
-      })
-
-    if (trackError) {
-      await admin.from('projects').delete().eq('id', newProject.id)
-      return NextResponse.json({ error: 'No se ha podido copiar la canción' }, { status: 500 })
     }
 
     mirrorProjectId = newProject.id
