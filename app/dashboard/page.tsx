@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createAdminSupabaseClient } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DashboardClient from '@/components/DashboardClient'
@@ -29,11 +30,24 @@ export default async function DashboardPage() {
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
-  const { data: savedRaw } = await supabase
+  const { data: savedRows } = await supabase
     .from('saved_projects')
-    .select('project_id, projects(id, title, cover_url, visibility, status, created_at, owner_id, share_slug)')
+    .select('project_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+
+  const savedProjectIds = (savedRows ?? []).map(r => r.project_id)
+
+  // Los proyectos guardados pueden ser privados (p.ej. singles guardados como proyecto
+  // espejo), así que se resuelven con el cliente admin — el usuario tiene derecho
+  // legítimo a ver lo que él mismo guardó, sin depender de la visibilidad del proyecto.
+  const admin = createAdminSupabaseClient()
+  const { data: savedProjectsRaw } = savedProjectIds.length
+    ? await admin
+        .from('projects')
+        .select('id, title, cover_url, visibility, status, created_at, owner_id, share_slug')
+        .in('id', savedProjectIds)
+    : { data: [] as any[] }
 
   const { count: unreadCount } = await supabase
     .from('notifications')
@@ -50,10 +64,7 @@ export default async function DashboardPage() {
 
   const myProjects = (myProjectsRaw ?? []).map(prefixCover)
 
-  const savedProjects = (savedRaw ?? [])
-    .map(row => row.projects)
-    .filter(Boolean)
-    .flat()
+  const savedProjects = (savedProjectsRaw ?? [])
     .filter((p: any) => p.owner_id !== user.id)
     .map(prefixCover) as {
       id: string; title: string; cover_url: string | null;
