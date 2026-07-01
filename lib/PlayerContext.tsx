@@ -12,6 +12,7 @@ interface Track {
   projectTitle?: string
   coverUrl?:     string
   waveform?:     number[] | null
+  artistName?:   string
 }
 
 type RepeatMode  = 'none' | 'one' | 'all'
@@ -36,6 +37,7 @@ interface PlayerContextType {
   playPrev:            () => void
   cycleRepeat:         () => void
   seekTo:              (t: number) => void
+  shareTrack:          (track: Track) => Promise<boolean>
   setShowNowPlaying:   (v: boolean) => void
 }
 
@@ -301,6 +303,35 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (audioRef.current) audioRef.current.currentTime = t
     setCurrentTime(t)
   }, [])
+
+  // Genera (o reutiliza) un link público de un solo track y lo copia al portapapeles.
+  // Devuelve true si se copió correctamente, false si algo falló.
+  const shareTrack = useCallback(async (track: Track): Promise<boolean> => {
+    try {
+      const slug = Math.random().toString(36).slice(2, 10)
+      const { error } = await supabase.from('singles').insert({
+        slug,
+        track_id:    track.id,
+        track_title: track.title,
+        file_path:   track.file_path,
+        cover_url:   track.coverUrl ?? null,
+        artist_name: track.artistName ?? null,
+      })
+      if (error) return false
+      const url = `${window.location.origin}/s/${slug}`
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        const el = document.createElement('input')
+        el.value = url; document.body.appendChild(el)
+        el.select(); document.execCommand('copy')
+        document.body.removeChild(el)
+      }
+      return true
+    } catch {
+      return false
+    }
+  }, [supabase])
 
   const setLibraryUserId = useCallback((userId: string) => {
     userIdRef.current = userId
