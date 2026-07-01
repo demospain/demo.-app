@@ -80,6 +80,11 @@ export default function NowPlayingModal() {
 
   const repeatLabel = repeatMode === 'one' ? '1' : repeatMode === 'all' ? '∞' : null
 
+  // Waveform estática (alturas fijas simuladas) — la parte reproducida se pinta en violeta, el resto en gris
+  const WAVEFORM_HEIGHTS = [0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3,
+                            0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6, 0.4, 0.9,
+                            0.5, 0.8, 0.6, 1, 0.4, 0.7]
+
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col md:hidden"
@@ -148,10 +153,9 @@ export default function NowPlayingModal() {
         </div>
 
         <div className="flex items-end justify-center gap-[3px] h-8 mb-5">
-          {Array.from({ length: 28 }, (_, i) => {
-            const heights = [0.3, 0.5, 0.8, 0.6, 1, 0.7, 0.4, 0.9, 0.5, 0.7, 1, 0.6, 0.3,
-                             0.8, 0.5, 1, 0.7, 0.4, 0.9, 0.6, 0.3, 0.8, 0.5, 0.7, 1, 0.6, 0.4, 0.9]
-            const h = heights[i % heights.length]
+          {WAVEFORM_HEIGHTS.map((h, i) => {
+            const barPct = (i / WAVEFORM_HEIGHTS.length) * 100
+            const isPast = barPct <= pct
             return (
               <div
                 key={i}
@@ -159,12 +163,9 @@ export default function NowPlayingModal() {
                 style={{
                   width: '3px',
                   height: `${h * 100}%`,
-                  background: isPlaying ? '#6E62F5' : 'rgba(110,98,245,0.3)',
+                  background: isPast ? '#6E62F5' : 'rgba(255,255,255,0.12)',
                   transformOrigin: 'bottom',
-                  animation: isPlaying
-                    ? `waveBar ${0.5 + (i % 5) * 0.08}s ease-in-out ${(i % 7) * 0.05}s infinite alternate`
-                    : 'none',
-                  transition: 'background 0.3s ease',
+                  transition: 'background 0.15s ease',
                 }}
               />
             )
@@ -204,9 +205,9 @@ export default function NowPlayingModal() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-2">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center mt-2">
 
-          <button onClick={shuffleProject} className="w-11 h-11 flex items-center justify-center">
+          <button onClick={shuffleProject} className="w-11 h-11 flex items-center justify-center justify-self-start">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
               stroke={shuffleMode !== 'none' ? '#6E62F5' : '#555966'} strokeWidth="1.5"
               strokeLinecap="round" strokeLinejoin="round"
@@ -218,7 +219,23 @@ export default function NowPlayingModal() {
             </svg>
           </button>
 
-          <button onClick={cycleRepeat} className="relative w-11 h-11 flex items-center justify-center">
+          <div className="flex items-center gap-2 justify-self-center">
+            <button onClick={playPrev} className="w-14 h-14 flex items-center justify-center">
+              <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                <path d="M4 4v18M22 4L9 13l13 9V4z" stroke="#EAE9E6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            <PlayPause />
+
+            <button onClick={playNext} className="w-14 h-14 flex items-center justify-center">
+              <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                <path d="M22 4v18M4 4l13 9-13 9V4z" stroke="#EAE9E6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <button onClick={cycleRepeat} className="relative w-11 h-11 flex items-center justify-center justify-self-end">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
               stroke={repeatMode !== 'none' ? '#6E62F5' : '#555966'} strokeWidth="1.5"
               strokeLinecap="round" strokeLinejoin="round"
@@ -233,20 +250,6 @@ export default function NowPlayingModal() {
                 {repeatLabel}
               </span>
             )}
-          </button>
-
-          <button onClick={playPrev} className="w-14 h-14 flex items-center justify-center">
-            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-              <path d="M4 4v18M22 4L9 13l13 9V4z" stroke="#EAE9E6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-
-          <PlayPause />
-
-          <button onClick={playNext} className="w-14 h-14 flex items-center justify-center">
-            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-              <path d="M22 4v18M4 4l13 9-13 9V4z" stroke="#EAE9E6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
           </button>
 
         </div>
