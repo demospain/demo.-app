@@ -72,14 +72,14 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     return () => { audio.pause(); audio.src = '' }
   }, [single.file_path])
 
-  // Comprobar si ya se guardó este single (proyecto espejo creado a partir de él)
+// Comprobar si ya se guardó este single (proyecto espejo creado a partir de él)
   useEffect(() => {
     if (!userId) return
     supabase
       .from('projects')
-      .select('id')
-      .eq('owner_id', userId)
+      .select('id, saved_projects!inner(user_id)')
       .eq('source_single_id', single.id)
+      .eq('saved_projects.user_id', userId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) setSaved(true)
@@ -145,64 +145,87 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     setSaving(true)
     setSaveError('')
 
-    // Doble comprobación por si se guardó en otra pestaña/dispositivo mientras tanto
-    const { data: existing } = await supabase
+    // Si ya existe un proyecto espejo de este single (creado por cualquier usuario
+    // al guardarlo antes), lo reutilizamos en vez de duplicarlo
+    const { data: existingMirror } = await supabase
       .from('projects')
       .select('id')
-      .eq('owner_id', userId)
       .eq('source_single_id', single.id)
       .maybeSingle()
 
-    if (existing) {
-      setSaved(true)
-      setSaving(false)
-      return
+    let mirrorProjectId = existingMirror?.id ?? null
+
+    if (!mirrorProjectId) {
+      // Averiguar el dueño original del single a través de su proyecto de origen
+      const { data: originalProject } = await supabase
+        .from('projects')
+        .select('owner_id')
+        .eq('id', single.project_id)
+        .maybeSingle()
+
+      const originalOwnerId = originalProject?.owner_id ?? null
+      if (!originalOwnerId) {
+        setSaveError('No se ha podido guardar. Inténtalo de nuevo.')
+        setSaving(false)
+        return
+      }
+
+      // 1. Crear el proyecto espejo — privado, con el DUEÑO ORIGINAL como propietario,
+      //    para que en cualquier biblioteca aparezca como música de ese artista
+      const { data: newProject, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          title:            single.track_title,
+          owner_id:         originalOwnerId,
+          visibility:       'private',
+          status:           'draft',
+          cover_url:        single.cover_url,
+          source_single_id: single.id,
+        })
+        .select()
+        .single()
+
+      if (projectError || !newProject) {
+        setSaveError('No se ha podido guardar. Inténtalo de nuevo.')
+        setSaving(false)
+        return
+      }
+
+      // 2. Copiar el track dentro del nuevo proyecto (mismo file_path, sin duplicar audio en R2)
+      const { error: trackError } = await supabase
+        .from('tracks')
+        .insert({
+          project_id:  newProject.id,
+          title:       single.track_title,
+          file_path:   single.file_path,
+          track_order: 0,
+          uploaded_by: originalOwnerId,
+          waveform:    single.tracks?.waveform ?? null,
+        })
+
+      if (trackError) {
+        await supabase.from('projects').delete().eq('id', newProject.id)
+        setSaveError('No se ha podido guardar. Inténtalo de nuevo.')
+        setSaving(false)
+        return
+      }
+
+      mirrorProjectId = newProject.id
     }
 
-    // 1. Crear el proyecto espejo — privado, propiedad del usuario que guarda
-    const { data: newProject, error: projectError } = await supabase
-      .from('projects')
-      .insert({
-        title:            single.track_title,
-        owner_id:         userId,
-        visibility:       'private',
-        status:           'draft',
-        cover_url:        single.cover_url,
-        source_single_id: single.id,
-      })
-      .select()
-      .single()
-
-    if (projectError || !newProject) {
-      setSaveError('No se ha podido guardar. Inténtalo de nuevo.')
-      setSaving(false)
-      return
-    }
-
-    // 2. Copiar el track dentro del nuevo proyecto (mismo file_path, sin duplicar audio en R2)
-    const { error: trackError } = await supabase
-      .from('tracks')
-      .insert({
-        project_id:  newProject.id,
-        title:       single.track_title,
-        file_path:   single.file_path,
-        track_order: 0,
-        uploaded_by: userId,
-        waveform:    single.tracks?.waveform ?? null,
-      })
-
-    if (trackError) {
-      // Revertir el proyecto huérfano si falla la copia del track
-      await supabase.from('projects').delete().eq('id', newProject.id)
-      setSaveError('No se ha podido guardar. Inténtalo de nuevo.')
-      setSaving(false)
-      return
-    }
-
-    // 3. Registrar en saved_projects para que aparezca en "Guardado" del dashboard
-    await supabase
+    // 3. Comprobar que el usuario actual no lo tenga ya guardado
+    const { data: alreadySaved } = await supabase
       .from('saved_projects')
-      .insert({ project_id: newProject.id, user_id: userId })
+      .select('id')
+      .eq('user_id', userId)
+      .eq('project_id', mirrorProjectId)
+      .maybeSingle()
+
+    if (!alreadySaved) {
+      await supabase
+        .from('saved_projects')
+        .insert({ project_id: mirrorProjectId, user_id: userId })
+    }
 
     setSaved(true)
     setSaving(false)
