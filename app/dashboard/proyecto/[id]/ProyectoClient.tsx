@@ -937,6 +937,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                           >
                             <button
                               onClick={e => { e.stopPropagation(); setShowTrackMenu(showTrackMenu === track.id ? null : track.id) }}
+                              onTouchEnd={e => e.stopPropagation()}
                               className="opacity-0 group-hover:opacity-100 md:transition-opacity text-[#555966] hover:text-[#9BA0AD] p-1.5 opacity-100 md:opacity-0"
                             >
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
