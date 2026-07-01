@@ -22,6 +22,37 @@ function getAudioDuration(file: File): Promise<number | null> {
   })
 }
 
+// Genera 100 picos de amplitud normalizados (0 a 1) a partir del audio real.
+// Se calcula una sola vez, en el momento de subir — cero coste al reproducir.
+// Si algo falla (formato no soportado, archivo corrupto, etc.) devuelve null
+// y el reproductor cae automáticamente al patrón visual de respaldo.
+async function computeWaveform(file: File): Promise<number[] | null> {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextClass) return null
+    const arrayBuffer = await file.arrayBuffer()
+    const audioCtx = new AudioContextClass()
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+    const rawData = audioBuffer.getChannelData(0) // canal izquierdo/mono
+    const samples = 100
+    const blockSize = Math.floor(rawData.length / samples)
+    const peaks: number[] = []
+    for (let i = 0; i < samples; i++) {
+      const start = i * blockSize
+      let sum = 0
+      for (let j = 0; j < blockSize; j++) {
+        sum += Math.abs(rawData[start + j] ?? 0)
+      }
+      peaks.push(sum / blockSize)
+    }
+    audioCtx.close()
+    const max = Math.max(...peaks, 0.0001)
+    return peaks.map(p => Math.min(1, p / max))
+  } catch {
+    return null
+  }
+}
+
 export default function UploadTrack({ projectId, onUploadComplete, onLimitReached }: UploadTrackProps) {
   const [dragging, setDragging]   = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -51,8 +82,11 @@ export default function UploadTrack({ projectId, onUploadComplete, onLimitReache
         return
       }
 
-      // Extraer duración antes de subir
-      const duration = await getAudioDuration(file)
+      // Extraer duración y waveform antes de subir (mismo File en memoria, sin coste de red)
+      const [duration, waveform] = await Promise.all([
+        getAudioDuration(file),
+        computeWaveform(file),
+      ])
 
       const formData = new FormData()
       formData.append('file', file)
@@ -92,6 +126,7 @@ export default function UploadTrack({ projectId, onUploadComplete, onLimitReache
           track_order: 0,
           uploaded_by: user?.id,
           duration,
+          waveform,
         })
         .select()
         .single()
