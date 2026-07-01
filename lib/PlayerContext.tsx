@@ -14,6 +14,7 @@ interface Track {
   coverUrl?:     string
   waveform?:     number[] | null
   artistName?:   string
+  isMine?:       boolean
 }
 
 type RepeatMode  = 'none' | 'one' | 'all'
