@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import UploadTrack from '@/components/UploadTrack'
+import ImageCropModal from '@/components/ImageCropModal'
 import { usePlayer } from '@/lib/PlayerContext'
 
 interface Project {
@@ -109,6 +110,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
   const [editingTrackName, setEditingTrackName] = useState('')
   const [coverUploading, setCoverUploading] = useState(false)
+  const [cropFile, setCropFile] = useState<File | null>(null)
   const [coverOpacity, setCoverOpacity]     = useState(1)
 
   useEffect(() => {
@@ -414,9 +416,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
     if (!error) setProject(prev => ({ ...prev, link_expires_at: expiresAt }))
   }
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (file) setCropFile(file)
+    e.target.value = ''
+  }
+
+  const handleCoverUpload = async (file: File) => {
+    setCropFile(null)
     setCoverUploading(true)
     const res = await fetch('/api/upload-cover', {
       method: 'POST',
@@ -472,6 +479,15 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
           to   { transform: scaleY(1); }
         }
       `}</style>
+
+      {/* Modal de recorte de portada */}
+      {cropFile && (
+        <ImageCropModal
+          file={cropFile}
+          onConfirm={handleCoverUpload}
+          onCancel={() => setCropFile(null)}
+        />
+      )}
 
       {/* Modal de confirmación */}
       {confirmModal && (
@@ -908,7 +924,7 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                 </div>
               )}
             </div>
-            <input ref={coverInputRef} type="file" accept="image/png,image/jpeg" onChange={handleCoverUpload} className="hidden"/>
+            <input ref={coverInputRef} type="file" accept="image/png,image/jpeg" onChange={handleCoverSelect} className="hidden"/>
 
             <div>
               <h2 className="text-xl font-medium text-[#F8F7F4] mb-1.5">{project.title}</h2>
