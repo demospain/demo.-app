@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 interface Props {
   userId:            string
   suggestedUsername: string
+  next:              string
 }
 
 type Role = 'artist' | 'producer' | 'listener'
@@ -64,7 +65,7 @@ const PLANS_PRO = [
   },
 ]
 
-export default function OnboardingClient({ userId, suggestedUsername }: Props) {
+export default function OnboardingClient({ userId, suggestedUsername, next }: Props) {
   const [step, setStep]                   = useState(1)
   const [username, setUsername]           = useState(suggestedUsername)
   const [usernameError, setUsernameError] = useState('')
@@ -127,7 +128,7 @@ export default function OnboardingClient({ userId, suggestedUsername }: Props) {
       setSaving(false)
       return
     }
-    window.location.href = '/dashboard'
+    window.location.href = next
   }
 
   return (
