@@ -62,18 +62,13 @@ export default async function DashboardPage() {
       : null
   })
 
-  // Los proyectos espejo (creados al guardar un single) no son "proyectos propios"
-  // reales aunque owner_id sea el usuario — se muestran en "Guardado"
-  const realMyProjects = (myProjectsRaw ?? []).filter((p: any) => !p.source_single_id)
-  const mirrorProjectsOfMine = (myProjectsRaw ?? []).filter((p: any) => p.source_single_id)
+  // Los proyectos espejo (source_single_id no nulo) NUNCA son "Mis proyectos",
+  // sin importar de quién sea owner_id — solo aparecen si el usuario los guardó
+  const myProjects = (myProjectsRaw ?? [])
+    .filter((p: any) => !p.source_single_id)
+    .map(prefixCover)
 
-  const myProjects = realMyProjects.map(prefixCover)
-
-  const combinedSaved = [...(savedProjectsRaw ?? []), ...mirrorProjectsOfMine]
-  const dedupedSaved  = Array.from(new Map(combinedSaved.map((p: any) => [p.id, p])).values())
-
-  const savedProjects = dedupedSaved
-    .filter((p: any) => p.owner_id !== user.id || p.source_single_id)
+  const savedProjects = (savedProjectsRaw ?? [])
     .map(prefixCover) as {
       id: string; title: string; cover_url: string | null;
       visibility: string; status: string; created_at: string;
@@ -122,12 +117,11 @@ export default async function DashboardPage() {
   }
 
   // Construir el string de autores por proyecto: owner[, admin1, admin2...]
-  // Para proyectos espejo (singles guardados), usamos attributed_artist en vez
-  // del owner real, ya que el owner_id es quien lo guardó, no quien lo creó
+  // Para proyectos espejo (singles guardados), usamos attributed_artist directamente
   const ownerNames: Record<string, string> = {}
   allProjects.forEach((p: any) => {
     if (p.source_single_id) {
-      ownerNames[p.id] = p.attributed_artist ?? 'Artista'
+      ownerNames[p.id] = p.attributed_artist ?? profilesMap[p.owner_id] ?? 'Artista'
       return
     }
     const ownerUsername = profilesMap[p.owner_id] ?? p.owner_id ?? ''
