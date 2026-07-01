@@ -26,7 +26,7 @@ export default async function DashboardPage() {
 
   const { data: myProjectsRaw } = await supabase
     .from('projects')
-    .select('id, title, cover_url, visibility, status, created_at, owner_id, share_slug')
+    .select('id, title, cover_url, visibility, status, created_at, owner_id, share_slug, source_single_id, attributed_artist')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
   const { data: savedProjectsRaw } = savedProjectIds.length
     ? await admin
         .from('projects')
-        .select('id, title, cover_url, visibility, status, created_at, owner_id, share_slug')
+        .select('id, title, cover_url, visibility, status, created_at, owner_id, share_slug, source_single_id, attributed_artist')
         .in('id', savedProjectIds)
     : { data: [] as any[] }
 
@@ -62,14 +62,19 @@ export default async function DashboardPage() {
       : null
   })
 
-  const myProjects = (myProjectsRaw ?? []).map(prefixCover)
+  // Los proyectos espejo (creados al guardar un single) no son "proyectos propios"
+  // reales aunque owner_id sea el usuario — se muestran en "Guardado"
+  const realMyProjects = (myProjectsRaw ?? []).filter((p: any) => !p.source_single_id)
+  const mirrorProjectsOfMine = (myProjectsRaw ?? []).filter((p: any) => p.source_single_id)
 
-  const savedProjects = (savedProjectsRaw ?? [])
-    .filter((p: any) => p.owner_id !== user.id)
+  const myProjects = realMyProjects.map(prefixCover)
+
+  const savedProjects = [...(savedProjectsRaw ?? []), ...mirrorProjectsOfMine]
+    .filter((p: any) => p.owner_id !== user.id || p.source_single_id)
     .map(prefixCover) as {
       id: string; title: string; cover_url: string | null;
       visibility: string; status: string; created_at: string;
-      owner_id?: string; share_slug?: string
+      owner_id?: string; share_slug?: string; source_single_id?: string; attributed_artist?: string
     }[]
 
   // Todos los proyectos que necesitan resolución de nombres
@@ -114,8 +119,14 @@ export default async function DashboardPage() {
   }
 
   // Construir el string de autores por proyecto: owner[, admin1, admin2...]
+  // Para proyectos espejo (singles guardados), usamos attributed_artist en vez
+  // del owner real, ya que el owner_id es quien lo guardó, no quien lo creó
   const ownerNames: Record<string, string> = {}
   allProjects.forEach((p: any) => {
+    if (p.source_single_id) {
+      ownerNames[p.id] = p.attributed_artist ?? 'Artista'
+      return
+    }
     const ownerUsername = profilesMap[p.owner_id] ?? p.owner_id ?? ''
     const adminIds = adminsByProject[p.id] ?? []
     const adminUsernames = adminIds
