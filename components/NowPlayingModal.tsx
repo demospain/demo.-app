@@ -209,6 +209,7 @@ function MobileDismissWrapper({ children, onClose }: { children: React.ReactNode
 
   return (
     <div
+      className="fixed inset-0 z-[100]"
       style={{
         transform: closing ? 'translateY(100%)' : `translateY(${dy}px)`,
         opacity: closing ? 0 : 1 - Math.min(dy / 500, 0.6),
