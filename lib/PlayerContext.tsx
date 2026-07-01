@@ -10,6 +10,7 @@ interface Track {
   title:         string
   file_path:     string
   projectTitle?: string
+  projectId?:    string
   coverUrl?:     string
   waveform?:     number[] | null
   artistName?:   string
