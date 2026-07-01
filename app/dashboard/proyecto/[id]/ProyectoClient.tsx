@@ -202,17 +202,29 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   }
 
   const handleShareAsSingle = async (track: Track) => {
-    const slug = Math.random().toString(36).slice(2, 10)
-    const { error } = await supabase.from('singles').insert({
-      slug,
-      track_id:    track.id,
-      track_title: track.title,
-      file_path:   track.file_path,
-      project_id:  project.id,
-      cover_url:   project.cover_url ?? null,
-      artist_name: nombre ?? null,
-    })
-    if (error) { console.error(error); return }
+    // Reutilizar el single existente para este track si ya se compartió antes
+    const { data: existingSingle } = await supabase
+      .from('singles')
+      .select('slug')
+      .eq('track_id', track.id)
+      .maybeSingle()
+
+    let slug = existingSingle?.slug ?? null
+
+    if (!slug) {
+      slug = Math.random().toString(36).slice(2, 10)
+      const { error } = await supabase.from('singles').insert({
+        slug,
+        track_id:    track.id,
+        track_title: track.title,
+        file_path:   track.file_path,
+        project_id:  project.id,
+        cover_url:   project.cover_url ?? null,
+        artist_name: nombre ?? null,
+      })
+      if (error) { console.error(error); return }
+    }
+
     const url = `${window.location.origin}/s/${slug}`
     try {
       await navigator.clipboard.writeText(url)
