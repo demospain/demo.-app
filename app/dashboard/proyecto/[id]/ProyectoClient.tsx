@@ -999,7 +999,7 @@ const handleRenameTrack = async (trackId: string, newName: string) => {
                   </svg>
                   Exportar todo
                 </button>
-                {isMine && (
+                {isOwner && (
                   <>
                     <div className="h-px bg-white/[0.06] my-1"/>
                     <button
