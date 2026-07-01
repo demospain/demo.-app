@@ -23,7 +23,7 @@ export default function NowPlayingModal() {
   const {
     currentTrack, isPlaying, repeatMode, shuffleMode, currentTime, duration,
     showNowPlaying, setShowNowPlaying,
-    playNext, playPrev, cycleRepeat, seekTo, shuffleProject,
+    playNext, playPrev, cycleRepeat, seekTo, shuffleProject, shareTrack,
   } = usePlayer()
 
   const waveformRef = useRef<HTMLDivElement>(null)
@@ -33,6 +33,20 @@ export default function NowPlayingModal() {
   const dismissStartY = useRef<number | null>(null)
   const [dismissDy, setDismissDy] = useState(0)
   const [closing, setClosing] = useState(false)
+
+  const [sharing, setSharing] = useState(false)
+  const [shared, setShared]   = useState(false)
+
+  const handleShare = async () => {
+    if (!currentTrack || sharing) return
+    setSharing(true)
+    const ok = await shareTrack(currentTrack)
+    setSharing(false)
+    if (ok) {
+      setShared(true)
+      setTimeout(() => setShared(false), 2000)
+    }
+  }
 
   if (!showNowPlaying || !currentTrack) return null
 
@@ -127,6 +141,25 @@ export default function NowPlayingModal() {
         <div className="flex justify-center mb-2">
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
+
+        <button
+          onClick={handleShare}
+          disabled={sharing}
+          className="absolute top-4 left-6 w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.07] disabled:opacity-50"
+        >
+          {shared ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 7l3.5 3.5L12 3" stroke="#1D9E75" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="11" cy="2.5" r="1.6" stroke="#9BA0AD" strokeWidth="1.2"/>
+              <circle cx="11" cy="11.5" r="1.6" stroke="#9BA0AD" strokeWidth="1.2"/>
+              <circle cx="2.5" cy="7" r="1.6" stroke="#9BA0AD" strokeWidth="1.2"/>
+              <path d="M4.3 6.2l5-2.6M4.3 7.8l5 2.6" stroke="#9BA0AD" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+          )}
+        </button>
 
         <button
           onClick={() => setShowNowPlaying(false)}
