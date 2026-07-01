@@ -41,6 +41,8 @@ interface PlayerContextType {
   seekTo:              (t: number) => void
   shareTrack:          (track: Track) => Promise<boolean>
   setShowNowPlaying:   (v: boolean) => void
+  handleShuffleClick:  () => Promise<void>
+  shuffleLoading:      boolean
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null)
@@ -543,7 +545,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   if (!currentTrack) {
     return (
-      <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo, shareTrack }}>
+      <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo, shareTrack, handleShuffleClick, shuffleLoading }}>
         {children}
       </PlayerContext.Provider>
     )
@@ -643,7 +645,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo, shareTrack }}>
+    <PlayerContext.Provider value={{ currentTrack, isPlaying, shuffleMode, repeatMode, currentTime, duration, queue, loading, showNowPlaying, setShowNowPlaying, playTrack, closePlayer, shuffleProject, playShuffledLibrary, setLibraryUserId, playNext, playPrev, cycleRepeat, seekTo, shareTrack, handleShuffleClick, shuffleLoading }}>
       {children}
 
       {mounted && createPortal(
