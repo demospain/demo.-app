@@ -124,6 +124,9 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
   const [searchQuery, setSearchQuery]       = useState('')
   const [showSearch, setShowSearch]         = useState(false)
   const [showSharePanel, setShowSharePanel] = useState(false)
+  const [showAdminsPanel, setShowAdminsPanel] = useState(false)
+  const [savedByUsers, setSavedByUsers] = useState<{ userId: string; username: string; avatarUrl: string | null; isAdmin: boolean }[]>([])
+  const [loadingAdmins, setLoadingAdmins] = useState(false)
   const [showDotsMenu, setShowDotsMenu]     = useState(false)
   const [confirmModal, setConfirmModal]     = useState<{ title: string; desc: string; onConfirm: () => void } | null>(null)
   const [copied, setCopied]                 = useState(false)
@@ -327,6 +330,50 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
       desc: `¿Seguro que quieres eliminar "${project.title}" y todas sus canciones? Esta acción no se puede deshacer.`,
       onConfirm: handleDeleteProject,
     })
+  }
+
+  const openAdminsPanel = async () => {
+    setShowDotsMenu(false)
+    setShowAdminsPanel(true)
+    setLoadingAdmins(true)
+    const [{ data: saved }, { data: admins }] = await Promise.all([
+      supabase
+        .from('saved_projects')
+        .select('user_id, profiles(username, avatar_url)')
+        .eq('project_id', project.id),
+      supabase
+        .from('project_members')
+        .select('user_id')
+        .eq('project_id', project.id)
+        .eq('role', 'admin'),
+    ])
+    const adminIds = new Set((admins ?? []).map((a: any) => a.user_id))
+    const users = (saved ?? [])
+      .filter((s: any) => s.profiles)
+      .map((s: any) => ({
+        userId:    s.user_id,
+        username:  s.profiles.username ?? 'Sin nombre',
+        avatarUrl: s.profiles.avatar_url ?? null,
+        isAdmin:   adminIds.has(s.user_id),
+      }))
+    setSavedByUsers(users)
+    setLoadingAdmins(false)
+  }
+
+  const toggleAdmin = async (targetUserId: string, currentlyAdmin: boolean) => {
+    if (currentlyAdmin) {
+      await supabase
+        .from('project_members')
+        .delete()
+        .eq('project_id', project.id)
+        .eq('user_id', targetUserId)
+        .eq('role', 'admin')
+    } else {
+      await supabase
+        .from('project_members')
+        .insert({ project_id: project.id, user_id: targetUserId, role: 'admin' })
+    }
+    setSavedByUsers(prev => prev.map(u => u.userId === targetUserId ? { ...u, isAdmin: !currentlyAdmin } : u))
   }
 
   const handleReplaceAudio = async (trackId: string, file: File) => {
@@ -549,6 +596,19 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                     Renombrar
                   </button>
                 )}
+                {isMine && (
+                  <button
+                    onClick={openAdminsPanel}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <circle cx="5" cy="4.5" r="2.3" stroke="currentColor" strokeWidth="1.2"/>
+                      <path d="M1.5 12v-.5a3.5 3.5 0 013.5-3.5h0a3.5 3.5 0 013.5 3.5v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                      <path d="M10 5h2.5M11.25 3.75v2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                    </svg>
+                    Administradores
+                  </button>
+                )}
                 <button
                   onClick={handleExportProject}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9BA0AD] hover:text-[#F8F7F4] hover:bg-white/[0.04] transition-colors text-left"
@@ -697,6 +757,64 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                     </>
                   )}
                 </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Panel administradores */}
+      {showAdminsPanel && (
+        <div className="fixed inset-0 z-40" onClick={() => setShowAdminsPanel(false)}>
+          <div
+            className="absolute right-6 top-16 w-80 bg-[#13141a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
+              <span className="text-sm font-medium text-[#F8F7F4] truncate pr-4">Administradores</span>
+              <button onClick={() => setShowAdminsPanel(false)} className="text-[#555966] hover:text-[#9BA0AD] transition-colors flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-3 max-h-96 overflow-y-auto">
+              {loadingAdmins ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-5 h-5 border-2 border-white/20 border-t-[#7C6FFF] rounded-full animate-spin"/>
+                </div>
+              ) : savedByUsers.length === 0 ? (
+                <p className="text-[#555966] text-sm font-mono text-center py-6 px-2">
+                  Nadie ha guardado este proyecto todavía.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  {savedByUsers.map(u => (
+                    <div
+                      key={u.userId}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-[#6E62F5] flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0">
+                        {u.avatarUrl
+                          ? <img src={u.avatarUrl.startsWith('http') ? u.avatarUrl : `https://pub-5ad091444ab84f6e979864f025aa8867.r2.dev/${u.avatarUrl}`} alt="" className="w-full h-full object-cover"/>
+                          : u.username.charAt(0).toUpperCase()
+                        }
+                      </div>
+                      <span className="text-sm text-[#EAE9E6] font-mono flex-1 truncate">@{u.username}</span>
+                      <button
+                        onClick={() => toggleAdmin(u.userId, u.isAdmin)}
+                        className={`text-xs font-mono px-3 py-1.5 rounded-lg transition-colors flex-shrink-0 ${
+                          u.isAdmin
+                            ? 'bg-[#7C6FFF]/15 text-[#7C6FFF] hover:bg-red-500/10 hover:text-red-400'
+                            : 'bg-white/[0.05] text-[#555966] hover:bg-[#7C6FFF]/15 hover:text-[#7C6FFF]'
+                        }`}
+                      >
+                        {u.isAdmin ? 'Admin' : 'Añadir'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
