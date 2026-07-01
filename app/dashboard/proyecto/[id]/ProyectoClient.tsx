@@ -24,6 +24,7 @@ interface Track {
   track_order: number
   duration:    number | null
   created_at:  string
+  waveform:    number[] | null
 }
 
 interface Props {
@@ -858,14 +859,14 @@ export default function ProyectoClient({ project: initialProject, initialTracks,
                       onDragEnd={handleDragEnd}
                     >
                       <div
-                        onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })))}
+                        onClick={() => playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined, waveform: track.waveform }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined, waveform: t.waveform })))}
                         onTouchStart={e => { (e.currentTarget as any)._touchY = e.touches[0].clientY }}
                         onTouchEnd={e => {
                           const startY = (e.currentTarget as any)._touchY ?? 0
                           const dy = Math.abs(e.changedTouches[0].clientY - startY)
                           // Solo si fue tap (movimiento < 8px), no scroll
                           if (dy < 8) {
-                            playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined })))
+                            playTrack({ id: track.id, title: track.title, file_path: track.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined, waveform: track.waveform }, filteredTracks.map(t => ({ id: t.id, title: t.title, file_path: t.file_path, projectTitle: project.title, coverUrl: project.cover_url ?? undefined, waveform: t.waveform })))
                           }
                         }}
                         className={`flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-0 group transition-colors cursor-pointer ${
