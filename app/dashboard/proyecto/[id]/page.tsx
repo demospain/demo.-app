@@ -105,6 +105,33 @@ export default async function ProyectoPage({ params }: Props) {
   const nombre  = profile?.username ?? user.email?.split('@')[0] ?? 'artista'
   const inicial = nombre.charAt(0).toUpperCase()
 
+  // Atribución pública: propietario + administradores, visible para cualquiera
+  const admin = createAdminSupabaseClient()
+  const { data: ownerProfile } = await admin
+    .from('profiles')
+    .select('username')
+    .eq('id', project.owner_id)
+    .maybeSingle()
+
+  const { data: adminRows } = await admin
+    .from('project_members')
+    .select('user_id')
+    .eq('project_id', params.id)
+    .eq('role', 'admin')
+
+  const adminUserIds = (adminRows ?? [])
+    .map(r => r.user_id)
+    .filter(id => id !== project.owner_id)
+
+  let adminUsernames: string[] = []
+  if (adminUserIds.length > 0) {
+    const { data: adminProfiles } = await admin
+      .from('profiles')
+      .select('username')
+      .in('id', adminUserIds)
+    adminUsernames = (adminProfiles ?? []).map(p => p.username).filter(Boolean)
+  }
+
   const projectWithCover = {
     ...project,
     cover_url: project.cover_url
@@ -112,6 +139,8 @@ export default async function ProyectoPage({ params }: Props) {
         ? project.cover_url
         : `${R2_PUBLIC}/${project.cover_url}`
       : null,
+    ownerUsername: ownerProfile?.username ?? null,
+    adminUsernames,
   }
 
   return (
