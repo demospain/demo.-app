@@ -309,17 +309,29 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Devuelve true si se copió correctamente, false si algo falló.
   const shareTrack = useCallback(async (track: Track): Promise<boolean> => {
     try {
-      const slug = Math.random().toString(36).slice(2, 10)
-      const { error } = await supabase.from('singles').insert({
-        slug,
-        track_id:    track.id,
-        track_title: track.title,
-        file_path:   track.file_path,
-        project_id:  track.projectId ?? null,
-        cover_url:   track.coverUrl ?? null,
-        artist_name: track.artistName ?? null,
-      })
-      if (error) return false
+      // Reutilizar el single existente para este track si ya se compartió antes
+      const { data: existing } = await supabase
+        .from('singles')
+        .select('slug')
+        .eq('track_id', track.id)
+        .maybeSingle()
+
+      let slug = existing?.slug ?? null
+
+      if (!slug) {
+        slug = Math.random().toString(36).slice(2, 10)
+        const { error } = await supabase.from('singles').insert({
+          slug,
+          track_id:    track.id,
+          track_title: track.title,
+          file_path:   track.file_path,
+          project_id:  track.projectId ?? null,
+          cover_url:   track.coverUrl ?? null,
+          artist_name: track.artistName ?? null,
+        })
+        if (error) return false
+      }
+
       const url = `${window.location.origin}/s/${slug}`
       try {
         await navigator.clipboard.writeText(url)
