@@ -2,7 +2,11 @@ import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import OnboardingClient from './OnboardingClient'
 
-export default async function OnboardingPage() {
+interface Props {
+  searchParams: { next?: string }
+}
+
+export default async function OnboardingPage({ searchParams }: Props) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -13,7 +17,7 @@ export default async function OnboardingPage() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.onboarded) redirect('/dashboard')
+  if (profile?.onboarded) redirect(searchParams.next ?? '/dashboard')
 
   const suggestedUsername = user.user_metadata?.full_name
     ?.toLowerCase()
@@ -26,6 +30,7 @@ export default async function OnboardingPage() {
     <OnboardingClient
       userId={user.id}
       suggestedUsername={suggestedUsername}
+      next={searchParams.next ?? '/dashboard'}
     />
   )
 }
