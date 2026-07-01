@@ -164,7 +164,7 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     setAuthError('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/s/${single.slug}` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/s/${single.slug}`)}` },
     })
     if (error) { setAuthError(error.message); setAuthLoading(false) }
   }
@@ -176,7 +176,7 @@ export default function SingleClient({ single, userId }: { single: Single; userI
     if (authMode === 'signup') {
       const { error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: `${window.location.origin}/s/${single.slug}` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/s/${single.slug}`)}` },
       })
       if (error) { setAuthError(error.message); setAuthLoading(false) }
       else setSent(true)
